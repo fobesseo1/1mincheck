@@ -36,6 +36,15 @@ test('검진: 혈당검사는 35세 이상 또는 위험요인 있는 19세 이�
   assert.ok(has({ dx: { htn: false, dm: true, chol: false } }, '당뇨 합병증 검사'));
   assert.ok(has({ age: 66 }, '골밀도') && has({ meno: true }, '골밀도'));
 });
+test('검진: 보건복지부 기준 — 골밀도 여 54·60·66세, 우울 20–34세 2년마다, 독감은 50세↑ 또는 위험군', () => {
+  const item = (o: Partial<Input>, k: string) => X.checkup(base(o)).items.find((x) => x.t.includes(k));
+  assert.ok(item({ age: 60, meno: true }, '골밀도')!.sub!.includes('국가검진'));
+  assert.ok(item({ age: 25 }, '우울증')!.sub!.includes('2년마다'));
+  assert.ok(item({ age: 37 }, '우울증')!.sub!.includes('35–39세'));
+  assert.equal(item({ age: 40 }, '독감')!.s, 'maybe');
+  assert.equal(item({ age: 52 }, '독감')!.s, 'yes');
+  assert.equal(item({ age: 40, dx: { htn: false, dm: true, chol: false } }, '독감')!.s, 'yes');
+});
 
 test('음주: 남성 주 3–4회 × 소주 1병(7잔) = 고위험음주', () => {
   const d = { perOccasion: 7, timesPerWeek: 3.5, gramsPerWeek: 3.5 * X.ALCOHOL_G.sojuBottle };
