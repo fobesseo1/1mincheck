@@ -47,13 +47,20 @@ try {
   await click('다음'); ok((await text()).includes('만 나이를 숫자로'), '빈 칸이면 이유를 보여준다');
   await click('여성', '성별');
   await type('#age', '17'); ok((await text()).includes('만 19세 이상'), '19세 미만 안내');
-  await type('#age', '49'); await type('#h', '160'); await type('#w', '62'); await type('#wa', '81.3');
+  await type('#age', '49'); await type('#h', '160'); await type('#w', '62');
+  await click('인치', '허리 단위'); await type('#wa', '32');
+  ok((await text()).includes('= 81.3cm'), '허리 32인치 → 81.3cm 환산 표시');
+  await click('cm', '허리 단위'); ok(await p.$eval('#wa', (e) => e.value) === '81.3', 'cm로 바꾸면 81.3으로 환산');
   ok((await text()).includes('24.2'), 'BMI 24.2 자동 계산'); await shot('info');
   await click('다음');
 
   console.log('생활과 병력'); ok((await route()) === '#/life', '#/life');
   ok((await text()).includes('폐경했나요'), '여성·40세 이상이라 폐경 질문이 보인다');
-  await click('안 피움', '담배'); await click('안 마심', '술'); await click('네', '운동'); await click('아니요', '폐경');
+  await click('안 피움', '담배');
+  await click('주 1–2회', '술은'); ok((await text()).includes('한 번 마실 때 보통 얼마나'), '자주 마시면 양 질문이 열린다');
+  await click('소주 늘리기'); await click('소주 늘리기');
+  ok((await text()).includes('하루 평균 약 1.5잔'), '주 1–2회 × 소주 1병 → 하루 평균 1.5잔');
+  await click('안 마심', '술은'); await click('네', '운동'); await click('아니요', '폐경');
   await click('없어요', '당뇨가'); await click('없음', '진단받은'); await click('모름', '혈압'); await shot('life');
   await click('다음: 관심 분야');
 
@@ -86,10 +93,13 @@ try {
 
   console.log('결과 (예시 A와 같아야 함)'); ok((await route()) === '#/result', '#/result');
   const t = await text();
-  ok(/동년배보다 낮음\s*4개/.test(t), '동년배보다 낮음 4개');
+  ok(/또래 평균보다 낮음\s*4개/.test(t), '또래 평균보다 낮음 4개');
+  ok(t.includes('40대 여성 평균과 비교하면') && t.includes('낮은 편'), '한눈에 보기 문장');
+  ok(t.includes('아직 진단받지 않은 당뇨가 지금 있을 가능성') && t.includes('40대 여성 평균 5.2% 기준 · 평균의 약 0.6배로 낮은 편이에요'), '숨은 당뇨: 무엇의 가능성인지 + 또래 비교');
+  ok(!t.includes('확률 6'), '‘확률 6’ 같은 헷갈리는 꼬리표가 없다');
   ok(/관리하면 낮아지는 항목\s*4개/.test(t), '관리하면 낮아지는 항목 4개');
   ok(/챙겨볼 항목\s*3개/.test(t), '챙겨볼 항목 3개');
-  ok(t.includes('나 2.9% · 동년배 5.2%') && t.includes('나 6.4% · 동년배 21.6%'), '숨은 당뇨 2.9%, 지방간 6.4%');
+  ok(t.includes('2.9%') && t.includes('성인 여성 평균 21.6% 기준'), '숨은 당뇨 2.9%, 지방간은 성인 여성 평균과 비교');
   ok(t.includes('지금 6.4%') && t.includes('1.2'), '관리하면 지방간 6.4 → 1.2');
   await shot('result');
   await click('이 기기에 기록 저장'); ok((await text()).includes('기록을 저장했어요'), '기록 저장');

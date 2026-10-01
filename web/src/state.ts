@@ -4,9 +4,34 @@ import type { Input, Alcohol, Bp } from '../../engine/src/engine.ts';
 type YN = boolean | null;
 type Pick4 = number | null;
 
+// ── 음주: '얼마나 자주' × '한 번에 무엇을 얼마나' → 하루 평균 잔 수 → 엔진의 4단계 (spec §5-1 계산기) ──
+// 잔 기준은 spec §5-1: 소주 1잔(약 40–50mL)·맥주 250mL = 1잔, 소주 1병 ≈ 7잔. 막걸리·와인·양주는 각 술의 잔 기준.
+export const ALC_FREQ = [
+  { v: 'none', t: '안 마심', perWeek: 0 }, { v: 'm1', t: '월 1회 이하', perWeek: 0.25 }, { v: 'm2_4', t: '월 2–4회', perWeek: 0.7 },
+  { v: 'w1_2', t: '주 1–2회', perWeek: 1.5 }, { v: 'w3_4', t: '주 3–4회', perWeek: 3.5 }, { v: 'daily', t: '거의 매일', perWeek: 6.5 },
+] as const;
+export type AlcFreq = (typeof ALC_FREQ)[number]['v'];
+export const DRINKS = [
+  { k: 'soju', t: '소주', unit: '병', step: 0.5, glasses: 7, hint: '1병 ≈ 7잔' },
+  { k: 'beer', t: '맥주', unit: '캔·500cc', step: 1, glasses: 2, hint: '500mL ≈ 2잔' },
+  { k: 'makgeolli', t: '막걸리', unit: '병', step: 0.5, glasses: 3, hint: '1병(750mL) ≈ 3잔' },
+  { k: 'wine', t: '와인', unit: '잔', step: 1, glasses: 1, hint: '1잔 = 1잔' },
+  { k: 'liquor', t: '양주·위스키', unit: '잔', step: 1, glasses: 1, hint: '1잔 = 1잔' },
+] as const;
+export type DrinkKey = (typeof DRINKS)[number]['k'];
+export const emptyAmt = (): Record<DrinkKey, number> => ({ soju: 0, beer: 0, makgeolli: 0, wine: 0, liquor: 0 });
+export function alcCalc(freq: AlcFreq | null, amt: Record<DrinkKey, number>) {
+  const per = DRINKS.reduce((s, d) => s + (amt[d.k] || 0) * d.glasses, 0);
+  const pw = ALC_FREQ.find((f) => f.v === freq)?.perWeek ?? 0;
+  const daily = (pw * per) / 7;
+  const cat: Alcohol | null = freq == null ? null : freq === 'none' ? 'none' : per === 0 ? null : daily < 1 ? 'lt1' : daily < 5 ? 'd1_4' : 'd5';
+  return { per, daily, cat };
+}
+export const ALC_LABEL: Record<Alcohol, string> = { none: '안 마심', lt1: '하루 평균 1잔 미만', d1_4: '하루 평균 1–4.9잔', d5: '하루 평균 5잔 이상' };
+
 export interface Draft {
-  age: string; sex: 'M' | 'F' | null; height: string; weight: string; waist: string; waistUnknown: boolean;
-  smoke: 'never' | 'past' | 'current' | null; alcohol: Alcohol | null; exercise: YN; meno: YN | 'unknown';
+  age: string; sex: 'M' | 'F' | null; height: string; weight: string; waist: string; waistUnknown: boolean; waistUnit: 'cm' | 'in';
+  smoke: 'never' | 'past' | 'current' | null; alcFreq: AlcFreq | null; alcAmt: Record<DrinkKey, number>; exercise: YN; meno: YN | 'unknown';
   famDM: YN; dx: { htn: boolean; dm: boolean; chol: boolean; none: boolean }; bp: Bp | null;
   modules: { sleep: boolean; mind: boolean; gerd: boolean; diet: boolean };
   sleep: { snore: YN; tired: YN; apnea: YN; neck: YN; insGate: YN; isi: Pick4[] };
@@ -16,8 +41,8 @@ export interface Draft {
 }
 
 export const emptyDraft = (): Draft => ({
-  age: '', sex: null, height: '', weight: '', waist: '', waistUnknown: false,
-  smoke: null, alcohol: null, exercise: null, meno: null, famDM: null,
+  age: '', sex: null, height: '', weight: '', waist: '', waistUnknown: false, waistUnit: 'cm',
+  smoke: null, alcFreq: null, alcAmt: emptyAmt(), exercise: null, meno: null, famDM: null,
   dx: { htn: false, dm: false, chol: false, none: false }, bp: null,
   modules: { sleep: true, mind: true, gerd: true, diet: true },
   sleep: { snore: null, tired: null, apnea: null, neck: null, insGate: null, isi: Array(7).fill(null) },
@@ -39,12 +64,16 @@ export function basicError(d: Draft): string | null {
   if (!d.sex) return '성별을 골라 주세요';
   if (!(h >= 120 && h <= 220)) return '키는 120–220cm 사이로 입력해 주세요';
   if (!(w >= 30 && w <= 200)) return '몸무게는 30–200kg 사이로 입력해 주세요';
-  if (!d.waistUnknown && !(wa >= 50 && wa <= 150)) return '허리둘레를 입력하거나 ‘모름’을 눌러 주세요';
+  if (!d.waistUnknown && d.waistUnit === 'cm' && !(wa >= 50 && wa <= 150)) return '허리둘레(50–150cm)를 입력하거나 ‘모름’을 눌러 주세요';
+  if (!d.waistUnknown && d.waistUnit === 'in' && !(wa >= 20 && wa <= 60)) return '허리둘레(20–60인치)를 입력하거나 ‘모름’을 눌러 주세요';
   return null;
 }
+/** 화면의 허리 입력 → cm (인치면 ×2.54, 소수 첫째 자리) */
+export const waistCmOf = (d: Draft) => (d.waistUnknown || d.waist === '' ? null : d.waistUnit === 'in' ? Math.round(num(d.waist) * 2.54 * 10) / 10 : num(d.waist));
 export function lifeError(d: Draft): string | null {
   if (!d.smoke) return '흡연 여부를 골라 주세요';
-  if (!d.alcohol) return '음주 정도를 골라 주세요';
+  if (!d.alcFreq) return '술을 얼마나 자주 마시는지 골라 주세요';
+  if (!alcCalc(d.alcFreq, d.alcAmt).cat) return '한 번 마실 때 마시는 양을 넣어 주세요';
   if (d.exercise == null) return '운동 여부를 골라 주세요';
   if (menoShown(d) && d.meno == null) return '폐경 여부를 골라 주세요';
   if (d.famDM == null) return '가족력을 골라 주세요';
@@ -78,8 +107,8 @@ export function toInput(d: Draft): Input | null {
   if (basicError(d) || lifeError(d)) return null;
   const inp: Input = {
     age: num(d.age), sex: d.sex!, heightCm: num(d.height), weightKg: num(d.weight),
-    waistCm: d.waistUnknown ? null : num(d.waist),
-    smoke: d.smoke!, alcohol: d.alcohol!, famDM: !!d.famDM,
+    waistCm: waistCmOf(d),
+    smoke: d.smoke!, alcohol: alcCalc(d.alcFreq, d.alcAmt).cat!, famDM: !!d.famDM,
     dx: { htn: d.dx.htn, dm: d.dx.dm, chol: d.dx.chol }, bp: d.bp!,
     exercise: d.exercise, meno: menoShown(d) ? (d.meno === 'unknown' ? null : (d.meno as boolean)) : null,
   };
@@ -102,7 +131,10 @@ export function fromInput(i: Input): Draft {
   Object.assign(d, {
     age: String(i.age), sex: i.sex, height: String(i.heightCm), weight: String(i.weightKg),
     waist: i.waistCm == null ? '' : String(i.waistCm), waistUnknown: i.waistCm == null,
-    smoke: i.smoke, alcohol: i.alcohol, exercise: i.exercise, famDM: i.famDM, bp: i.bp,
+    smoke: i.smoke, exercise: i.exercise, famDM: i.famDM, bp: i.bp,
+    // 엔진 4단계를 같은 단계로 돌아오는 대표 답으로 (예: 하루 1–4.9잔 = 주 1–2회 × 소주 1병)
+    alcFreq: ({ none: 'none', lt1: 'm2_4', d1_4: 'w1_2', d5: 'daily' } as const)[i.alcohol],
+    alcAmt: { ...emptyAmt(), soju: i.alcohol === 'none' ? 0 : 1 },
     meno: i.sex === 'F' && i.age >= 40 ? (i.meno == null ? 'unknown' : i.meno) : null,
     dx: { ...i.dx, none: !i.dx.htn && !i.dx.dm && !i.dx.chol },
     modules: { sleep: !!i.sleep, mind: !!i.mind, gerd: !!i.gerd, diet: !!i.diet },

@@ -3,9 +3,11 @@ import type { Input } from '../../../engine/src/engine.ts';
 import { useStore, Nav, TabBar, Ring, Gauge, Icon, Crisis } from '../ui.tsx';
 import { toInput, suggestScenario, saveRecords, today } from '../state.ts';
 import { viewResults, INK } from '../lib/view.ts';
-import { MODULE_OF, type ItemId } from '../lib/content.ts';
+import { MODULE_OF, DISCLAIMER, type ItemId } from '../lib/content.ts';
 
 const MOD_ROUTE = { sleep: '/sleep', mind: '/mind', gerd: '/digest', diet: '/diet' };
+/** 마지막 글자 받침에 맞는 조사 */
+export const josa = (w: string, a: string, b: string) => { const c = w.charCodeAt(w.length - 1) - 0xac00; return c >= 0 && c <= 11171 && c % 28 ? a : b; };
 
 /** 결과가 필요한 화면 공통: 기본정보가 없으면 안내 */
 export function useInput(): Input | null { const { draft } = useStore(); return useMemo(() => toInput(draft), [draft]); }
@@ -43,8 +45,38 @@ export function Results() {
         <button type="button" onClick={save} className="pill" style={{ alignSelf: 'center', marginTop: -8, height: 34, padding: '0 14px', border: 0, background: '#fff', boxShadow: 'var(--card-shadow)', gap: 6, color: 'var(--ink)' }}>{Icon.save} 이 기기에 기록 저장</button>
 
         {r.crisis && <Crisis />}
+        <div className="card" style={{ padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            <span className="pill" style={{ background: 'var(--ink)', color: 'var(--lime)' }}>비교 기준</span>
+            <b style={{ fontSize: 14, color: 'var(--obsidian)' }}>{r.group} 평균</b>
+            <span style={{ fontSize: 12, color: 'var(--slate)' }}>국민건강영양조사 2023–2025</span>
+          </div>
+          <p style={{ margin: 0, fontSize: 15, lineHeight: 1.65, color: 'var(--obsidian)' }}>
+            {(() => {
+              const s = r.summary, parts: JSX.Element[] = [];
+              const grp = (xs: string[], tail: string, col: string) => <><b style={{ color: col }}>{xs.join('·')}</b>{josa(xs[xs.length - 1], '은', '는')} {tail}</>;
+              if (s.low.length) parts.push(grp(s.low, '낮은 편', 'var(--ink)'));
+              if (s.same.length) parts.push(grp(s.same, '비슷한 수준', 'var(--obsidian)'));
+              if (s.high.length) parts.push(grp(s.high, '높은 편', 'var(--look)'));
+              return <>
+                {parts.length > 0 && <>{r.group} 평균과 비교하면 {parts.map((p, k) => <span key={k}>{k ? ', ' : ''}{p}</span>)}이에요. </>}
+                {s.watch.length > 0 && <>점수로는 <b style={{ color: 'var(--look)' }}>{s.watch.join(', ')}</b> 항목을 챙겨보면 좋아요. </>}
+                {s.best && <>관리했을 때 가장 많이 줄어드는 건 <b style={{ color: 'var(--ink)' }}>{s.best.name}</b>{josa(s.best.name, '이에요', '예요')}({s.best.a}% → {s.best.b}%).</>}
+              </>;
+            })()}
+          </p>
+          <details>
+            <summary style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', textDecoration: 'underline' }}>이 숫자 읽는 법</summary>
+            <ul style={{ margin: '8px 0 0', paddingLeft: 18, fontSize: 13, lineHeight: 1.65 }}>
+              <li><b>앞으로 생길 확률이 아니라 지금 상태</b>예요. ‘6%’는 지금 그 상태일 가능성이에요.</li>
+              <li>‘100명 중 6명’은 <b>나와 같은 나이대·성별에 나와 같은 답을 한 사람 100명</b>이 있다면 그중 약 6명꼴이라는 뜻이에요.</li>
+              <li><b>또래 평균</b>은 같은 나이대(10살 단위)·같은 성별 한국인의 실제 비율이에요.</li>
+              <li>{DISCLAIMER}</li>
+            </ul>
+          </details>
+        </div>
         <div className="dark3">
-          <div><span className="k">동년배보다 낮음</span><span className="v">{r.lower}<small style={{ fontSize: 14 }}>개</small></span></div>
+          <div><span className="k">또래 평균보다 낮음</span><span className="v">{r.lower}<small style={{ fontSize: 14 }}>개</small></span></div>
           <div className="sep" />
           <div className="mid">{r.hasManage
             ? <><span className="k">관리하면 낮아지는 항목</span><span className="c">{r.improvedN}<small style={{ fontSize: 20 }}>개</small></span></>
@@ -68,7 +100,7 @@ export function Results() {
         )}
 
         <div className="card" style={{ padding: '18px 16px', display: 'flex', flexDirection: 'column', gap: 14 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between' }}><b style={{ fontSize: 15, color: 'var(--obsidian)' }}>동년배 평균을 100으로 보면</b><span className="cap">{r.group}</span></div>
+          <div style={{ display: 'flex', justifyContent: 'space-between' }}><b style={{ fontSize: 15, color: 'var(--obsidian)' }}>또래 평균을 100으로 보면</b><span className="cap">{r.group}</span></div>
           <div className="grid3">
             {r.rings.map((g) => (
               <a key={g.id} href={`#/detail/${g.id}`} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, textDecoration: 'none' }}>
@@ -102,25 +134,39 @@ export function Results() {
           </div>
         )}
 
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}><h2 className="h2">나와 비슷한 100명 중</h2><span className="cap">확률 6</span></div>
+        <h2 className="h2">지금 이 상태일 가능성</h2>
+        <p className="lead" style={{ marginTop: -6, fontSize: 13, color: 'var(--slate)' }}>앞으로 생길 확률이 아니라 지금 상태예요. 나와 같은 조건인 사람 100명 중 몇 명꼴인지로도 보여드려요.</p>
         <div className="card" style={{ padding: '4px 18px' }}>
           {r.prob.map((c) => (
-            <a key={c.id} className="row" href={`#/detail/${c.id}`}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-                <span><b style={{ fontSize: 16, color: 'var(--obsidian)' }}>{c.name}</b> <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--slate)' }}>{c.badge}</span></span>
-                <span style={{ whiteSpace: 'nowrap' }}><b style={{ fontSize: 26, fontWeight: 900, letterSpacing: '-0.04em', color: 'var(--obsidian)' }}>{c.main}</b><b style={{ fontSize: 13, color: 'var(--obsidian)' }}>{c.unit}</b></span>
+            <a key={c.id} className="row" href={`#/detail/${c.id}`} style={{ gap: 10 }}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 }}>
+                <div>
+                  <b style={{ fontSize: 16, color: 'var(--obsidian)' }}>{c.name}</b> <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--slate)' }}>{c.badge}</span>
+                  {c.meaning && <div style={{ fontSize: 12, lineHeight: 1.45, color: 'var(--charcoal)', marginTop: 2 }}>{c.meaning}</div>}
+                </div>
+                {c.ok
+                  ? <div style={{ textAlign: 'right', whiteSpace: 'nowrap' }}><b style={{ fontSize: 26, fontWeight: 900, letterSpacing: '-0.04em', color: 'var(--obsidian)' }}>{c.pct}<small style={{ fontSize: 14 }}>%</small></b><div style={{ fontSize: 11, color: 'var(--slate)' }}>100명 중 약 {c.main}명</div></div>
+                  : <b style={{ fontSize: 22, color: 'var(--obsidian)' }}>{c.main === '–' ? '–' : c.main + c.unit}</b>}
               </div>
               {c.ok ? (
                 <>
-                  <div className="bar"><i style={{ width: `${c.meW}%`, background: c.barC }} />{c.peerX != null && <s style={{ left: `${c.peerX}%` }} />}</div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'var(--slate)' }}><span>나 {c.pct}% · 동년배 {c.peer}%</span>{c.tag && <span className="tag" style={{ background: c.tagBg, color: c.tagFg }}>{c.tag}</span>}</div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '64px 1fr 44px', alignItems: 'center', gap: '6px 8px', fontSize: 11 }}>
+                    <span style={{ fontWeight: 700, color: c.barC }}>나</span><div className="bar"><i style={{ width: `${c.meW}%`, background: c.barC }} /></div><span style={{ textAlign: 'right', fontWeight: 700, color: c.barC }}>{c.pct}%</span>
+                    <span style={{ color: 'var(--slate)' }}>또래 평균</span><div className="bar"><i style={{ width: `${c.peerW}%`, background: '#c2c6be' }} /></div><span style={{ textAlign: 'right', color: 'var(--slate)' }}>{c.peer}%</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+                    <span style={{ fontSize: 13, color: 'var(--obsidian)' }}>{c.peerWho} {c.peer}% 기준 · {c.compare}</span>
+                    {c.tag && <span className="tag" style={{ background: c.tagBg, color: c.tagFg, flexShrink: 0 }}>{c.tag}</span>}
+                  </div>
+                  {c.peerNote && <span style={{ fontSize: 11, color: 'var(--slate)', marginTop: -4 }}>{c.peerNote}</span>}
                 </>
               ) : <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: 'var(--slate)' }}><span>{c.sub}</span><span className="tag" style={{ background: 'var(--bg)', color: 'var(--charcoal)' }}>{c.tag}</span></div>}
             </a>
           ))}
         </div>
 
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}><h2 className="h2">점수와 등급</h2><span className="cap">점수 6</span></div>
+        <h2 className="h2">점수로 보는 항목</h2>
+        <p className="lead" style={{ marginTop: -6, fontSize: 13, color: 'var(--slate)' }}>검증된 설문 점수와 등급이에요. 근거가 부족해 확률로 바꾸지 않았어요.</p>
         <div className="grid2">
           {r.score.map((s) => (
             <a key={s.id} href={`#/detail/${s.id}`} className="card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, padding: '16px 14px 18px', textDecoration: 'none', color: 'inherit' }}>
@@ -139,7 +185,7 @@ export function Results() {
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>{missingMods.map((m) => <a key={m} className="pill" href={'#' + MOD_ROUTE[m]} onClick={() => setDraft((x) => ({ ...x, modules: { ...x.modules, [m]: true } }))} style={{ background: '#fff', textDecoration: 'none' }}>{MODNAME[m]} 질문 답하기</a>)}</div>
           </div>
         )}
-        <p className="help" style={{ margin: '8px 4px 0' }}>진단이 아니라 통계로 보는 참고 정보예요. 모든 계산은 이 기기 안에서만 했어요. 통계: 국민건강영양조사 2023–2025 평균 외.</p>
+        <p className="help" style={{ margin: '8px 4px 0' }}>{DISCLAIMER} 모든 계산은 이 기기 안에서만 했어요.</p>
       </div>
       <TabBar at="result" />
     </div>

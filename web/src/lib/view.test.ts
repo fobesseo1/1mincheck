@@ -42,6 +42,27 @@ describe('상세·바꿔보기·기록', () => {
   });
 });
 
+describe('음주·허리 입력', () => {
+  it('주 1–2회 × 소주 1병이면 하루 평균 1.5잔 → 하루 1–4.9잔 구간', async () => {
+    const { alcCalc, emptyAmt } = await import('../state.ts');
+    const c = alcCalc('w1_2', { ...emptyAmt(), soju: 1 });
+    expect([c.per, Math.round(c.daily * 10) / 10, c.cat]).toEqual([7, 1.5, 'd1_4']);
+    expect(alcCalc('m1', { ...emptyAmt(), beer: 2 }).cat).toBe('lt1');           // 월 1회 × 맥주 2캔(4잔)
+    expect(alcCalc('daily', { ...emptyAmt(), soju: 1 }).cat).toBe('d5');          // 거의 매일 소주 1병
+    expect(alcCalc('w3_4', emptyAmt()).cat).toBe(null);                           // 양을 안 넣으면 미완료
+    expect(alcCalc('none', emptyAmt()).cat).toBe('none');
+  });
+  it('허리 32인치 = 81.3cm', async () => {
+    const { waistCmOf, emptyDraft } = await import('../state.ts');
+    expect(waistCmOf({ ...emptyDraft(), waist: '32', waistUnit: 'in' })).toBe(81.3);
+  });
+  it('또래 비교 문장', async () => {
+    const { compareText } = await import('./view.ts');
+    expect(compareText(2.9, 5.2, '낮음')).toBe('평균의 약 0.6배로 낮은 편이에요');
+    expect(compareText(13.6, 15.5, '비슷')).toBe('평균의 약 0.9배로 비슷한 수준이에요');
+  });
+});
+
 describe('입력 변환', () => {
   it('Input → 화면 답변 → Input 이 그대로 돌아온다', () => {
     for (const s of samples) expect(toInput(fromInput(s.input))).toEqual(s.input);

@@ -1,5 +1,5 @@
 import { useStore, Nav, Progress, H1, Choice, YN, Branch, ScaleItem, Closed, Next, Icon, Crisis, go } from '../ui.tsx';
-import { type Draft, basicError, lifeError, sleepError, mindError, gerdError, dietError, menoShown, phq2Sum, emptyDraft } from '../state.ts';
+import { type Draft, type DrinkKey, basicError, lifeError, sleepError, mindError, gerdError, dietError, menoShown, phq2Sum, emptyDraft, ALC_FREQ, DRINKS, ALC_LABEL, alcCalc } from '../state.ts';
 
 // ── 흐름: 기본정보 → 생활 → 관심 분야 → (고른 모듈만) → 결과 ──
 type Step = 'info' | 'life' | 'modules' | 'sleep' | 'mind' | 'gerd' | 'diet';
@@ -39,7 +39,7 @@ export function Start() {
 export function Intro() {
   const rules = [
     ['01', '이 기기 안에서만 계산해요', '답한 내용은 서버로 보내지 않아요. 기록 저장도 원할 때만, 이 기기에만 해요.'],
-    ['02', '진단이 아니라 통계예요', '나와 비슷한 한국인 100명 중 몇 명인지 보여주는 참고 정보예요. 확인은 검진과 진료로 해요.'],
+    ['02', '수학적 추정이에요', '논문과 국가 통계로 계산한 참고 정보예요. 진단이 아니며, 실제 판정은 반드시 의사가 해요.'],
     ['03', '근거가 있는 숫자만 써요', '국민건강영양조사 2023–2025 평균과 한국인에게 검증된 설문 도구로 계산해요.'],
   ];
   return (
@@ -91,12 +91,23 @@ export function Info() {
         <div style={{ width: 1, height: 64, background: 'var(--line2)' }} />
         {d.waistUnknown
           ? <div style={{ flex: 1, textAlign: 'center' }}><span className="cap" style={{ fontSize: 13 }}>허리둘레</span><div style={{ fontSize: 22, fontWeight: 800, color: 'var(--slate)', marginTop: 10 }}>모름</div></div>
-          : <NumField id="wa" big label="허리둘레" unit="cm" value={d.waist} onChange={(v) => set({ waist: v })} />}
+          : <NumField id="wa" big label="허리둘레" unit={d.waistUnit === 'in' ? '인치' : 'cm'} value={d.waist} onChange={(v) => set({ waist: v })} />}
       </div>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '0 4px' }}>
-        <span className="help">배꼽 높이에서, 숨을 편하게 내쉰 상태로 재요. 모르면 가능한 범위로 보여드려요.</span>
-        <button type="button" className="pill" aria-pressed={d.waistUnknown} onClick={() => set({ waistUnknown: !d.waistUnknown })} style={{ height: 36, padding: '0 14px', border: '1px solid #c9ccc7', background: d.waistUnknown ? 'var(--ink)' : '#fff', color: d.waistUnknown ? '#fff' : 'var(--charcoal)' }}>허리 모름</button>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, padding: '0 4px' }}>
+        <div className="seg" role="group" aria-label="허리 단위" style={{ background: '#fff', flex: '0 0 auto' }}>
+          {([['cm', 'cm'], ['in', '인치']] as const).map(([u, t]) => (
+            <button key={u} type="button" aria-pressed={!d.waistUnknown && d.waistUnit === u} style={{ height: 34, padding: '0 14px' }}
+              onClick={() => { // 단위를 바꾸면 이미 넣은 값도 같이 환산
+                const v = Number(d.waist); let waist = d.waist;
+                if (d.waist !== '' && u !== d.waistUnit) waist = String(Math.round((u === 'in' ? v / 2.54 : v * 2.54) * 10) / 10);
+                set({ waistUnit: u, waist, waistUnknown: false });
+              }}>{t}</button>
+          ))}
+          <button type="button" aria-pressed={d.waistUnknown} style={{ height: 34, padding: '0 14px' }} onClick={() => set({ waistUnknown: !d.waistUnknown })}>모름</button>
+        </div>
+        {!d.waistUnknown && d.waistUnit === 'in' && Number(d.waist) > 0 && <b style={{ fontSize: 14, color: 'var(--ink)' }}>= {(Math.round(Number(d.waist) * 2.54 * 10) / 10).toFixed(1)}cm</b>}
       </div>
+      <p className="help" style={{ margin: '0 4px' }}>배꼽 높이에서 숨을 편하게 내쉰 상태로 줄자로 재요. 바지 사이즈는 실제 허리둘레보다 작게 표시되는 경우가 많아요. 모르면 가능한 범위로 보여드려요.</p>
       {bmi != null && (
         <div className="dark fade" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 20px' }}>
           <div><div style={{ fontSize: 12, fontWeight: 700, color: 'var(--lime)' }}>자동 계산</div><div style={{ fontSize: 14 }}>{cat} · 대한비만학회 기준</div></div>
@@ -125,9 +136,9 @@ export function Life() {
       <Head s="life" title="생활과 병력" />
       <H1 a="요즘 생활은" b="어떠세요?" />
       <Choice q="담배를 피우나요?" value={d.smoke} onChange={(v) => set({ smoke: v })} options={[{ v: 'never' as const, t: '안 피움' }, { v: 'past' as const, t: '예전에 피움' }, { v: 'current' as const, t: '지금 피움' }]} />
-      <Choice q="술은 얼마나 마시나요?" cols={2} value={d.alcohol} onChange={(v) => set({ alcohol: v })}
-        options={[{ v: 'none' as const, t: '안 마심' }, { v: 'lt1' as const, t: '가끔', s: '하루 평균 1잔 미만' }, { v: 'd1_4' as const, t: '자주', s: '하루 평균 1–4.9잔' }, { v: 'd5' as const, t: '많이', s: '하루 평균 5잔 이상' }]}
-        help="1잔 = 소주 1잔(약 40–50mL) 또는 맥주 250mL. 일주일에 소주 1병(약 7잔)이면 하루 평균 1잔이에요." />
+      <Choice q="술은 얼마나 자주 마시나요?" cols={3} size="sm" value={d.alcFreq} onChange={(v) => set({ alcFreq: v })}
+        options={ALC_FREQ.map((f) => ({ v: f.v, t: f.t }))} />
+      {d.alcFreq && d.alcFreq !== 'none' && <Drinks />}
       <YN q="주 2회 이상, 한 번에 30분 이상 운동하나요?" value={d.exercise} onChange={(v) => set({ exercise: v })} />
       {menoShown(d) && (
         <Choice q="폐경했나요?" badge="여성 · 40세 이상이라 보이는 질문" value={d.meno} onChange={(v) => set({ meno: v })}
@@ -147,6 +158,32 @@ export function Life() {
         options={[{ v: 'unknown' as const, t: '모름' }, { v: 'normal' as const, t: '정상', s: '120/80 미만' }, { v: 'elevated' as const, t: '주의', s: '120–139 / 80–89' }, { v: 'high' as const, t: '높음', s: '140 / 90 이상' }]} />
       <div className="grow" />
       <Next error={lifeError(d)} to={nextOf(d, 'life')} label="다음: 관심 분야 고르기" />
+    </div>
+  );
+}
+
+/** 한 번 마실 때 무엇을 얼마나: 술 종류별 수량 → 표준 잔 → 하루 평균 */
+function Drinks() {
+  const { draft: d, setDraft } = useStore();
+  const setAmt = (k: DrinkKey, v: number) => setDraft((x) => ({ ...x, alcAmt: { ...x.alcAmt, [k]: Math.max(0, Math.round(v * 10) / 10) } }));
+  const c = alcCalc(d.alcFreq, d.alcAmt), freq = ALC_FREQ.find((f) => f.v === d.alcFreq)!;
+  const fmt = (v: number) => (Number.isInteger(v) ? String(v) : v.toFixed(1));
+  return (
+    <div className="card branch fade" role="group" aria-label="한 번 마실 때 마시는 양">
+      <div className="hd"><span style={{ color: 'var(--lime)' }}>{Icon.down}</span><div><b>한 번 마실 때 보통 얼마나 마시나요?</b><span>여러 종류를 섞어 마시면 각각 넣어 주세요</span></div></div>
+      <div className="bd" style={{ gap: 4 }}>
+        {DRINKS.map((k) => (
+          <div key={k.k} style={{ display: 'flex', alignItems: 'center', gap: 10, minHeight: 52, borderBottom: '1px solid var(--line)' }}>
+            <div className="grow"><b style={{ fontSize: 15, color: 'var(--obsidian)' }}>{k.t}</b><div style={{ fontSize: 12, color: 'var(--slate)' }}>{k.hint}</div></div>
+            <button type="button" className="circle" aria-label={`${k.t} 줄이기`} onClick={() => setAmt(k.k, d.alcAmt[k.k] - k.step)} style={{ width: 38, height: 38, fontSize: 20, fontWeight: 700 }}>−</button>
+            <span style={{ minWidth: 62, textAlign: 'center', fontSize: 16, fontWeight: 800, color: d.alcAmt[k.k] ? 'var(--obsidian)' : '#b9bdb5' }}>{fmt(d.alcAmt[k.k])}<small style={{ fontSize: 11, fontWeight: 600 }}> {k.unit}</small></span>
+            <button type="button" className="circle" aria-label={`${k.t} 늘리기`} onClick={() => setAmt(k.k, d.alcAmt[k.k] + k.step)} style={{ width: 38, height: 38, fontSize: 20, fontWeight: 700, background: 'var(--ink)', color: '#fff' }}>+</button>
+          </div>
+        ))}
+        <div style={{ marginTop: 10, padding: '12px 14px', borderRadius: 14, background: c.per ? 'var(--linen)' : 'var(--bg)', fontSize: 14, lineHeight: 1.5, color: 'var(--ink)' }} role="status">
+          {c.per ? <>{freq.t} × 한 번에 약 {fmt(c.per)}잔 → <b>하루 평균 약 {c.daily.toFixed(1)}잔</b> ({ALC_LABEL[c.cat!]})</> : '+ 버튼으로 양을 넣어 주세요'}
+        </div>
+      </div>
     </div>
   );
 }

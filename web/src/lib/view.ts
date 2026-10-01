@@ -1,6 +1,12 @@
 // 화면에 보여줄 값 만들기. 계산은 engine 의 runAll()·whatIf() 호출 결과만 쓴다.
 import { runAll, whatIf, type Input, type Result } from '../../../engine/src/engine.ts';
-import { NAMES, BADGE, PROB_IDS, type ItemId } from './content.ts';
+import { NAMES, BADGE, PROB_IDS, MEANING, PEER_NOTE, type ItemId } from './content.ts';
+
+/** 또래 비교 문장: 평균의 몇 배인지 + 낮은 편/비슷/높은 편 */
+export function compareText(me: number, peer: number, label?: string) {
+  const x = me / peer, k = x < 0.95 || x > 1.05 ? `평균의 약 ${x < 0.1 ? x.toFixed(2) : (Math.round(x * 10) / 10).toFixed(1)}배` : '평균과 거의 같아요';
+  return label === '낮음' ? `${k}로 낮은 편이에요` : label === '비슷' ? (k.startsWith('평균과') ? k : `${k}로 비슷한 수준이에요`) : `${k}로 높은 편이에요`;
+}
 
 export type Scenario = { weightKg: number; waistCm: number };
 export const INK = '#163300', LOOK = '#0b4c72', LOW_BG = '#e2f6d5', SAME_BG = '#f2f4f0', HIGH_BG = '#dfeaf1';
@@ -76,7 +82,11 @@ export function viewResults(inp: Input, sc: Scenario) {
   const prob = [...PROB_IDS, 'osteo' as ItemId].map((id) => {
     const r = by[id], st = ratioStyle(r.ratioLabel), pl = probLine(r);
     const v = r.value ?? (r.range ? r.range[1] : null);
+    const peerWho = id === 'nafld' ? `성인 ${inp.sex === 'F' ? '여성' : '남성'} 평균` : `${groupLabel(inp)} 평균`;
     return { id, name: NAMES[id], badge: BADGE[r.type] + (id === 'dep' && r.category ? ' · ' + r.category : ''), status: r.status, ...pl,
+      meaning: MEANING[id] ?? '', peerWho, peerNote: PEER_NOTE[id] ?? '',
+      compare: r.status === 'ok' && r.value != null && r.peer ? compareText(r.value, r.peer, r.ratioLabel) : '',
+      peerW: r.peer != null ? (r.peer / top) * 100 : 0,
       ok: r.status === 'ok' && v != null, pct: r.value != null ? f1(r.value) : r.range ? `${r.range[0]}–${r.range[1]}` : '–',
       peer: r.peer != null ? f1(r.peer) : '–', meW: v != null ? (v / top) * 100 : 0, peerX: r.peer != null ? (r.peer / top) * 100 : null,
       tag: r.ratioLabel ?? statusText[r.status] ?? '', tagBg: st.bg, tagFg: st.fg, barC: st.col };
@@ -88,13 +98,20 @@ export function viewResults(inp: Input, sc: Scenario) {
   const ob = by.obesity, isi = by.isi, dt = by.diet, osa = by.osa, gad = by.gad, gd = by.gerd;
   const score = [
     S('obesity', f1(ob.value!), 'BMI', (ob.value! - 15) / 20, ob.category === '정상' ? '정상 범위예요' : String(ob.notes?.[0] ?? '').replace('BMI 25 미만 체중: ', '') + '면 BMI 25 미만'),
-    S('isi', isi.value == null ? '–' : String(isi.value), 'ISI / 28점', (isi.value ?? 0) / 28, isi.peer != null ? `동년배 약 ${isi.peer}%가 10점 이상` : '수면 질문에 답하면 볼 수 있어요'),
+    S('isi', isi.value == null ? '–' : String(isi.value), 'ISI / 28점', (isi.value ?? 0) / 28, isi.peer != null ? `또래 약 ${isi.peer}%가 10점 이상` : '수면 질문에 답하면 볼 수 있어요'),
     S('diet', dt.value == null ? '–' : String(dt.value), '참고 지표 / 100', (dt.value ?? 0) / 100, dt.value == null ? '식생활 질문에 답하면 볼 수 있어요' : dt.flags?.length ? '보완할 점: ' + dt.flags.join(', ') : '골고루 잘 드시고 있어요'),
     S('osa', osa.value == null ? '–' : String(osa.value), 'STOP-Bang / 8점', (osa.value ?? 0) / 8, osa.value == null ? '수면 질문에 답하면 볼 수 있어요' : osa.category === '저위험' ? '낮을 때 안심하기 좋은 도구' : '높다고 확정은 아니에요'),
     S('gad', gad.value == null ? '–' : String(gad.value), 'GAD-2 / 6점', (gad.value ?? 0) / 6, gad.value == null ? '마음 질문에 답하면 볼 수 있어요' : gad.category === '선별 양성' ? '2주 넘게 이어지면 상담을 권해요' : '3점부터 자세히 봐요'),
     S('gerd', gd.value == null ? '–' : String(gd.value), 'GerdQ / 18점', (gd.value ?? 0) / 18, gd.status === 'needs_input' ? '소화 질문에 답하면 볼 수 있어요' : gd.value == null ? '성인 약 4~7%가 주 1회 이상 겪어요' : '증상이 계속되면 진료를 받아 보세요'),
   ];
-  return { group: groupLabel(inp), who: `${inp.age}세 ${inp.sex === 'F' ? '여성' : '남성'} 기준`, lower, improvedN: improved.length,
+  // 한눈에 보기: 또래 평균 대비 낮음/비슷/높음 + 챙겨볼 점수 + 관리 효과가 가장 큰 항목
+  const pick = (f: (l?: string) => boolean) => PROB_IDS.filter((id) => by[id].status === 'ok' && by[id].value != null && f(by[id].ratioLabel)).map((id) => NAMES[id]);
+  const summary = {
+    low: pick((l) => l === '낮음'), same: pick((l) => l === '비슷'), high: pick((l) => l === '높음' || l === '매우 높음'),
+    watch: flags.filter((x) => x.r.unit !== '%' && x.r.status === 'ok').map((x) => `${NAMES[x.r.id as ItemId]}(${x.r.category})`),
+    best: manage[0] ?? null,
+  };
+  return { group: groupLabel(inp), who: `${inp.age}세 ${inp.sex === 'F' ? '여성' : '남성'} 기준`, lower, improvedN: improved.length, summary,
     hasManage: improved.length > 0, look: flags.length, scenarioText: scenarioText(sc), manage, rings, prob, score, strong, crisis };
 }
 
@@ -149,7 +166,7 @@ export function viewDetail(id: ItemId, inp: Input, sc: Scenario) {
   }
   const st = ratioStyle(r.ratioLabel);
   return { r, rA, isProb, ok, n, m, people, removed: Math.max(0, n - m), afterV, bands, parts, group: groupLabel(inp),
-    ratioTag: r.ratioLabel ? (r.ratioLabel === '비슷' ? '동년배와 비슷' : '동년배보다 ' + r.ratioLabel) : '', ratioBg: st.bg, ratioFg: st.fg,
+    ratioTag: r.ratioLabel ? (r.ratioLabel === '비슷' ? '또래와 비슷' : '또래보다 ' + r.ratioLabel) : '', ratioBg: st.bg, ratioFg: st.fg,
     scenarioText: scenarioText(sc), crisis: (r.flags || []).includes('CRISIS') };
 }
 

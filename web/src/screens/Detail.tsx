@@ -1,8 +1,8 @@
 import type { ReactNode, CSSProperties } from 'react';
 import { useStore, Nav, Icon, People, Gauge, Crisis } from '../ui.tsx';
 import { suggestScenario } from '../state.ts';
-import { viewDetail, f1, statusText, flagOf, INK, LOOK } from '../lib/view.ts';
-import { NAMES, TOOL, BADGE, WHAT, HOW, NEXT, SRC, KNHANES, MODULE_OF, type ItemId } from '../lib/content.ts';
+import { viewDetail, f1, statusText, flagOf, compareText, INK, LOOK } from '../lib/view.ts';
+import { NAMES, TOOL, BADGE, WHAT, HOW, NEXT, SRC, KNHANES, MODULE_OF, MEANING, DISCLAIMER, type ItemId } from '../lib/content.ts';
 import { useInput, NeedInput } from './Results.tsx';
 
 const MOD_ROUTE = { sleep: '/sleep', mind: '/mind', gerd: '/digest', diet: '/diet' };
@@ -33,9 +33,10 @@ export function Detail({ id }: { id: ItemId }) {
           {d.ratioTag && <span className="pill" style={{ background: d.ratioBg, color: d.ratioFg }}>{d.ratioTag}</span>}
         </div>
         {r.status === 'ok' && d.isProb && r.value != null && (<>
-          <div style={{ fontSize: 15, fontWeight: 600, marginTop: 10 }}>나와 비슷한 사람 100명 중</div>
-          <div><span style={{ fontSize: 104, lineHeight: 0.95, fontWeight: 900, letterSpacing: '-0.06em', color: 'var(--obsidian)' }}>{d.n}</span><b style={{ fontSize: 26, color: 'var(--obsidian)' }}>명</b></div>
-          <div style={{ fontSize: 14, color: 'var(--slate)' }}>약 {f1(r.value)}%{id === 'dm' ? ' · 상대 오차 ±약 25%' : ''}</div>
+          {MEANING[id] && <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--obsidian)', marginTop: 10 }}>{MEANING[id]}</div>}
+          <div><span style={{ fontSize: 96, lineHeight: 0.95, fontWeight: 900, letterSpacing: '-0.06em', color: 'var(--obsidian)' }}>{f1(r.value)}</span><b style={{ fontSize: 26, color: 'var(--obsidian)' }}>%</b></div>
+          <div style={{ fontSize: 14, color: 'var(--charcoal)' }}>나와 같은 조건인 사람 100명 중 약 <b>{d.n}명</b>{id === 'dm' ? ' · 상대 오차 ±약 25%' : ''}</div>
+          {r.peer != null && <div style={{ marginTop: 6, padding: '10px 14px', borderRadius: 14, background: d.ratioBg, color: d.ratioFg, fontSize: 14, fontWeight: 600 }}>{id === 'nafld' ? `성인 ${inp.sex === 'F' ? '여성' : '남성'}` : d.group} 평균 {f1(r.peer)}% 기준 · {compareText(r.value, r.peer, r.ratioLabel)}</div>}
           <div style={{ marginTop: 14, width: '100%' }}><People cells={d.people} /></div>
           <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', justifyContent: 'center', fontSize: 12, color: 'var(--obsidian)', marginTop: 8 }}>
             <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><i style={{ width: 10, height: 10, borderRadius: '50%', background: INK }} />{d.removed ? `관리해도 남는 ${d.m}명` : `100명 중 ${d.n}명`}</span>
@@ -43,7 +44,7 @@ export function Detail({ id }: { id: ItemId }) {
           </div>
         </>)}
         {r.status === 'ok' && d.isProb && r.value == null && r.range && (<>
-          <div style={{ fontSize: 15, fontWeight: 600, marginTop: 10 }}>나와 비슷한 사람 100명 중</div>
+          <div style={{ fontSize: 15, fontWeight: 600, marginTop: 10 }}>나와 같은 조건인 사람 100명 중</div>
           <div style={{ fontSize: 64, fontWeight: 900, letterSpacing: '-0.05em', color: 'var(--obsidian)' }}>{Math.round(r.range[0])}–{Math.round(r.range[1])}<small style={{ fontSize: 22 }}>명</small></div>
           <div style={{ fontSize: 14 }}>허리둘레·운동 등 ‘모름’이 있어 범위로 보여드려요. 입력하면 하나의 값으로 좁혀져요.</div>
           <a className="cta outline" href="#/info" style={{ marginTop: 10 }}>기본정보 고치기</a>
@@ -64,7 +65,7 @@ export function Detail({ id }: { id: ItemId }) {
 
       {/* 동년배 */}
       {r.peer != null && r.status === 'ok' && card(<>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}><b style={{ fontSize: 15, color: 'var(--obsidian)' }}>{d.bands.length ? '동년배 곡선' : '동년배와 비교'}</b><span className="cap">{d.group}</span></div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}><b style={{ fontSize: 15, color: 'var(--obsidian)' }}>{d.bands.length ? '또래 곡선' : '또래와 비교'}</b><span className="cap">{d.group}</span></div>
         {d.bands.length > 0 ? (<>
           <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, height: 150, borderBottom: '1px solid var(--line2)' }}>
             {(() => { const top = Math.max(30, Math.ceil(Math.max(...d.bands.map((b) => b.v), r.value ?? 0) * 1.1 / 10) * 10); return d.bands.map((b) => (
@@ -76,13 +77,13 @@ export function Detail({ id }: { id: ItemId }) {
           <div style={{ display: 'flex', gap: 8 }}>{d.bands.map((b) => <div key={b.l} style={{ flex: 1, textAlign: 'center', fontSize: 11 }}><b style={{ color: 'var(--obsidian)', fontWeight: b.mine ? 800 : 500 }}>{f1(b.v)}</b><div style={{ color: 'var(--slate)' }}>{b.l}</div></div>)}</div>
         </>) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {[['나', r.unit === '%' ? r.value : null, INK], ['동년배', r.peer, '#c2c6be']].map(([k, v, c]) => (
+            {[['나', r.unit === '%' ? r.value : null, INK], ['또래 평균', r.peer, '#c2c6be']].map(([k, v, c]) => (
               <div key={k as string}><div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14 }}><span>{k as string}</span><b>{v == null ? (r.unit === '%' ? '–' : `${r.score ?? r.value}점`) : `${f1(v as number)}%`}</b></div>
                 {v != null && <div className="bar" style={{ marginTop: 6 }}><i style={{ width: `${Math.min(100, ((v as number) / Math.max(30, r.peer! * 1.3, (r.value ?? 0) * 1.3)) * 100)}%`, background: c as string }} /></div>}</div>
             ))}
           </div>
         )}
-        <p className="help" style={{ margin: 0 }}>{r.notes?.find((n) => n.includes('동년배')) ?? (id === 'isi' ? '동년배 값은 ISI 10점 이상 비율이에요.' : id === 'osa' ? '동년배 값은 40–69세 수면다원검사 기준 수면호흡장애(AHI 5 이상) 비율이에요(2004).' : id === 'nafld' ? '동년배 값은 간지방지수 기준 성인 전체 비율이에요.' : '같은 나이대·성별 한국인 통계예요.')}</p>
+        <p className="help" style={{ margin: 0 }}>{r.notes?.find((n) => n.includes('동년배'))?.replace('동년배', '또래') ?? (id === 'isi' ? '또래 값은 ISI 10점 이상 비율이에요.' : id === 'osa' ? '또래 값은 40–69세 수면다원검사 기준 수면호흡장애(AHI 5 이상) 비율이에요(2004).' : id === 'nafld' ? '또래 값은 간지방지수 기준 성인 전체 비율이에요.' : '같은 나이대·성별 한국인 통계예요.')}</p>
       </>)}
 
       {/* 당뇨 점수 내역 */}
@@ -133,7 +134,7 @@ export function Detail({ id }: { id: ItemId }) {
           <p style={{ margin: '12px 0 0', fontSize: 13, lineHeight: 1.6 }}>{HOW[id]} 이 계산은 기기 안에서만 해요.</p>
         </details>
       </>)}
-      <p className="help" style={{ margin: '0 4px' }}>진단이 아니라 통계로 보는 참고 정보예요.</p>
+      <p className="help" style={{ margin: '0 4px' }}>{DISCLAIMER}</p>
     </div>
   );
 }

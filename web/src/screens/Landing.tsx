@@ -75,7 +75,7 @@ export function Landing() {
         <div className="steps" style={{ width: '100%' }}>
           {[['기본정보 12문항', '나이·키·몸무게·허리, 흡연·음주·운동, 가족력. 약 60초면 끝나요. 허리를 몰라도 범위로 보여드려요.', 'var(--linen)'],
             ['궁금한 분야만 더', '수면·마음·소화·식생활 중에서 골라요. 해당하는 답을 했을 때만 질문이 더 열려요.', '#e3edf3'],
-            ['100명 중 몇 명으로', '동년배와 비교하고, 근거 논문과 다음에 할 일까지 한 화면에서 봐요.', 'var(--bg)']].map(([t, d, bg], k) => (
+            ['100명 중 몇 명으로', '또래와 비교하고, 근거 논문과 다음에 할 일까지 한 화면에서 봐요.', 'var(--bg)']].map(([t, d, bg], k) => (
             <Card key={t} style={{ overflow: 'hidden' }}>
               <div style={{ height: 8, background: bg }} />
               <div style={{ padding: '26px 28px 30px', display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -93,12 +93,12 @@ export function Landing() {
         <div className="zig">
           <div className="txt"><h3>퍼센트 대신, 100명 중 몇 명</h3><p>‘{D.r.value?.toFixed(1)}%’보다 ‘100명 중 약 {D.n}명’이 더 잘 와닿아요. 사람 아이콘 100개 위에 내 몫과, 관리하면 빠지는 몫을 함께 그려요.</p><a className="gbtn" href="#/start">내 결과 보기</a></div>
           <div className="vis" style={{ background: 'var(--linen)' }}><Card style={{ width: '100%', maxWidth: 420, padding: 28, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
-            <span style={{ fontSize: 14, fontWeight: 600 }}>나와 비슷한 사람 100명 중</span><b style={{ fontSize: 84, lineHeight: 0.95, fontWeight: 900, letterSpacing: '-0.06em', color: 'var(--obsidian)' }}>{D.n}<small style={{ fontSize: 22 }}>명</small></b><People cells={D.people} />
+            <span style={{ fontSize: 14, fontWeight: 600 }}>나와 같은 조건인 사람 100명 중</span><b style={{ fontSize: 84, lineHeight: 0.95, fontWeight: 900, letterSpacing: '-0.06em', color: 'var(--obsidian)' }}>{D.n}<small style={{ fontSize: 22 }}>명</small></b><People cells={D.people} />
           </Card></div>
         </div>
         <div className="zig">
           <div className="vis" style={{ background: 'var(--bg)' }}><Card style={{ width: '100%', maxWidth: 420, padding: 24, display: 'flex', flexDirection: 'column', gap: 12 }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between' }}><b style={{ color: 'var(--obsidian)' }}>동년배 곡선</b><span className="cap">{D.group} · 당뇨 유병률</span></div>
+            <div style={{ display: 'flex', justifyContent: 'space-between' }}><b style={{ color: 'var(--obsidian)' }}>또래 곡선</b><span className="cap">{D.group} · 당뇨 유병률</span></div>
             <div style={{ display: 'flex', alignItems: 'flex-end', gap: 10, height: 150, borderBottom: '1px solid var(--line2)' }}>
               {D.bands.map((b) => <div key={b.l} style={{ position: 'relative', flex: 1, height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', borderRadius: '8px 8px 0 0', background: b.mine ? '#eef6e8' : 'transparent' }}>
                 <div style={{ height: `${(b.v / 30) * 100}%`, borderRadius: '6px 6px 0 0', background: b.mine ? 'var(--ink)' : '#c2c6be' }} />
@@ -168,7 +168,7 @@ export function Landing() {
           <div><span className="cap">근거</span><a href="#evidence">통계·논문</a><a href="#faq">자주 묻는 질문</a></div>
           <div><span className="cap">도움</span><a href="tel:109">자살예방상담 109</a><a href="https://www.kdca.go.kr" target="_blank" rel="noreferrer">질병관리청</a></div>
         </div>
-        <p className="help" style={{ marginTop: 32, maxWidth: 820 }}>1분체크는 의료기기나 진단 도구가 아니에요. 공개된 국가 통계와 논문의 계산식으로 ‘나와 비슷한 사람들’의 비율을 보여주는 참고 정보이며, 건강 상태는 검진과 전문의 진료로 확인해 주세요. © 2026 1분체크</p>
+        <p className="help" style={{ marginTop: 32, maxWidth: 820 }}>1분체크는 논문과 국가 통계를 바탕으로 한 수학적 추정을 보여주는 참고 서비스예요. 진단이 아니며, 실제 판정은 반드시 의사가 해요. © 2026 1분체크</p>
       </div></footer>
     </div>
   );
