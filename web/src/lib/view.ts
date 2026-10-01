@@ -243,7 +243,9 @@ export function viewResults(inp: Input, sc: Scenario) {
   const prob = [...PROB_IDS, 'osteo' as ItemId].map((id) => {
     const r = by[id], c = cmp[id];
     const v = r.value ?? (r.range ? r.range[1] : null);
-    return { id, title: TITLE[id], badge: BADGE[r.type] + (id === 'dep' && r.category ? ' · ' + r.category : ''), status: r.status, meaning: MEANING[id] ?? '',
+    return { id, title: TITLE[id], badge: BADGE[r.type] + (id === 'dep' && r.category ? ' · ' + r.category : ''), status: r.status,
+      // 확률 설명은 확률을 보여줄 때만. 진단자·기준 해당·계산 제외는 상태 안내(note)가 대신한다
+      meaning: r.status === 'ok' || (r.status as string) === 'measured' ? MEANING[id] ?? '' : '',
       pct: r.value != null ? pctText(r.value) : r.range ? `${r.range[0]}–${r.range[1]}` : '–', n: r.value != null ? Math.round(r.value) : null,
       cmp: c, peerTxt: c ? `${id === 'dm' ? '약 ' : ''}${f1(c.peer)}` : '', meW: v != null ? (v / top) * 100 : 0, peerW: c ? (c.peer / top) * 100 : 0,
       note: statusNote(id, r, inp), tone: r.status === 'excluded' || r.status === 'criteria' ? 'look' : r.status === 'managed' ? 'managed' : 'plain',

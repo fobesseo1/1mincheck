@@ -42,7 +42,7 @@ export function Landing() {
           <p style={{ margin: 0 }}>질문 몇 개에 답하면 나이·성별이 같은 한국인 통계와 비교해 12가지 건강 항목을 ‘100명 중 몇 명’으로 보여드려요. 무엇을 바꾸면 얼마나 줄어드는지까지요.</p>
           <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}><a className="btn lime" href="#/start">1분 체크 시작하기</a><a className="btn line" href="#how">어떻게 계산하나요?</a></div>
           <div style={{ display: 'flex', gap: 22, flexWrap: 'wrap', fontSize: 15, fontWeight: 600, color: 'var(--ink)' }}>
-            {['서버 저장 없음', '국민건강영양조사 2023–2025', '한국인 검증 설문 도구'].map((t) => <span key={t} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>{Icon.check}{t}</span>)}
+            {['서버 저장 없음', '국민건강영양조사 공표 통계·원시자료', '한국인 검증 설문 도구'].map((t) => <span key={t} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>{Icon.check}{t}</span>)}
           </div>
         </div>
         <MiniTrial />

@@ -177,7 +177,7 @@ export function Results() {
         <div className="card" style={{ padding: '16px 18px 6px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', paddingBottom: 10 }}>
             <b style={{ fontSize: 16, color: 'var(--obsidian)' }}>그 밖의 항목</b>
-            <span style={{ fontSize: 12, color: 'var(--slate)' }}>{r.who} · 비교 기준 {r.group} <span style={{ whiteSpace: 'nowrap' }}>(국민건강영양조사 2023–2025)</span></span>
+            <span style={{ fontSize: 12, color: 'var(--slate)' }}>{r.who} · 비교 기준 {r.group} <span style={{ whiteSpace: 'nowrap' }}>(국민건강영양조사)</span></span>
           </div>
           {r.same.length > 0 && <Group label="또래와 비슷" col={INK}><Chips items={r.same} /></Group>}
           {r.low.length > 0 && <Group label="또래보다 낮음" col={INK}><Chips items={r.low} /></Group>}

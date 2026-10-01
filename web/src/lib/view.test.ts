@@ -223,3 +223,15 @@ describe('랜딩 미니 체험', () => {
     expect(miniError('18', '170', '70')).toBeTruthy(); expect(miniError('45', '170', '70')).toBeNull();
   });
 });
+
+describe('진단자 카드 설명', () => {
+  it('당뇨·고혈압 진단자에게는 "아직 진단은 안 받았지만" 같은 확률 설명을 붙이지 않는다', () => {
+    const inp = { ...S[Object.keys(S)[0]].input, dx: { htn: true, dm: true, chol: false } } as AppInput;
+    const v = viewResults(inp, {} as never);
+    for (const id of ['dm', 'htn']) {
+      const c = v.prob.find((p) => p.id === id)!;
+      expect(c.status).toBe('managed'); expect(c.meaning).toBe('');
+    }
+    expect(v.prob.find((p) => p.id === 'chol')!.meaning).not.toBe('');
+  });
+});
