@@ -41,6 +41,8 @@ test('검진: 보건복지부 기준 — 골밀도 여 54·60·66세, 우울 20�
   assert.ok(item({ age: 60, meno: true }, '골밀도')!.sub!.includes('국가검진'));
   assert.ok(item({ age: 25 }, '우울증')!.sub!.includes('2년마다'));
   assert.ok(item({ age: 37 }, '우울증')!.sub!.includes('35–39세'));
+  assert.equal(item({ age: 52, meno: true, weightKg: 45 }, '골밀도')!.s, 'yes');      // 폐경 + BMI 17.6 → 급여 대상
+  assert.equal(item({ age: 52, meno: true }, '골밀도')!.s, 'maybe');
   assert.equal(item({ age: 40 }, '독감')!.s, 'maybe');
   assert.equal(item({ age: 52 }, '독감')!.s, 'yes');
   assert.equal(item({ age: 40, dx: { htn: false, dm: true, chol: false } }, '독감')!.s, 'yes');
