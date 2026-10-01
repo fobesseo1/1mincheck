@@ -8,7 +8,7 @@
 }
 * { box-sizing: border-box; }
 html, body { margin: 0; background: var(--bg); }
-body { min-height: 100dvh; }
+body { min-height: 100dvh; word-break: keep-all; overflow-wrap: break-word; }
 button, input { font-family: inherit; color: inherit; }
 button { cursor: pointer; }
 a { color: var(--ink); }

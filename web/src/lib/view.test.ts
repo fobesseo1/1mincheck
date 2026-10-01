@@ -42,6 +42,18 @@ describe('결과 화면 (엔진 값은 그대로, 묶음·비교만 검사)', ()
     expect(dm.cmp!.action).toContain('공복혈당');
     expect(r.prob.find((p) => p.id === 'nafld')!.note).toContain('간 수치 검사');
     expect(r.prob.find((p) => p.id === 'htn')!.status).toBe('managed');
+    // 상단 대표는 배수가 가장 큰 당뇨, 간은 '함께 확인할 것'
+    expect(r.hero!.id).toBe('dm');
+    expect(r.others.map((f) => f.short)).toContain('간');
+  });
+  it('극단 예시: 먼저 확인할 것 9개, 진단 3개, 낮음 최대', async () => {
+    const { stressSamples: X } = await import('./stress.ts');
+    const v = X.map((s) => viewResults(s.input, suggestScenario(s.input)));
+    expect(v[0].first.length).toBe(9);
+    expect(v[1].diagnosed.length).toBe(3);
+    expect(v[2].first.length).toBe(0);
+    expect(v[2].hero).toBe(null);
+    console.log(v.map((r) => [r.first.length, r.improved.length, r.low.length, r.same.length, r.watch.length, r.diagnosed.length].join('/')));
   });
 });
 

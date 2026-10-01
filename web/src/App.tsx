@@ -9,6 +9,7 @@ import { Record } from './screens/Record.tsx';
 import { Landing } from './screens/Landing.tsx';
 import { samples } from '../../src/sampleData.ts';
 import type { ItemId } from './lib/content.ts';
+import { stressSamples } from './lib/stress.ts';
 
 const APP: Record<string, () => JSX.Element> = {
   '/start': Start, '/intro': Intro, '/info': Info, '/life': Life, '/modules': Modules,
@@ -42,7 +43,7 @@ export function App() {
       {msg && <div className="toast" role="status">{msg}</div>}
       {import.meta.env.DEV && route.startsWith('/') && route !== '/' && (
         <div className="demo" role="group" aria-label="개발용 예시 불러오기">
-          {samples.map((s) => <button key={s.id} type="button" onClick={() => { setDraft(() => fromInput(s.input)); toast(`예시 ${s.label} 불러옴`); }}>{s.label}</button>)}
+          {[...samples, ...stressSamples].map((s) => <button key={s.id} type="button" onClick={() => { setDraft(() => fromInput(s.input)); toast(`예시 ${s.label} 불러옴`); }}>{s.label}</button>)}
         </div>
       )}
     </StoreCtx.Provider>

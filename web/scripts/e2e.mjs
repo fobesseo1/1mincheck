@@ -66,8 +66,23 @@ try {
   await click('없어요', '당뇨가'); await click('없음', '진단받은'); await click('모름', '혈압'); await shot('life');
   await click('다음: 관심 분야');
 
-  console.log('관심 분야'); ok((await text()).includes('29문항'), '기본 경로 29문항'); await shot('modules');
+  console.log('관심 분야'); ok((await text()).includes('25문항'), '기본: 소화·식생활·수면만 켜짐 (25문항)');
+  ok(await p.evaluate(() => [...document.querySelectorAll('button[aria-pressed]')].map((b) => b.textContent.slice(0, 2)).join(',')) === '소화,식생,수면,마음', '순서: 소화·식생활 위, 수면·마음 아래');
+  ok(await p.evaluate(() => [...document.querySelectorAll('button[aria-pressed]')].find((b) => b.textContent.startsWith('마음')).getAttribute('aria-pressed')) === 'false', '마음은 기본으로 꺼져 있다');
+  await click('마음'); ok((await text()).includes('29문항'), '마음을 켜면 29문항'); await shot('modules');
   await click('다음');
+
+  console.log('소화'); ok((await route()) === '#/digest', '#/digest (소화가 먼저)');
+  await click('네', '가슴쓰림(명치');
+  ok((await text()).includes('열린 질문 6개'), 'GerdQ 6문항이 열린다');
+  const gq = [['가슴 뒤쪽', '1일'], ['음식이나 신물', '0일'], ['명치(윗배', '0일'], ['메스꺼움', '0일'], ['잠을 설침', '0일'], ['약국 약', '0일']];
+  for (const [g, a] of gq) await click(a, g);
+  await shot('digest'); await click('다음');
+
+  console.log('식생활'); ok((await route()) === '#/diet', '#/diet');
+  const diet = [['아침식사', '5일 이상'], ['잡곡밥', '가끔'], ['과일', '주 2–6회'], ['김치 말고', '하루 1–2끼'], ['우유', '주 1회 이하'], ['국물을', '가끔'], ['단 음료', '주 1회 이하']];
+  for (const [g, a] of diet) await click(a, g);
+  await shot('diet'); await click('다음');
 
   console.log('수면'); ok((await route()) === '#/sleep', '#/sleep');
   await click('아니요', '코골이'); await click('네', '피곤'); await click('아니요', '숨을 멈춘다'); await click('아니요', '목둘레');
@@ -77,25 +92,17 @@ try {
   for (const [g, a] of isi) await click(a, g);
   await shot('sleep'); await click('다음');
 
-  console.log('마음'); ok((await route()) === '#/mind', '#/mind');
+  console.log('마음'); ok((await route()) === '#/mind', '#/mind (마지막)');
   await click('며칠', '흥미나'); await click('며칠', '기분이');
   ok((await text()).includes('두 문항 합계 2점'), '합계 2점이면 추가 문항은 닫혀 있다');
   await click('며칠', '초조'); await click('며칠', '걱정을'); await shot('mind');
-  await click('다음');
-
-  console.log('소화'); await click('네', '가슴쓰림(명치');
-  ok((await text()).includes('열린 질문 6개'), 'GerdQ 6문항이 열린다');
-  const gq = [['가슴 뒤쪽', '1일'], ['음식이나 신물', '0일'], ['명치(윗배', '0일'], ['메스꺼움', '0일'], ['잠을 설침', '0일'], ['약국 약', '0일']];
-  for (const [g, a] of gq) await click(a, g);
-  await shot('digest'); await click('다음');
-
-  console.log('식생활'); const diet = [['아침식사', '5일 이상'], ['잡곡밥', '가끔'], ['과일', '주 2–6회'], ['김치 말고', '하루 1–2끼'], ['우유', '주 1회 이하'], ['국물을', '가끔'], ['단 음료', '주 1회 이하']];
-  for (const [g, a] of diet) await click(a, g);
-  await shot('diet'); await click('결과 보기');
+  await click('결과 보기');
 
   console.log('결과 (예시 A와 같아야 함)'); ok((await route()) === '#/result', '#/result');
   const t = await text();
-  ok(t.includes('한눈에 보기') && t.includes('먼저 확인할 것') && t.includes('또래와 비슷') && t.includes('또래보다 낮음'), '한눈에 보기: 중요한 순서로 묶음');
+  ok(t.indexOf('먼저 확인할 것 1개') < t.indexOf('이미 당뇨일 확률') && /또래의 약\s*2.1\s*배/.test(t.slice(0, 400)), '맨 위: 먼저 확인할 것 + 또래의 약 2.1배 크게');
+  ok(t.indexOf('공복혈당') < t.indexOf('관리하면 줄어드는 것'), '검사 권유 하늘색 박스가 상단 카드 안에 있다');
+  ok(t.includes('그 밖의 항목') && t.includes('또래와 비슷') && t.includes('또래보다 낮음'), '그 밖의 항목 묶음');
   ok(t.includes('이미 당뇨일 확률') && t.includes('또래의 약 2.1배예요') && t.includes('공복혈당'), '이미 당뇨일 확률: 또래 배수 + 검사 권유');
   ok(t.includes('40대 여성 중 진단받지 않은 사람 평균'), '당뇨는 진단받지 않은 또래와 비교');
   ok(!t.includes('숨은 당뇨') && !t.includes('확률 6'), '헷갈리는 용어·꼬리표가 없다');
@@ -124,7 +131,7 @@ try {
   await p.evaluate(() => { location.hash = '/result'; }); await new Promise((r) => setTimeout(r, 400));
   const th = await text();
   ok(th.includes('이미 진단받은 질환') && th.includes('관리 중이에요'), '고혈압 진단이 맨 위에 나온다');
-  ok(th.includes('술을 하루 평균 5잔 이상') && th.includes('간 수치 검사'), '과음이면 간 검사 안내가 먼저 확인할 것에 나온다');
+  ok(th.includes('함께 확인할 것') && th.indexOf('간 수치 검사') < th.indexOf('관리하면 줄어드는 것'), '과음이면 간 검사 안내가 상단 카드에 나온다');
   await shot('result-htn-alcohol');
   await p.evaluate(() => { location.hash = '/whatif'; }); await new Promise((r) => setTimeout(r, 300));
   ok((await text()).includes('진단받아 관리 중'), '바꿔보기에서도 고혈압은 ‘진단받아 관리 중’');
@@ -136,6 +143,30 @@ try {
   await click('7일 이상', '흥미나'); await click('7일 이상', '기분이');
   ok((await text()).includes('더 정확히 보기 7문항'), '합계 4점이면 PHQ-9 7문항이 열린다');
   await click('며칠', '9. 차라리'); ok((await text()).includes('자살예방상담 109'), '9번 문항에 답하면 109 안내가 바로 뜬다'); await shot('mind-crisis');
+
+  console.log('결과 화면 깨짐 검사 (예시·극단값 × 폰 폭 360/430)');
+  const hasDemo = await p.evaluate(() => !!document.querySelector('.demo'));
+  if (!hasDemo) console.log('  - 배포 화면이라 예시 버튼이 없어 건너뜀');
+  else for (const w of [360, 430]) {
+    await p.setViewport({ width: w, height: 844, deviceScaleFactor: 1 });
+    for (const s of ['A ·', 'B ·', 'C ·', 'X1', 'X2', 'X3', 'X4']) {
+      await p.evaluate(() => { location.hash = '/result'; }); await new Promise((r) => setTimeout(r, 200));
+      await click(s, '개발용'); await new Promise((r) => setTimeout(r, 300));
+      const bad = await p.evaluate(() => {
+        const W = document.documentElement.clientWidth, out = [];
+        if (document.documentElement.scrollWidth > W) out.push('가로 스크롤 ' + document.documentElement.scrollWidth);
+        for (const e of document.querySelectorAll('.page *')) {
+          const r = e.getBoundingClientRect();
+          if (r.width && (r.right > W + 0.5 || r.left < -0.5)) out.push(`${e.tagName}.${e.className} "${e.textContent.slice(0, 20)}" ${Math.round(r.left)}–${Math.round(r.right)}`);
+          if (e.matches('.pill, .tag') && e.scrollWidth > e.clientWidth + 1) out.push(`글자 잘림 "${e.textContent}"`);
+        }
+        return out.slice(0, 5);
+      });
+      ok(bad.length === 0, `${s.replace(' ·', '')} @${w}px 넘침 없음${bad.length ? ' → ' + bad.join(' | ') : ''}`);
+      await p.screenshot({ path: `${OUT}stress-${s.replace(' ·', '')}-${w}.png`, fullPage: true });
+    }
+  }
+  await p.setViewport({ width: 390, height: 844, deviceScaleFactor: 1 });
 
   console.log('데스크톱 랜딩'); await p.setViewport({ width: 1440, height: 900, deviceScaleFactor: 1 });
   await p.evaluate(() => { location.hash = '/'; }); await shot('landing-desktop');

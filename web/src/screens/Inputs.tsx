@@ -3,10 +3,11 @@ import { type Draft, type DrinkKey, basicError, lifeError, sleepError, mindError
 
 // ── 흐름: 기본정보 → 생활 → 관심 분야 → (고른 모듈만) → 결과 ──
 type Step = 'info' | 'life' | 'modules' | 'sleep' | 'mind' | 'gerd' | 'diet';
-const MOD: [keyof Draft['modules'], string][] = [['sleep', '/sleep'], ['mind', '/mind'], ['gerd', '/digest'], ['diet', '/diet']];
+const MOD: [keyof Draft['modules'], string][] = [['gerd', '/digest'], ['diet', '/diet'], ['sleep', '/sleep'], ['mind', '/mind']];
 function flow(d: Draft): Step[] { return ['info', 'life', 'modules', ...MOD.filter(([k]) => d.modules[k]).map(([k]) => k as Step)]; }
 const ROUTE: Record<Step, string> = { info: '/info', life: '/life', modules: '/modules', sleep: '/sleep', mind: '/mind', gerd: '/digest', diet: '/diet' };
 const nextOf = (d: Draft, s: Step) => { const f = flow(d), i = f.indexOf(s); return i >= 0 && i < f.length - 1 ? ROUTE[f[i + 1]] : '/result'; };
+const lastLabel = (d: Draft, s: Step) => (nextOf(d, s) === '/result' ? '결과 보기' : '다음');
 const prevOf = (d: Draft, s: Step) => { const f = flow(d), i = f.indexOf(s); return i > 0 ? ROUTE[f[i - 1]] : '/intro'; };
 function Head({ s, title }: { s: Step; title: string }) {
   const { draft } = useStore(); const f = flow(draft), i = Math.max(0, f.indexOf(s));
@@ -194,10 +195,10 @@ function Drinks() {
 export function Modules() {
   const { draft: d, setDraft } = useStore();
   const M: [keyof Draft['modules'], string, string, string, string][] = [
-    ['sleep', '수면', '코골이·숨멈춤·낮 졸림, 잠드는 어려움', '5문항 · 증상 있으면 +7', 'M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z'],
-    ['mind', '마음', '최근 2주 기분과 걱정', '4문항 · 필요하면 +7', 'M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z'],
     ['gerd', '소화', '가슴쓰림·신물 올라옴', '1문항 · 증상 있으면 +6', 'M8 3v6a4 4 0 0 0 8 0V3M12 13v8'],
     ['diet', '식생활', '아침·잡곡·과일·채소·짠 음식·단 음료', '7문항 · 참고 지표', 'M4 11h16a8 8 0 0 1-16 0zM9 7c0-2 2-2 2-4M14 7c0-2 2-2 2-4'],
+    ['sleep', '수면', '코골이·숨멈춤·낮 졸림, 잠드는 어려움', '5문항 · 증상 있으면 +7', 'M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z'],
+    ['mind', '마음', '최근 2주 기분과 걱정 · 원할 때만', '4문항 · 필요하면 +7', 'M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z'],
   ];
   const n = 12 + (d.modules.sleep ? 5 : 0) + (d.modules.mind ? 4 : 0) + (d.modules.gerd ? 1 : 0) + (d.modules.diet ? 7 : 0);
   return (
@@ -259,7 +260,7 @@ export function Sleep() {
       )}
       {s.insGate === false && <Closed>‘아니요’라서 <b>불면 척도 7문항은 건너뛰었어요.</b></Closed>}
       <div className="grow" />
-      <Next error={sleepError(d)} to={nextOf(d, 'sleep')} label="다음" />
+      <Next error={sleepError(d)} to={nextOf(d, 'sleep')} label={lastLabel(d, 'sleep')} />
     </div>
   );
 }
@@ -295,7 +296,7 @@ export function Mind() {
         </div>
       )}
       <div className="grow" />
-      <Next error={mindError(d)} to={nextOf(d, 'mind')} label="다음" />
+      <Next error={mindError(d)} to={nextOf(d, 'mind')} label={lastLabel(d, 'mind')} />
     </div>
   );
 }
@@ -316,7 +317,7 @@ export function Digest() {
       )}
       {g.gate === false && <Closed>‘아니요’라서 <b>소화 모듈은 여기서 끝났어요.</b></Closed>}
       <div className="grow" />
-      <Next error={gerdError(d)} to={nextOf(d, 'gerd')} label="다음" />
+      <Next error={gerdError(d)} to={nextOf(d, 'gerd')} label={lastLabel(d, 'gerd')} />
     </div>
   );
 }
@@ -337,7 +338,7 @@ export function Diet() {
       <span className="pill" style={{ alignSelf: 'flex-start', marginLeft: 4, background: '#fff' }}>참고 지표 · 검증된 척도는 아니에요</span>
       {DIET.map(([q, o], k) => <Choice key={k} q={q} size="sm" value={d.diet[k]} onChange={(v) => setDraft((x) => ({ ...x, diet: x.diet.map((y, j) => (j === k ? v : y)) }))} options={o.map((t, j) => ({ v: j, t }))} />)}
       <div className="grow" />
-      <Next error={dietError(d)} to="/result" label="결과 보기" />
+      <Next error={dietError(d)} to={nextOf(d, 'diet')} label={lastLabel(d, 'diet')} />
     </div>
   );
 }

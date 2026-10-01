@@ -88,17 +88,23 @@ export function viewResults(inp: Input, sc: Scenario) {
 
   // ── 묶음 ──
   const diagnosed = R.filter((r) => r.status === 'managed').map((r) => ({ id: r.id as ItemId, name: NAMES[r.id as ItemId] }));
-  const first: { id: ItemId; name: string; line: string; action: string }[] = [];
-  if (by.nafld.status === 'excluded') first.push({ id: 'nafld', name: '간', line: '술을 하루 평균 5잔 이상 드셔서 지방간 점수로는 판단할 수 없어요', action: '간 수치 검사로 술 때문에 간이 상했는지 확인해 보세요.' });
-  if (by.htn.status === 'criteria') first.push({ id: 'htn', name: '고혈압', line: '측정 혈압이 고혈압 기준(140/90 이상)이에요', action: '며칠에 걸쳐 다시 재 보고 진료를 받아 보세요.' });
+  /** 먼저 확인할 것. tag = 오른쪽 짧은 표시(배수·등급), big = 상단 큰 결론 */
+  type First = { id: ItemId; name: string; short: string; line: string; action: string; tag: string; big: string; c: ReturnType<typeof cmpOf> };
+  const first: First[] = [];
+  if (by.nafld.status === 'excluded') first.push({ id: 'nafld', name: '간', short: '간', line: '술을 하루 평균 5잔 이상 드셔서 지방간 점수로는 판단할 수 없어요', action: '간 수치 검사로 술 때문에 간이 상했는지 확인해 보세요.', tag: '과음', big: '간 검사가 필요해요', c: null });
+  if (by.htn.status === 'criteria') first.push({ id: 'htn', name: '고혈압', short: '고혈압', line: '측정 혈압이 고혈압 기준(140/90 이상)이에요', action: '며칠에 걸쳐 다시 재 보고 진료를 받아 보세요.', tag: '기준 이상', big: '혈압이 고혈압 기준이에요', c: null });
   [...PROB_IDS, 'osteo' as ItemId].forEach((id) => {
     const c = cmp[id]; if (!c?.high) return;
-    first.push({ id, name: TITLE[id], line: `${f1(c.me)}% · ${c.headline} (${c.who} ${id === 'dm' ? '약 ' : ''}${f1(c.peer)}%)`, action: c.action });
+    first.push({ id, name: TITLE[id], short: NAMES[id], line: `${f1(c.me)}% · ${c.headline} (${c.who} ${id === 'dm' ? '약 ' : ''}${f1(c.peer)}%)`, action: c.action, tag: `${xfmt(c.x)}배`, big: c.headline, c });
   });
   R.filter((r) => r.unit !== '%' && flagOf(r, inp) === 'strong').forEach((r) => {
     const id = r.id as ItemId;
-    first.push({ id, name: NAMES[id], line: `${r.category}${r.score != null ? ` · ${r.score}점` : ''}`, action: ACTION[id] ?? '' });
+    first.push({ id, name: NAMES[id], short: NAMES[id], line: `${r.category}${r.score != null ? ` · ${r.score}점` : ''}`, action: ACTION[id] ?? '', tag: r.category ?? '', big: `${NAMES[id]} ${r.category}`, c: null });
   });
+  // 상단 대표: 또래 대비 배수가 가장 큰 항목 (없으면 첫 항목)
+  const withX = first.filter((f) => f.c).sort((a, b) => b.c!.x - a.c!.x);
+  const hero = withX[0] ?? first[0] ?? null;
+  const others = first.filter((f) => f !== hero);
   const names = (f: (c: NonNullable<ReturnType<typeof cmpOf>>) => boolean) => PROB_IDS.filter((id) => cmp[id] && f(cmp[id]!)).map((id) => ({ id, name: NAMES[id] }));
   const low = names((c) => c.label === '낮음'), same = names((c) => c.label === '비슷');
   const watch = R.filter((r) => r.unit !== '%' && flagOf(r, inp) === 'mild').map((r) => ({ id: r.id as ItemId, name: `${NAMES[r.id as ItemId]}(${r.category})` }));
@@ -142,7 +148,7 @@ export function viewResults(inp: Input, sc: Scenario) {
     S('gerd', gd.value == null ? '–' : String(gd.value), 'GerdQ / 18점', (gd.value ?? 0) / 18, gd.status === 'needs_input' ? '소화 질문에 답하면 볼 수 있어요' : gd.value == null ? '성인 약 4~7%가 주 1회 이상 겪어요' : '증상이 계속되면 진료를 받아 보세요'),
   ];
   return { group: groupLabel(inp), who: `${inp.age}세 ${inp.sex === 'F' ? '여성' : '남성'}`, scenarioText: scenarioText(sc),
-    diagnosed, first, low, same, watch, improved, manage, best: manage[0] ?? null, hasManage: improved.length > 0,
+    diagnosed, first, hero, others, low, same, watch, improved, manage, best: manage[0] ?? null, hasManage: improved.length > 0,
     rings, prob, score, crisis };
 }
 

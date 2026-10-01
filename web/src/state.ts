@@ -42,7 +42,7 @@ export const emptyDraft = (): Draft => ({
   age: '', sex: null, height: '', weight: '', waist: '', waistUnknown: false, waistUnit: 'in',
   smoke: null, alcFreq: null, alcAmt: emptyAmt(), exercise: null, meno: null, famDM: null,
   dx: { htn: false, dm: false, chol: false, none: false }, bp: null,
-  modules: { sleep: true, mind: true, gerd: true, diet: true },
+  modules: { sleep: true, mind: false, gerd: true, diet: true },
   sleep: { snore: null, tired: null, apnea: null, neck: null, insGate: null, isi: Array(7).fill(null) },
   mind: { phq: Array(9).fill(null), gad: [null, null] },
   gerd: { gate: null, gq: Array(6).fill(null) },

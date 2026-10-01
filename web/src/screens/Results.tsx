@@ -3,7 +3,9 @@ import type { Input } from '../../../engine/src/engine.ts';
 import { useStore, Nav, TabBar, Ring, Gauge, Icon, Crisis } from '../ui.tsx';
 import { toInput, suggestScenario, saveRecords, today } from '../state.ts';
 import { viewResults, INK, LOOK } from '../lib/view.ts';
-import { MODULE_OF, DISCLAIMER, type ItemId } from '../lib/content.ts';
+import { MODULE_OF, DISCLAIMER, MEANING, type ItemId } from '../lib/content.ts';
+
+const f1 = (x: number) => (Math.round(x * 10) / 10).toFixed(1);
 
 const MOD_ROUTE = { sleep: '/sleep', mind: '/mind', gerd: '/digest', diet: '/diet' };
 /** 마지막 글자 받침에 맞는 조사 */
@@ -52,11 +54,21 @@ export function Results() {
   };
   const missingMods = [...new Set([...r.prob, ...r.score].filter((x) => x.status === 'needs_input').map((x) => MODULE_OF[x.id as ItemId]).filter(Boolean))] as (keyof typeof MOD_ROUTE)[];
   const MODNAME = { sleep: '수면', mind: '마음', gerd: '소화', diet: '식생활' };
-  const cols: { k: string; n: number; items: { id: ItemId; name: string }[]; big?: boolean; col: string }[] = [
-    { k: '먼저 확인할 것', n: r.first.length, items: r.first.map((f) => ({ id: f.id, name: f.name === '이미 당뇨일 확률' ? '당뇨' : f.name })), col: r.first.length ? '#cfe2ef' : '#d8e8cf' },
-    { k: '관리하면 줄어드는 것', n: r.improved.length, items: r.improved, big: true, col: 'var(--lime)' },
-    { k: '또래보다 낮은 것', n: r.low.length, items: r.low, col: '#d8e8cf' },
+  const cols: { k: string; n: number; items: { id: ItemId; name: string }[]; num: string; col: string }[] = [
+    { k: '먼저 확인할 것', n: r.first.length, items: r.first.map((f) => ({ id: f.id, name: f.short })), num: '#fff', col: '#cfe2ef' },
+    { k: '관리하면 줄어드는 것', n: r.improved.length, items: r.improved, num: 'var(--lime)', col: 'var(--lime)' },
+    { k: '또래보다 낮은 것', n: r.low.length, items: r.low, num: '#fff', col: '#d8e8cf' },
   ];
+  const other = (f: (typeof r.others)[number]) => (
+    <a key={f.id} href={`#/detail/${f.id}`} style={{ display: 'flex', flexDirection: 'column', gap: 2, padding: '4px 0', textDecoration: 'none', color: 'inherit' }}>
+      <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+        <b style={{ fontSize: 15, color: 'var(--obsidian)' }}>{f.name}</b>
+        <span className="tag" style={{ background: 'var(--look-bg)', color: LOOK, flexShrink: 0 }}>{f.c ? `또래의 ${f.tag}` : f.tag}</span>
+      </span>
+      {f.action && <span style={{ fontSize: 13, lineHeight: 1.5 }}>→ {f.action}</span>}
+    </a>
+  );
+  const h = r.hero, heroTop = h?.c ? Math.max(h.c.me, h.c.peer) * 1.1 : 1;
   return (
     <div className="app">
       <div className="page fade">
@@ -64,28 +76,83 @@ export function Results() {
         <button type="button" onClick={save} className="pill" style={{ alignSelf: 'center', marginTop: -8, height: 34, padding: '0 14px', border: 0, background: '#fff', boxShadow: 'var(--card-shadow)', gap: 6, color: 'var(--ink)' }}>{Icon.save} 이 기기에 기록 저장</button>
         {r.crisis && <Crisis />}
 
-        {/* 한눈에 보기: 중요한 것부터 */}
-        <div className="card" style={{ padding: '16px 18px 6px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', paddingBottom: 10 }}>
-            <b style={{ fontSize: 16, color: 'var(--obsidian)' }}>한눈에 보기</b>
-            <span style={{ fontSize: 12, color: 'var(--slate)' }}>{r.who} · 비교 기준 {r.group} (국민건강영양조사 2023–2025)</span>
+        {/* 상단: 가장 먼저 확인할 것을 크게 */}
+        <div className="card" style={{ padding: '18px 18px 6px', display: 'flex', flexDirection: 'column' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, paddingBottom: 12 }}>
+            <span className="tag" style={{ background: h ? 'var(--look-bg)' : 'var(--linen)', color: h ? LOOK : INK }}>{h ? `먼저 확인할 것 ${r.first.length}개` : '먼저 확인할 것 없음'}</span>
+            <span style={{ fontSize: 11, color: 'var(--slate)', textAlign: 'right' }}>{r.group} 평균과 비교</span>
           </div>
+          {h ? (
+            <a href={`#/detail/${h.id}`} style={{ display: 'flex', flexDirection: 'column', gap: 10, paddingBottom: 14, textDecoration: 'none', color: 'inherit' }}>
+              <div>
+                <b style={{ fontSize: 17, color: 'var(--obsidian)' }}>{h.name}</b>
+                {MEANING[h.id] && h.c && <div style={{ fontSize: 12, lineHeight: 1.45, color: 'var(--charcoal)', marginTop: 2 }}>{MEANING[h.id]}</div>}
+              </div>
+              {h.c ? (
+                <>
+                  <div style={{ color: LOOK, lineHeight: 1 }}>
+                    <span style={{ fontSize: 18, fontWeight: 800 }}>또래의 약 </span>
+                    <b style={{ fontSize: 60, fontWeight: 900, letterSpacing: '-0.05em' }}>{h.tag.replace('배', '')}</b>
+                    <b style={{ fontSize: 26, fontWeight: 900 }}>배</b>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr auto', alignItems: 'center', gap: '6px 10px', fontSize: 12 }}>
+                    <span style={{ fontWeight: 800, color: LOOK }}>나</span><div className="bar"><i style={{ width: `${(h.c.me / heroTop) * 100}%`, background: LOOK }} /></div><b style={{ textAlign: 'right', color: LOOK, fontSize: 15 }}>{f1(h.c.me)}%</b>
+                    <span style={{ color: 'var(--slate)' }}>또래 평균</span><div className="bar"><i style={{ width: `${(h.c.peer / heroTop) * 100}%`, background: '#c2c6be' }} /></div><span style={{ textAlign: 'right', color: 'var(--slate)' }}>{h.id === 'dm' ? '약 ' : ''}{f1(h.c.peer)}%</span>
+                  </div>
+                  <span style={{ fontSize: 11, color: 'var(--slate)' }}>또래 평균 = {h.c.who}</span>
+                </>
+              ) : (
+                <b style={{ fontSize: 28, fontWeight: 900, letterSpacing: '-0.03em', lineHeight: 1.25, color: LOOK }}>{h.big}<div style={{ fontSize: 13, fontWeight: 600, letterSpacing: 0, color: 'var(--charcoal)', marginTop: 4 }}>{h.line}</div></b>
+              )}
+              {h.action && <div style={{ padding: '12px 14px', borderRadius: 14, background: 'var(--look-bg)', color: LOOK, fontSize: 14, fontWeight: 700, lineHeight: 1.5 }}>→ {h.action}</div>}
+            </a>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, paddingBottom: 14 }}>
+              <b style={{ fontSize: 26, fontWeight: 900, letterSpacing: '-0.03em', lineHeight: 1.25, color: INK }}>또래보다 높은 항목이 없어요</b>
+              <span style={{ fontSize: 14, lineHeight: 1.5 }}>지금처럼 관리하면서 정기 검진을 받으면 돼요.</span>
+            </div>
+          )}
+          {r.others.length > 0 && (
+            <Group label={`함께 확인할 것 ${r.others.length}개`} col={LOOK}>
+              {r.others.slice(0, 3).map(other)}
+              {r.others.length > 3 && (
+                <details>
+                  <summary style={{ padding: '6px 0', fontSize: 13, fontWeight: 700, color: LOOK, textDecoration: 'underline' }}>나머지 {r.others.length - 3}개 더 보기</summary>
+                  {r.others.slice(3).map(other)}
+                </details>
+              )}
+            </Group>
+          )}
           {r.diagnosed.length > 0 && (
             <Group label="이미 진단받은 질환" col={INK}>
-              {r.diagnosed.map((x) => <a key={x.id} href={`#/detail/${x.id}`} style={{ textDecoration: 'none', fontSize: 14, color: 'var(--obsidian)' }}><b>{x.name}</b> — 관리 중이에요. 처방과 정기 진료를 이어가세요.</a>)}
+              {r.diagnosed.map((x) => <a key={x.id} href={`#/detail/${x.id}`} style={{ textDecoration: 'none', fontSize: 14, lineHeight: 1.5, color: 'var(--obsidian)' }}><b>{x.name}</b> — 관리 중이에요. 처방과 정기 진료를 이어가세요.</a>)}
             </Group>
           )}
-          {r.first.length > 0 && (
-            <Group label="먼저 확인할 것" col={LOOK}>
-              {r.first.map((f) => (
-                <a key={f.id} href={`#/detail/${f.id}`} style={{ display: 'flex', gap: 10, textDecoration: 'none', color: 'inherit' }}>
-                  <i style={{ width: 8, height: 8, marginTop: 7, flexShrink: 0, borderRadius: '50%', background: LOOK }} />
-                  <div><b style={{ fontSize: 15, color: 'var(--obsidian)' }}>{f.name}</b> <span style={{ fontSize: 14, color: LOOK, fontWeight: 600 }}>{f.line}</span>
-                    {f.action && <div style={{ fontSize: 13, lineHeight: 1.5, marginTop: 2 }}>→ {f.action}</div>}</div>
-                </a>
-              ))}
-            </Group>
-          )}
+        </div>
+
+        {/* 숫자 카드: 세로 3줄, 항목이 많아도 줄바꿈 */}
+        <div style={{ padding: '4px 18px', borderRadius: 22, background: 'var(--ink)', boxShadow: '0 10px 24px rgba(22, 51, 0, .25)' }}>
+          {cols.map((c, k) => (
+            <div key={c.k} style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: '14px 0', borderTop: k ? '1px solid rgba(255,255,255,.15)' : 0 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                <span style={{ fontSize: 14, fontWeight: 700, color: '#d8e8cf' }}>{c.k}</span>
+                <b style={{ fontSize: 30, lineHeight: 1, fontWeight: 900, letterSpacing: '-0.04em', color: c.num }}>{c.n}<small style={{ fontSize: 14, marginLeft: 2 }}>개</small></b>
+              </div>
+              {c.items.length > 0 ? (
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                  {c.items.map((x) => <a key={x.id + x.name} href={`#/detail/${x.id}`} className="pill" style={{ height: 28, background: 'rgba(255,255,255,.12)', color: c.col, textDecoration: 'none' }}>{x.name}</a>)}
+                </div>
+              ) : <span style={{ fontSize: 12, color: '#9fb08f' }}>없음</span>}
+            </div>
+          ))}
+        </div>
+
+        {/* 그 밖의 항목 */}
+        <div className="card" style={{ padding: '16px 18px 6px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', paddingBottom: 10 }}>
+            <b style={{ fontSize: 16, color: 'var(--obsidian)' }}>그 밖의 항목</b>
+            <span style={{ fontSize: 12, color: 'var(--slate)' }}>{r.who} · 비교 기준 {r.group} <span style={{ whiteSpace: 'nowrap' }}>(국민건강영양조사 2023–2025)</span></span>
+          </div>
           {r.same.length > 0 && <Group label="또래와 비슷" col={INK}><Chips items={r.same} /></Group>}
           {r.low.length > 0 && <Group label="또래보다 낮음" col={INK}><Chips items={r.low} /></Group>}
           {r.watch.length > 0 && <Group label="점수로 챙겨볼 것" col={LOOK}><Chips items={r.watch} /></Group>}
@@ -94,7 +161,6 @@ export function Results() {
               <span style={{ fontSize: 14, color: 'var(--obsidian)' }}>{r.scenarioText}{josa(r.scenarioText, '을', '를')} 줄이면 <b>{r.best.name}</b>{josa(r.best.name, '이', '가')} <b style={{ color: INK }}>{r.best.a}% → {r.best.b}%</b>로 줄어요.</span>
             </Group>
           )}
-          {r.first.length === 0 && r.diagnosed.length === 0 && <Group label="결론" col={INK}><span style={{ fontSize: 14 }}>먼저 확인할 항목이 없어요. 지금처럼 관리하면서 정기 검진을 받으면 돼요.</span></Group>}
           <details style={{ padding: '10px 0 12px', borderTop: '1px solid var(--line)' }}>
             <summary style={{ fontSize: 13, fontWeight: 700, color: 'var(--ink)', textDecoration: 'underline' }}>이 숫자 읽는 법</summary>
             <ul style={{ margin: '8px 0 0', paddingLeft: 18, fontSize: 13, lineHeight: 1.65 }}>
@@ -103,22 +169,6 @@ export function Results() {
               <li>{DISCLAIMER}</li>
             </ul>
           </details>
-        </div>
-
-        {/* 숫자 카드: 개수 + 항목 이름 */}
-        <div className="dark3" style={{ alignItems: 'flex-start', padding: '18px 6px' }}>
-          {cols.map((c, k) => (
-            <div key={c.k} style={{ display: 'contents' }}>
-              {k > 0 && <div className="sep" style={{ alignSelf: 'stretch' }} />}
-              <div className={c.big ? 'mid' : ''} style={{ gap: 4 }}>
-                <span className="k">{c.k}</span>
-                <span className={c.big ? 'c' : 'v'} style={{ color: c.big ? 'var(--lime)' : '#fff' }}>{c.n}<small style={{ fontSize: c.big ? 20 : 14 }}>개</small></span>
-                <span style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '2px 6px', fontSize: 11, lineHeight: 1.4 }}>
-                  {c.items.length ? c.items.map((x) => <a key={x.id + x.name} href={`#/detail/${x.id}`} style={{ color: c.col, textDecoration: 'underline', textUnderlineOffset: 2 }}>{x.name}</a>) : <span style={{ color: '#9fb08f' }}>없음</span>}
-                </span>
-              </div>
-            </div>
-          ))}
         </div>
 
         <div className="card" style={{ padding: '18px 16px', display: 'flex', flexDirection: 'column', gap: 14 }}>
