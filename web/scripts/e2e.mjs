@@ -22,7 +22,7 @@ const ok = (cond, msg) => { console.log(cond ? '  ✓' : '  ✗', msg); if (!con
 // 버튼/링크를 글자로 찾아 누르기. group 을 주면 그 질문 안에서만 찾는다
 async function click(label, group) {
   const done = await p.evaluate((label, group) => {
-    const root = group ? [...document.querySelectorAll('[role=group]')].find((g) => (g.getAttribute('aria-label') || '').includes(group)) : document;
+    const root = group ? [...document.querySelectorAll('[role=group],[role=radiogroup]')].find((g) => (g.getAttribute('aria-label') || '').includes(group)) : document;
     if (!root) return 'no group';
     const el = [...root.querySelectorAll('button, a')].find((e) => e.textContent.trim().replace(/\s+/g, ' ').startsWith(label) || e.getAttribute('aria-label') === label);
     if (!el) return 'no button';
@@ -48,9 +48,11 @@ try {
   await click('여성', '성별');
   await type('#age', '17'); ok((await text()).includes('만 19세 이상'), '19세 미만 안내');
   await type('#age', '49'); await type('#h', '160'); await type('#w', '62');
-  await click('인치', '허리 단위'); await type('#wa', '32');
-  ok((await text()).includes('= 81.3cm'), '허리 32인치 → 81.3cm 환산 표시');
-  await click('cm', '허리 단위'); ok(await p.$eval('#wa', (e) => e.value) === '81.3', 'cm로 바꾸면 81.3으로 환산');
+  ok(!(await text()).includes('모름'), '허리 ‘모름’ 선택지는 없다');
+  await type('#wa', '32');
+  ok((await text()).includes('≈ 81.3cm'), '기본 단위 인치: 32인치 → 같은 칸에 ≈ 81.3cm');
+  await click('cm', '허리 단위'); await type('#wa', '81.3');
+  ok((await text()).includes('≈ 32.0인치'), 'cm 선택: 81.3cm → ≈ 32.0인치');
   ok((await text()).includes('24.2'), 'BMI 24.2 자동 계산'); await shot('info');
   await click('다음');
 

@@ -39,7 +39,7 @@ export interface Draft {
 }
 
 export const emptyDraft = (): Draft => ({
-  age: '', sex: null, height: '', weight: '', waist: '', waistUnknown: false, waistUnit: 'cm',
+  age: '', sex: null, height: '', weight: '', waist: '', waistUnknown: false, waistUnit: 'in',
   smoke: null, alcFreq: null, alcAmt: emptyAmt(), exercise: null, meno: null, famDM: null,
   dx: { htn: false, dm: false, chol: false, none: false }, bp: null,
   modules: { sleep: true, mind: true, gerd: true, diet: true },
@@ -62,8 +62,8 @@ export function basicError(d: Draft): string | null {
   if (!d.sex) return '성별을 골라 주세요';
   if (!(h >= 120 && h <= 220)) return '키는 120–220cm 사이로 입력해 주세요';
   if (!(w >= 30 && w <= 200)) return '몸무게는 30–200kg 사이로 입력해 주세요';
-  if (!d.waistUnknown && d.waistUnit === 'cm' && !(wa >= 50 && wa <= 150)) return '허리둘레(50–150cm)를 입력하거나 ‘모름’을 눌러 주세요';
-  if (!d.waistUnknown && d.waistUnit === 'in' && !(wa >= 20 && wa <= 60)) return '허리둘레(20–60인치)를 입력하거나 ‘모름’을 눌러 주세요';
+  if (!d.waistUnknown && d.waistUnit === 'cm' && !(wa >= 50 && wa <= 150)) return '허리둘레를 50–150cm 사이로 입력해 주세요';
+  if (!d.waistUnknown && d.waistUnit === 'in' && !(wa >= 20 && wa <= 60)) return '허리둘레를 20–60인치 사이로 입력해 주세요';
   return null;
 }
 /** 화면의 허리 입력 → cm (인치면 ×2.54, 소수 첫째 자리) */
@@ -128,7 +128,7 @@ export function fromInput(i: Input): Draft {
   const d = emptyDraft();
   Object.assign(d, {
     age: String(i.age), sex: i.sex, height: String(i.heightCm), weight: String(i.weightKg),
-    waist: i.waistCm == null ? '' : String(i.waistCm), waistUnknown: i.waistCm == null,
+    waist: i.waistCm == null ? '' : String(i.waistCm), waistUnknown: i.waistCm == null, waistUnit: 'cm',
     smoke: i.smoke, exercise: i.exercise, famDM: i.famDM, bp: i.bp,
     // 엔진 4단계를 같은 단계로 돌아오는 대표 답으로 (예: 하루 1–4.9잔 = 주 1–2회 × 소주 1병)
     alcFreq: ({ none: 'none', lt1: 'm2_4', d1_4: 'w1_2', d5: 'daily' } as const)[i.alcohol],

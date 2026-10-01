@@ -89,25 +89,27 @@ export function Info() {
       <div className="card" style={{ display: 'flex', alignItems: 'center', padding: '20px 16px' }}>
         <NumField id="w" big label="몸무게" unit="kg" value={d.weight} onChange={(v) => set({ weight: v })} />
         <div style={{ width: 1, height: 64, background: 'var(--line2)' }} />
-        {d.waistUnknown
-          ? <div style={{ flex: 1, textAlign: 'center' }}><span className="cap" style={{ fontSize: 13 }}>허리둘레</span><div style={{ fontSize: 22, fontWeight: 800, color: 'var(--slate)', marginTop: 10 }}>모름</div></div>
-          : <NumField id="wa" big label="허리둘레" unit={d.waistUnit === 'in' ? '인치' : 'cm'} value={d.waist} onChange={(v) => set({ waist: v })} />}
-      </div>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, padding: '0 4px' }}>
-        <div className="seg" role="group" aria-label="허리 단위" style={{ background: '#fff', flex: '0 0 auto' }}>
-          {([['cm', 'cm'], ['in', '인치']] as const).map(([u, t]) => (
-            <button key={u} type="button" aria-pressed={!d.waistUnknown && d.waistUnit === u} style={{ height: 34, padding: '0 14px' }}
-              onClick={() => { // 단위를 바꾸면 이미 넣은 값도 같이 환산
-                const v = Number(d.waist); let waist = d.waist;
-                if (d.waist !== '' && u !== d.waistUnit) waist = String(Math.round((u === 'in' ? v / 2.54 : v * 2.54) * 10) / 10);
-                set({ waistUnit: u, waist, waistUnknown: false });
-              }}>{t}</button>
-          ))}
-          <button type="button" aria-pressed={d.waistUnknown} style={{ height: 34, padding: '0 14px' }} onClick={() => set({ waistUnknown: !d.waistUnknown })}>모름</button>
+        {/* 허리둘레: 숫자 오른쪽에 단위(인치 위·cm 아래), 숫자 아래에 다른 단위 환산값 */}
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+          <label htmlFor="wa" className="cap" style={{ fontSize: 13 }}>허리둘레</label>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+            <input id="wa" className="num" inputMode="decimal" value={d.waist} placeholder="0"
+              onChange={(e) => set({ waist: e.target.value.replace(/[^0-9.]/g, ''), waistUnknown: false })}
+              style={{ fontSize: 44, textAlign: 'center', width: `${Math.max(2, d.waist.length) * 0.6 + 0.3}em` }} />
+            <div role="radiogroup" aria-label="허리 단위" style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              {([['in', '인치'], ['cm', 'cm']] as const).map(([u, t]) => {
+                const on = d.waistUnit === u;
+                return <button key={u} type="button" role="radio" aria-checked={on} onClick={() => set({ waistUnit: u })}
+                  style={{ border: 0, background: 'transparent', padding: '2px 2px', minHeight: 22, fontSize: 13, whiteSpace: 'nowrap', textAlign: 'left', fontWeight: on ? 800 : 500, color: on ? 'var(--ink)' : '#b9bdb5' }}>{t}</button>;
+              })}
+            </div>
+          </div>
+          <span style={{ fontSize: 12, color: '#a3a7a0', minHeight: 16 }}>
+            {Number(d.waist) > 0 ? (d.waistUnit === 'in' ? `≈ ${(Number(d.waist) * 2.54).toFixed(1)}cm` : `≈ ${(Number(d.waist) / 2.54).toFixed(1)}인치`) : ''}
+          </span>
         </div>
-        {!d.waistUnknown && d.waistUnit === 'in' && Number(d.waist) > 0 && <b style={{ fontSize: 14, color: 'var(--ink)' }}>= {(Math.round(Number(d.waist) * 2.54 * 10) / 10).toFixed(1)}cm</b>}
       </div>
-      <p className="help" style={{ margin: '0 4px' }}>배꼽 높이에서 숨을 편하게 내쉰 상태로 줄자로 재요. 바지 사이즈는 실제 허리둘레보다 작게 표시되는 경우가 많아요. 모르면 가능한 범위로 보여드려요.</p>
+      <p className="help" style={{ margin: '0 4px' }}>허리둘레는 배꼽 높이 기준 둘레예요.</p>
       {bmi != null && (
         <div className="dark fade" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 20px' }}>
           <div><div style={{ fontSize: 12, fontWeight: 700, color: 'var(--lime)' }}>자동 계산</div><div style={{ fontSize: 14 }}>{cat} · 대한비만학회 기준</div></div>
