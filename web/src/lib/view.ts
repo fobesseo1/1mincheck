@@ -101,10 +101,13 @@ export function viewResults(inp: Input, sc: Scenario) {
     const id = r.id as ItemId;
     first.push({ id, name: NAMES[id], short: NAMES[id], line: `${r.category}${r.score != null ? ` · ${r.score}점` : ''}`, action: ACTION[id] ?? '', tag: r.category ?? '', big: `${NAMES[id]} ${r.category}`, c: null });
   });
-  // 상단 대표: 또래 대비 배수가 가장 큰 항목 (없으면 첫 항목)
-  const withX = first.filter((f) => f.c).sort((a, b) => b.c!.x - a.c!.x);
-  const hero = withX[0] ?? first[0] ?? null;
-  const others = first.filter((f) => f !== hero);
+  // 상단 대표: 신체 항목(당뇨·고혈압·콜레스테롤·간·골다공증)을 먼저, 그 안에서 또래 대비 배수가 큰 것.
+  // 신체 항목이 없을 때만 마음·수면·소화 항목이 올라간다.
+  const BODY: ItemId[] = ['dm', 'htn', 'chol', 'nafld', 'osteo'];
+  const rank = (f: First) => (BODY.includes(f.id) ? 0 : 2) + (f.c ? 0 : 1);
+  first.sort((a, b) => rank(a) - rank(b) || (b.c?.x ?? 0) - (a.c?.x ?? 0));
+  const hero = first[0] ?? null;
+  const others = first.slice(1);
   const names = (f: (c: NonNullable<ReturnType<typeof cmpOf>>) => boolean) => PROB_IDS.filter((id) => cmp[id] && f(cmp[id]!)).map((id) => ({ id, name: NAMES[id] }));
   const low = names((c) => c.label === '낮음'), same = names((c) => c.label === '비슷');
   const watch = R.filter((r) => r.unit !== '%' && flagOf(r, inp) === 'mild').map((r) => ({ id: r.id as ItemId, name: `${NAMES[r.id as ItemId]}(${r.category})` }));

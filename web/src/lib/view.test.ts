@@ -34,7 +34,7 @@ describe('결과 화면 (엔진 값은 그대로, 묶음·비교만 검사)', ()
       dx: { htn: true, dm: false, chol: false }, meno: null };
     const r = viewResults(me, suggestScenario(me));
     expect(names(r.diagnosed)).toEqual(['고혈압']);
-    expect(r.first[0].name).toBe('간');
+    expect(r.first.map((f) => f.short).slice(0, 2)).toEqual(['당뇨', '간']);
     const dm = r.prob[0];
     expect(dm.pct).toBe('15.6');
     expect(dm.cmp!.peer).toBeCloseTo(6.3, 1);
@@ -53,6 +53,9 @@ describe('결과 화면 (엔진 값은 그대로, 묶음·비교만 검사)', ()
     expect(v[1].diagnosed.length).toBe(3);
     expect(v[2].first.length).toBe(0);
     expect(v[2].hero).toBe(null);
+    // 우울 배수가 더 커도 상단 대표는 신체 항목, 마음·수면·소화는 그 뒤
+    expect(v.map((r) => r.hero?.id ?? '-')).toEqual(['dm', 'nafld', '-', 'dm']);
+    expect(v[0].others.map((f) => f.short)).toEqual(['고혈압', '고콜레스테롤', '간', '우울', '수면무호흡', '불면', '불안', '위식도역류']);
     console.log(v.map((r) => [r.first.length, r.improved.length, r.low.length, r.same.length, r.watch.length, r.diagnosed.length].join('/')));
   });
 });
