@@ -138,3 +138,18 @@ test('runExtras: 검진이 맨 앞, 주의 항목이 그다음', () => {
   assert.equal(xs[0].id, 'checkup');
   assert.equal(xs[1].level, 'look');
 });
+
+test('4년 고혈압 (Lim 2013): 표 3 점수 · 위험', () => {
+  // 49세 여성(BMI 23.4)·비흡연, 검진 118/76: 수축기 115–119 +2, BMI 0, 45–49×75–79 +3, 여성 +1 = 6 → 12.3%
+  const f = base({});
+  assert.equal(X.htn4Score(f, 118, 76, 0), 6);
+  assert.ok(X.htn4(f, { sbp: 118, dbp: 76 })!.head.includes('12.3%'));
+  assert.ok(X.htn4(f, { sbp: 118, dbp: 76 })!.items[1].sub!.includes('17.5%'));   // 부모 한 분 +2 → 8점
+  // 표 양 끝: 최저 −3 → 2.3%, 최고 24 → 98.5%, 인쇄 오류 3점 → 7.1%
+  assert.equal(X.htn4Risk(-3), 2.3); assert.equal(X.htn4Risk(24), 98.5); assert.equal(X.htn4Risk(3), 7.1);
+  // 검진 혈압 없음·140/90 이상·고혈압 진단·나이 범위 밖이면 없음
+  assert.equal(X.htn4(f), null);
+  assert.equal(X.htn4(f, { sbp: 142, dbp: 80 }), null);
+  assert.equal(X.htn4(base({ dx: { htn: true, dm: false, chol: false } }), { sbp: 118, dbp: 76 }), null);
+  assert.equal(X.htn4(base({ age: 35 }), { sbp: 118, dbp: 76 }), null);
+});

@@ -26,7 +26,7 @@ export type Lab = Partial<Record<LabKey, number>>;
 export type Level = 'look' | 'note' | 'ok';
 export type Mark = 'yes' | 'maybe' | 'no' | 'unknown' | 'info';
 export interface Extra {
-  id: 'checkup' | 'alcohol' | 'metsyn' | 'lifestyle' | 'liver' | 'dementia' | 'ckd' | 'body' | 'dm10';
+  id: 'checkup' | 'alcohol' | 'metsyn' | 'lifestyle' | 'liver' | 'dementia' | 'ckd' | 'body' | 'dm10' | 'htn4';
   name: string;
   level: Level;
   /** 오른쪽 위 꼬리표 (없으면 level 기본값) */
@@ -312,9 +312,34 @@ export function dm10(i: Input, L: Lab = {}): Extra | null {
     source: 'Oh 2021 J Diabetes Investig 12:610 (KoGES 안성·안산 40–69세, 2001년 시작, 9.7년 추적, AUC 0.66). 점수별 비율은 검증군의 실제 발생 비율이고, 혈당부하검사까지 해서 진단해 일반 검진보다 높게 나올 수 있어요' };
 }
 
+// ── 10. 4년 안에 고혈압이 생길 가능성 (Lim 2013 KoGES 점수, 40–69세, 4년 추적) ──
+// 표 3 그대로. 원문 표의 총점 3 줄이 4로 잘못 인쇄(4가 두 번)되어, 3점은 앞뒤 값(2점·4점)의 log(−log(1−p)) 가운데로 채움.
+const HTN4_RISK = [2.3, 2.8, 3.3, 4.0, 4.9, 5.9, 7.1, 8.5, 10.2, 12.3, 14.7, 17.5, 20.8, 24.7, 29.1, 34.0, 39.6, 45.8, 52.4, 59.4, 66.4, 73.4, 79.9, 85.7, 90.6, 94.3, 96.9, 98.5]; // 총점 −3…24
+const HTN4_AGE_DBP = [[-1, 1, 2, 4, 6], [1, 2, 3, 5, 6], [2, 3, 4, 5, 6], [4, 5, 5, 6, 6], [6, 6, 6, 6, 7], [7, 7, 7, 7, 7]]; // 나이 ≤44,45–49,…,65+ × 이완기 ≤69,70–74,75–79,80–84,85–89
+export function htn4Score(i: Input, sbp: number, dbp: number, parents: 0 | 1 | 2) {
+  const sp = sbp < 110 ? -2 : sbp < 115 ? 0 : sbp < 120 ? 2 : sbp < 125 ? 3 : sbp < 130 ? 5 : sbp < 135 ? 6 : 8;
+  const b = bmiOf(i), bp = b < 25 ? 0 : b < 30 ? 1 : 3;
+  const ad = HTN4_AGE_DBP[Math.min(5, Math.max(0, Math.floor((i.age - 40) / 5)))][dbp < 70 ? 0 : dbp < 75 ? 1 : dbp < 80 ? 2 : dbp < 85 ? 3 : 4];
+  return sp + bp + ad + [0, 2, 4][parents] + (i.smoke === 'current' ? 1 : 0) + (i.sex === 'F' ? 1 : 0);
+}
+export const htn4Risk = (score: number) => HTN4_RISK[Math.min(24, Math.max(-3, score)) + 3];
+export function htn4(i: Input, L: Lab = {}): Extra | null {
+  if (i.dx.htn || L.sbp == null || L.dbp == null || L.sbp >= 140 || L.dbp >= 90 || i.age < 40 || i.age > 69) return null;
+  const s0 = htn4Score(i, L.sbp, L.dbp, 0), r0 = htn4Risk(s0), avg = 17.3;
+  return { id: 'htn4', name: '4년 안에 고혈압이 생길 가능성', level: r0 > avg ? 'look' : 'note', tag: '참고사항',
+    head: `계산식으로 본 4년 안 고혈압 발생 가능성은 약 ${r0}%예요`,
+    items: [
+      { t: '점수', s: 'info', sub: `${s0}점 (검진 혈압 ${L.sbp}/${L.dbp}, BMI·나이·흡연·성별 반영, 부모 고혈압 없음으로 계산)` },
+      { t: '부모 중 고혈압이 있다면', s: 'info', sub: `한 분이면 약 ${htn4Risk(s0 + 2)}%, 두 분이면 약 ${htn4Risk(s0 + 4)}%` },
+      { t: '연구 참가자 전체', s: 'info', sub: `4년 동안 ${avg}%가 고혈압이 됐어요` },
+    ],
+    action: '혈압은 하루 한 번 재서는 알 수 없어요. 집에서 며칠 재 보세요. 체중을 줄이고 담배를 끊으면 점수가 내려가요. 짠 음식과 술을 줄이는 것도 혈압에 도움이 돼요.',
+    source: 'Lim 2013 J Clin Hypertens 15:344 (KoGES 안성·안산 40–69세 4,747명, 4년 추적, 와이블 회귀, 점수 AUC 0.790) 표 3 점수표. 원문 기간이 4년이라 10년으로 늘려 계산하지 않아요. 고혈압 기준은 140/90 이상 또는 약 복용' };
+}
+
 /** 모든 추가 체크. 순서: 검진 → 주의가 필요한 것 → 나머지 */
 export function runExtras(i: Input, d?: Drink, L: Lab = {}): Extra[] {
-  const xs = [dm10(i, L), alcohol(i, d), metsyn(i, L), body(i), lifestyle(i, d), liver(i, d), dementia(i, d), ckd(i, L)].filter((x): x is Extra => !!x);
+  const xs = [dm10(i, L), htn4(i, L), alcohol(i, d), metsyn(i, L), body(i), lifestyle(i, d), liver(i, d), dementia(i, d), ckd(i, L)].filter((x): x is Extra => !!x);
   const rank = { look: 0, note: 1, ok: 2 };
   return [checkup(i), ...xs.sort((a, b) => rank[a.level] - rank[b.level])];
 }
