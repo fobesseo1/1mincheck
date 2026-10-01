@@ -1,0 +1,16 @@
+{
+  "name": "1분체크 · 1분이면 보는 내 몸의 확률",
+  "short_name": "1분체크",
+  "description": "나이·성별이 같은 한국인 통계와 비교해 12가지 건강 항목을 100명 중 몇 명으로 보여드려요.",
+  "lang": "ko",
+  "start_url": "./#/start",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#f2f4f0",
+  "theme_color": "#163300",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

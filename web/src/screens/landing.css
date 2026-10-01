@@ -1,0 +1,53 @@
+.ld { background: #fff; color: var(--charcoal); }
+.ld .wrap { max-width: 1280px; margin: 0 auto; padding: 0 24px; }
+.ld header { position: sticky; top: 0; z-index: 10; background: rgba(255, 255, 255, .92); backdrop-filter: blur(8px); border-bottom: 1px solid var(--line); }
+.ld header .wrap { display: flex; align-items: center; justify-content: space-between; height: 68px; }
+.ld .logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+.ld .logo i { width: 34px; height: 34px; border-radius: 10px; background: var(--ink); display: flex; align-items: center; justify-content: center; }
+.ld .logo i::after { content: ''; width: 12px; height: 12px; border-radius: 50%; background: var(--lime); }
+.ld .logo b { font-size: 22px; font-weight: 800; letter-spacing: -0.04em; color: var(--ink); }
+.ld nav { display: flex; gap: 4px; }
+.ld nav a { padding: 10px 12px; font-size: 15px; font-weight: 600; color: var(--obsidian); text-decoration: none; }
+.ld .btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; height: 52px; padding: 0 26px; border-radius: 9999px; font-size: 16px; font-weight: 700; text-decoration: none; }
+.ld .btn.lime { background: var(--lime); color: var(--ink); }
+.ld .btn.line { border: 1.5px solid var(--ink); color: var(--ink); background: #fff; }
+.ld .btn.dark { background: var(--ink); color: #fff; }
+.ld .btn.sm { height: 44px; padding: 0 20px; font-size: 15px; }
+.ld .gbtn { display: inline-flex; align-self: flex-start; align-items: center; height: 48px; padding: 0 20px; border-radius: 12px; background: var(--line); color: var(--obsidian); font-size: 15px; font-weight: 700; text-decoration: none; }
+.ld .dots { background-image: radial-gradient(rgba(22, 51, 0, .07) 1.5px, transparent 1.5px); background-size: 18px 18px; }
+.ld .hero { display: grid; grid-template-columns: 1fr 1fr; gap: 56px; align-items: center; padding: 72px 0 88px; }
+.ld .hero h1 { margin: 0; font-size: clamp(40px, 5.2vw, 64px); line-height: 1.1; font-weight: 800; letter-spacing: -0.045em; color: var(--obsidian); }
+.ld .hero h1 b { color: var(--ink); font-weight: 900; }
+.ld .hero p { font-size: 18px; line-height: 1.65; max-width: 540px; }
+.ld .collage { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; }
+.ld .panel { border-radius: 32px; background-color: var(--bg); padding: 80px 40px; }
+.ld h2 { margin: 0; font-size: clamp(30px, 3.4vw, 44px); line-height: 1.2; font-weight: 800; letter-spacing: -0.04em; color: var(--obsidian); }
+.ld h3 { margin: 0; font-size: clamp(26px, 2.6vw, 34px); font-weight: 800; letter-spacing: -0.04em; color: var(--obsidian); }
+.ld .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
+.ld .zig { display: grid; grid-template-columns: 1fr 1fr; gap: 72px; align-items: center; }
+.ld .zig .vis { display: flex; justify-content: center; padding: 40px; border-radius: 24px; }
+.ld .zig .txt { display: flex; flex-direction: column; gap: 18px; }
+.ld .zig .txt p { margin: 0; font-size: 17px; line-height: 1.7; }
+.ld .band { border-radius: 32px; background-color: var(--ink); background-image: radial-gradient(rgba(159, 232, 112, .14) 1.5px, transparent 1.5px); background-size: 18px 18px; padding: 72px 40px; text-align: center; }
+.ld .ev { display: grid; grid-template-columns: 260px repeat(3, 1fr); gap: 16px; }
+.ld .faq { display: grid; grid-template-columns: 320px 1fr; gap: 64px; }
+.ld footer { border-top: 1px solid var(--line); margin-top: 96px; padding: 56px 0 40px; }
+.ld .fcols { display: grid; grid-template-columns: 1.4fr repeat(3, 1fr); gap: 32px; }
+.ld .fcols a { display: block; font-size: 14px; color: var(--charcoal); text-decoration: none; margin-top: 10px; }
+.ld .sec { padding: 96px 0; }
+@media (max-width: 900px) {
+  .ld nav { display: none; }
+  .ld .hero, .ld .zig, .ld .faq { grid-template-columns: 1fr; gap: 36px; }
+  .ld .hero { padding: 40px 0 56px; }
+  .ld .zig .vis { order: -1; padding: 24px; }
+  .ld .steps { grid-template-columns: 1fr; }
+  .ld .ev { grid-template-columns: 1fr; }
+  .ld .panel, .ld .band { padding: 56px 20px; border-radius: 24px; }
+  .ld .fcols { grid-template-columns: 1fr 1fr; }
+  .ld .sec { padding: 64px 0; }
+}
+@media (max-width: 520px) {
+  .ld .collage { grid-template-columns: 1fr; }
+  .ld .collage .c2 { display: none; }
+  .ld .wrap { padding: 0 16px; }
+}
