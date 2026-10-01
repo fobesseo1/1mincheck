@@ -5,7 +5,7 @@ type YN = boolean | null;
 type Pick4 = number | null;
 
 // ── 음주: '얼마나 자주' × '한 번에 무엇을 얼마나' → 하루 평균 잔 수 → 엔진의 4단계 (spec §5-1 계산기) ──
-// 잔 기준은 spec §5-1: 소주 1잔(약 40–50mL)·맥주 250mL = 1잔, 소주 1병 ≈ 7잔. 막걸리·와인·양주는 각 술의 잔 기준.
+// 잔 기준은 spec §5-1: 소주 1잔(약 40–50mL)·맥주 250mL = 1잔, 소주 1병 ≈ 7잔. 와인은 와인잔 1잔 = 1잔.
 export const ALC_FREQ = [
   { v: 'none', t: '안 마심', perWeek: 0 }, { v: 'm1', t: '월 1회 이하', perWeek: 0.25 }, { v: 'm2_4', t: '월 2–4회', perWeek: 0.7 },
   { v: 'w1_2', t: '주 1–2회', perWeek: 1.5 }, { v: 'w3_4', t: '주 3–4회', perWeek: 3.5 }, { v: 'daily', t: '거의 매일', perWeek: 6.5 },
@@ -14,12 +14,10 @@ export type AlcFreq = (typeof ALC_FREQ)[number]['v'];
 export const DRINKS = [
   { k: 'soju', t: '소주', unit: '병', step: 0.5, glasses: 7, hint: '1병 ≈ 7잔' },
   { k: 'beer', t: '맥주', unit: '캔·500cc', step: 1, glasses: 2, hint: '500mL ≈ 2잔' },
-  { k: 'makgeolli', t: '막걸리', unit: '병', step: 0.5, glasses: 3, hint: '1병(750mL) ≈ 3잔' },
   { k: 'wine', t: '와인', unit: '잔', step: 1, glasses: 1, hint: '1잔 = 1잔' },
-  { k: 'liquor', t: '양주·위스키', unit: '잔', step: 1, glasses: 1, hint: '1잔 = 1잔' },
 ] as const;
 export type DrinkKey = (typeof DRINKS)[number]['k'];
-export const emptyAmt = (): Record<DrinkKey, number> => ({ soju: 0, beer: 0, makgeolli: 0, wine: 0, liquor: 0 });
+export const emptyAmt = (): Record<DrinkKey, number> => ({ soju: 0, beer: 0, wine: 0 });
 export function alcCalc(freq: AlcFreq | null, amt: Record<DrinkKey, number>) {
   const per = DRINKS.reduce((s, d) => s + (amt[d.k] || 0) * d.glasses, 0);
   const pw = ALC_FREQ.find((f) => f.v === freq)?.perWeek ?? 0;
