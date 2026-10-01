@@ -248,10 +248,11 @@ export function Sleep() {
     <div className="page fade">
       <Head s="sleep" title="수면" />
       <H1 a="잠은 잘" b="자고 계신가요?" />
-      <YN q="코골이가 크다는 말을 듣나요? (닫힌 문 너머로 들릴 정도)" value={s.snore} onChange={(v) => set({ snore: v })} />
-      <YN q="낮에 자주 피곤하거나 졸린가요?" value={s.tired} onChange={(v) => set({ tired: v })} />
-      <YN q="자다가 숨을 멈춘다는 말을 들은 적이 있나요?" value={s.apnea} onChange={(v) => set({ apnea: v })} help="들어본 적 없거나 모르면 ‘아니요’를 골라주세요." />
-      <YN q="목둘레가 40cm보다 큰가요? (셔츠 목 사이즈)" value={s.neck} onChange={(v) => set({ neck: v })} help="모르면 ‘아니요’를 골라주세요." />
+      {/* STOP-Bang 공식 한국어판(KR-kor, 2015) 문구. 혈압·BMI·나이·성별 4문항은 앞에서 받은 답으로 자동 계산 */}
+      <YN q="코를 크게 곱니까? (문이 닫힌 상태에서 문 밖에서 들을 수 있을 정도, 또는 같이 자는 사람이 밀쳐 낼 정도)" value={s.snore} onChange={(v) => set({ snore: v })} />
+      <YN q="낮 동안 종종 지치거나, 피곤하거나, 졸림을 느낍니까? (예: 운전 중 잠드는 것)" value={s.tired} onChange={(v) => set({ tired: v })} />
+      <YN q="수면 중에 숨을 멈추거나 숨이 막히거나 숨을 헐떡이는 것을 누군가가 보았습니까?" value={s.apnea} onChange={(v) => set({ apnea: v })} />
+      <YN q={`목둘레가 큽니까? (목젖 주위로 측정, 셔츠 목 칼라 ${d.sex === 'F' ? '16인치/41cm' : '17인치/43cm'} 이상)`} value={s.neck} onChange={(v) => set({ neck: v })} />
       <YN q="최근 2주, 잠들기·잠 유지·새벽에 일찍 깨는 것 중 하나라도 문제가 있었나요?" value={s.insGate} onChange={(v) => set({ insGate: v })} />
       {s.insGate === true && (
         <Branch title="‘네’라고 답해서 열린 질문 7개" sub="불면 정도 표준 척도(ISI) · 최근 2주">

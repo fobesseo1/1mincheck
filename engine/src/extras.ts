@@ -269,15 +269,14 @@ export function dm10(i: Input): Extra | null {
   const ss = bps.map((b) => kdrScore(i, b)), rs = ss.map((s) => K.risk[kdrBand(s)]);
   const lo = Math.min(...rs), hi = Math.max(...rs), avg = 22.7;
   const pct = lo === hi ? `${lo}%` : `${lo}–${hi}%`;
-  return { id: 'dm10', name: '10년 안에 당뇨가 생길 가능성', level: hi > avg ? 'look' : 'note', tag: '참고 · 정확도 낮음',
+  return { id: 'dm10', name: '10년 안에 당뇨가 생길 가능성', level: hi > avg ? 'look' : 'note', tag: '참고사항',
     head: `비슷한 점수였던 사람 중 ${pct}가 10년 안에 당뇨가 됐어요`,
     items: [
       { t: '점수', s: 'info', sub: `${ss.length > 1 ? `${Math.min(...ss)}–${Math.max(...ss)}` : ss[0]}점 / 100 (도시 거주로 계산${ss.length > 1 ? ', 혈압을 몰라 범위로' : ''})` },
       { t: '연구 참가자 전체 평균', s: 'info', sub: `${avg}%` },
-      { t: '이 점수의 정확도', s: 'info', sub: 'AUC 0.66 · 당뇨가 생긴 사람과 안 생긴 사람을 3번 중 2번 정도만 맞게 구분해요' },
     ],
-    action: '이 숫자보다 혈당 검사가 더 정확해요. 공복혈당·당화혈색소를 확인하면 전단계인지도 알 수 있어요. 허리를 줄이고 금연하면 점수가 내려가요.',
-    source: 'Oh 2021 J Diabetes Investig 12:610 (KoGES 안성·안산 40–69세, 2001년 시작, 9.7년 추적). 점수별 비율은 검증군의 실제 발생 비율이고, 혈당부하검사까지 해서 진단해 일반 검진보다 높게 나올 수 있어요' };
+    action: '공복혈당·당화혈색소 검사를 받으면 지금 상태(전단계인지)를 정확히 알 수 있어요. 허리를 줄이고 금연하면 점수가 내려가요.',
+    source: 'Oh 2021 J Diabetes Investig 12:610 (KoGES 안성·안산 40–69세, 2001년 시작, 9.7년 추적, AUC 0.66). 점수별 비율은 검증군의 실제 발생 비율이고, 혈당부하검사까지 해서 진단해 일반 검진보다 높게 나올 수 있어요' };
 }
 
 /** 모든 추가 체크. 순서: 검진 → 주의가 필요한 것 → 나머지 */

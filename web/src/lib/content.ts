@@ -121,7 +121,7 @@ export const SRC: Record<ItemId, { t: string; d: string; u: string }[]> = {
   chol: [{ t: '고콜레스테롤혈증 유병률 추이', d: '주간 건강과 질병 2025', u: 'https://www.phwr.org/journal/view.html?doi=10.56786%2FPHWR.2025.18.36.3' }],
   obesity: [{ t: '2023 Obesity Fact Sheet', d: '대한비만학회 · JOMES 2024', u: 'https://doaj.org/article/52b16353b4ba495a9f9eaa9c514287b3' }],
   nafld: [{ t: '비혈액 지방간 자가진단 점수', d: 'Lee YH 외, PLoS One 2014', u: 'https://pmc.ncbi.nlm.nih.gov/articles/PMC4162644/' }, { t: '한국 NAFLD 유병률 추이', d: 'KNHANES 1998–2017', u: 'https://pmc.ncbi.nlm.nih.gov/articles/PMC7465994' }],
-  osa: [{ t: '한국 수면클리닉 STOP-Bang 비교', d: 'Yonsei Med J 2015', u: 'https://pmc.ncbi.nlm.nih.gov/articles/PMC4397437/' }, { t: '한국 중년 수면호흡장애 유병률', d: 'Kim J 외, AJRCCM 2004', u: 'https://pubmed.ncbi.nlm.nih.gov/15347562/' }],
+  osa: [{ t: 'STOP-Bang 공식 한국어판 (KR-kor)', d: 'University Health Network · 2015 개정 채점 기준', u: 'https://www.stopbang.ca' }, { t: '한국 수면클리닉 STOP-Bang 비교', d: 'Yonsei Med J 2015', u: 'https://pmc.ncbi.nlm.nih.gov/articles/PMC4397437/' }, { t: '한국 중년 수면호흡장애 유병률', d: 'Kim J 외, AJRCCM 2004', u: 'https://pubmed.ncbi.nlm.nih.gov/15347562/' }],
   isi: [{ t: '한국인 불면 성차 연구', d: 'PLoS One 2020', u: 'https://pmc.ncbi.nlm.nih.gov/articles/PMC6952093' }, { t: 'ISI 점수 구간', d: 'Bastien 2001', u: 'https://pubmed.ncbi.nlm.nih.gov/11438246/' }],
   dep: [{ t: '우울장애 유병률 추이 2016–2024', d: '주간 건강과 질병 2026', u: 'https://www.phwr.org/journal/view.html?doi=10.56786%2FPHWR.2026.19.15.4' }, { t: 'PHQ-2 타당도', d: 'Kroenke 2003', u: 'https://pubmed.ncbi.nlm.nih.gov/14583691/' }],
   gad: [{ t: '한국판 GAD-7·GAD-2', d: 'Front Psychiatry 2019', u: 'https://pmc.ncbi.nlm.nih.gov/articles/PMC6431620' }],

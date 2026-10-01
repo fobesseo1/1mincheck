@@ -85,7 +85,8 @@ try {
   await shot('diet'); await click('다음');
 
   console.log('수면'); ok((await route()) === '#/sleep', '#/sleep');
-  await click('아니요', '코골이'); await click('네', '피곤'); await click('아니요', '숨을 멈춘다'); await click('아니요', '목둘레');
+  ok((await text()).includes('16인치/41cm'), 'STOP-Bang 공식판: 여성 목둘레 41cm');
+  await click('아니요', '코를 크게'); await click('네', '피곤'); await click('아니요', '숨을 멈추거나'); await click('아니요', '목둘레');
   ok(!(await text()).includes('열린 질문 7개'), '아직 ISI 는 닫혀 있다');
   await click('네', '최근 2주'); ok((await text()).includes('열린 질문 7개'), '‘네’를 누르면 ISI 7문항이 열린다');
   const isi = [['1. 잠들기', '중간'], ['2. 잠을 유지', '약간'], ['3. 너무 일찍', '중간'], ['4. 지금 수면', '보통'], ['5. 수면 문제가 다른', '약간'], ['6. 수면 문제로', '어느 정도'], ['7. 수면 문제가 낮', '약간']];
@@ -110,7 +111,7 @@ try {
   ok(t.includes('지금 6.4%') && t.includes('1.2'), '관리하면 지방간 6.4 → 1.2');
   ok(t.includes('생활·검진으로 보는 체크') && t.includes('49세 여성 권장 검사') && t.includes('유방암 검진'), '맞춤 검진·접종 카드 (49세 여성)');
   ok(!t.includes('고위험음주'), '안 마시면 음주 카드는 없다');
-  ok(t.includes('10년 안에 당뇨가 생길 가능성') && t.includes('정확도 낮음'), '10년 당뇨 카드 (정확도 낮음 표시)');
+  ok(t.includes('10년 안에 당뇨가 생길 가능성') && t.includes('참고사항') && !t.includes('정확도 낮음'), '10년 당뇨 카드 (참고사항)');
   ok(t.includes('허리/키 비율 0.51'), '허리/키 비율 0.51');
   ok(t.includes('PHQ-2 / 6점') && !t.includes('지금 우울(PHQ-9'), '우울은 확률 대신 PHQ 점수');
   await shot('result');

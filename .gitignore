@@ -5,3 +5,7 @@ brag-output/work/
 *.log
 .DS_Store
 .claude/scheduled_tasks.lock
+# 국민건강영양조사 원시자료: 서약상 재배포 금지. 집계 결과만 저장소에 둔다
+docs/sas/
+analysis/raw/
+analysis/.cache/
