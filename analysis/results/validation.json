@@ -1,0 +1,425 @@
+{
+  "meta": {
+    "source": "국민건강영양조사 제9기(2022–2024) 원시자료, 질병관리청",
+    "weights": "wt_itvex/3 (이용지침서 기수 내 3개년 통합)",
+    "adults": 16492,
+    "note": "혈압은 ‘모름’으로 계산(앱 기본 상태). 진단받지 않은 사람만. 운동은 유산소 신체활동 실천(주 150분)으로 대체",
+    "generated": "2026-10-01"
+  },
+  "validation": {
+    "dm": {
+      "name": "이미 당뇨일 확률 (진단받지 않은 사람 중 공복혈당 126↑ 또는 당화혈색소 6.5%↑)",
+      "n": 13393,
+      "auc": 0.752,
+      "predicted": 3.8,
+      "observed": 3.4,
+      "groups": {
+        "남 19–29": {
+          "n": 802,
+          "predicted": 1.1,
+          "observed": 1.2
+        },
+        "남 30대": {
+          "n": 811,
+          "predicted": 2.8,
+          "observed": 1.9
+        },
+        "남 40대": {
+          "n": 973,
+          "predicted": 5.9,
+          "observed": 3.9
+        },
+        "남 50대": {
+          "n": 999,
+          "predicted": 6.5,
+          "observed": 7.3
+        },
+        "남 60대": {
+          "n": 1107,
+          "predicted": 5.8,
+          "observed": 7.9
+        },
+        "남 70세↑": {
+          "n": 995,
+          "predicted": 4.8,
+          "observed": 6.6
+        },
+        "여 19–29": {
+          "n": 947,
+          "predicted": 0.8,
+          "observed": 0.3
+        },
+        "여 30대": {
+          "n": 953,
+          "predicted": 1.7,
+          "observed": 1.1
+        },
+        "여 40대": {
+          "n": 1425,
+          "predicted": 3.3,
+          "observed": 1.5
+        },
+        "여 50대": {
+          "n": 1531,
+          "predicted": 4.1,
+          "observed": 3.3
+        },
+        "여 60대": {
+          "n": 1615,
+          "predicted": 4.4,
+          "observed": 3.5
+        },
+        "여 70세↑": {
+          "n": 1235,
+          "predicted": 4.8,
+          "observed": 4.7
+        }
+      },
+      "deciles": [
+        {
+          "predicted": 0.5,
+          "observed": 0
+        },
+        {
+          "predicted": 1.1,
+          "observed": 0.8
+        },
+        {
+          "predicted": 1.4,
+          "observed": 1
+        },
+        {
+          "predicted": 2,
+          "observed": 1.7
+        },
+        {
+          "predicted": 2.7,
+          "observed": 2.4
+        },
+        {
+          "predicted": 3.5,
+          "observed": 3.5
+        },
+        {
+          "predicted": 4.3,
+          "observed": 5.5
+        },
+        {
+          "predicted": 5.7,
+          "observed": 3.9
+        },
+        {
+          "predicted": 6.9,
+          "observed": 7.9
+        },
+        {
+          "predicted": 11.8,
+          "observed": 9.5
+        }
+      ]
+    },
+    "htn": {
+      "name": "고혈압 (진단받지 않은 사람 중 측정 140/90↑)",
+      "n": 11732,
+      "auc": 0.714,
+      "predicted": 23,
+      "observed": 8.8,
+      "groups": {
+        "남 19–29": {
+          "n": 844,
+          "predicted": 3.6,
+          "observed": 3.6
+        },
+        "남 30대": {
+          "n": 813,
+          "predicted": 12.5,
+          "observed": 7.4
+        },
+        "남 40대": {
+          "n": 942,
+          "predicted": 26.9,
+          "observed": 14.2
+        },
+        "남 50대": {
+          "n": 872,
+          "predicted": 40.9,
+          "observed": 15.3
+        },
+        "남 60대": {
+          "n": 824,
+          "predicted": 51.9,
+          "observed": 16.7
+        },
+        "남 70세↑": {
+          "n": 612,
+          "predicted": 62.1,
+          "observed": 18.4
+        },
+        "여 19–29": {
+          "n": 1010,
+          "predicted": 0.9,
+          "observed": 0.9
+        },
+        "여 30대": {
+          "n": 1008,
+          "predicted": 3.9,
+          "observed": 2.4
+        },
+        "여 40대": {
+          "n": 1430,
+          "predicted": 12,
+          "observed": 5
+        },
+        "여 50대": {
+          "n": 1419,
+          "predicted": 27,
+          "observed": 8.3
+        },
+        "여 60대": {
+          "n": 1260,
+          "predicted": 42.9,
+          "observed": 12.7
+        },
+        "여 70세↑": {
+          "n": 698,
+          "predicted": 68.1,
+          "observed": 20.4
+        }
+      },
+      "deciles": [
+        {
+          "predicted": 1.1,
+          "observed": 1.4
+        },
+        {
+          "predicted": 3,
+          "observed": 2.1
+        },
+        {
+          "predicted": 7.3,
+          "observed": 4.3
+        },
+        {
+          "predicted": 12.5,
+          "observed": 6
+        },
+        {
+          "predicted": 19.7,
+          "observed": 9.5
+        },
+        {
+          "predicted": 26.9,
+          "observed": 8.6
+        },
+        {
+          "predicted": 35.5,
+          "observed": 14.7
+        },
+        {
+          "predicted": 42.3,
+          "observed": 13.2
+        },
+        {
+          "predicted": 54.8,
+          "observed": 20
+        },
+        {
+          "predicted": 67.7,
+          "observed": 20.1
+        }
+      ]
+    },
+    "chol": {
+      "name": "고콜레스테롤 (진단받지 않은 사람 중 총콜레스테롤 240↑)",
+      "n": 11502,
+      "auc": 0.612,
+      "predicted": 24.9,
+      "observed": 10.5,
+      "groups": {
+        "남 19–29": {
+          "n": 825,
+          "predicted": 4.9,
+          "observed": 4.6
+        },
+        "남 30대": {
+          "n": 802,
+          "predicted": 16.1,
+          "observed": 12.4
+        },
+        "남 40대": {
+          "n": 891,
+          "predicted": 27.3,
+          "observed": 14.4
+        },
+        "남 50대": {
+          "n": 840,
+          "predicted": 38,
+          "observed": 13
+        },
+        "남 60대": {
+          "n": 925,
+          "predicted": 39.5,
+          "observed": 6.7
+        },
+        "남 70세↑": {
+          "n": 897,
+          "predicted": 35.6,
+          "observed": 3.7
+        },
+        "여 19–29": {
+          "n": 974,
+          "predicted": 5,
+          "observed": 4.8
+        },
+        "여 30대": {
+          "n": 956,
+          "predicted": 9.7,
+          "observed": 7
+        },
+        "여 40대": {
+          "n": 1391,
+          "predicted": 15.2,
+          "observed": 10.1
+        },
+        "여 50대": {
+          "n": 1195,
+          "predicted": 41.2,
+          "observed": 20
+        },
+        "여 60대": {
+          "n": 994,
+          "predicted": 56.1,
+          "observed": 18.7
+        },
+        "여 70세↑": {
+          "n": 812,
+          "predicted": 54,
+          "observed": 10.9
+        }
+      },
+      "deciles": [
+        {
+          "predicted": 4.2,
+          "observed": 3.6
+        },
+        {
+          "predicted": 7.1,
+          "observed": 5.8
+        },
+        {
+          "predicted": 12.2,
+          "observed": 9
+        },
+        {
+          "predicted": 16.3,
+          "observed": 13.1
+        },
+        {
+          "predicted": 25.3,
+          "observed": 13.1
+        },
+        {
+          "predicted": 32.5,
+          "observed": 7.9
+        },
+        {
+          "predicted": 36.5,
+          "observed": 13.5
+        },
+        {
+          "predicted": 42.7,
+          "observed": 14.7
+        },
+        {
+          "predicted": 49.8,
+          "observed": 14.7
+        },
+        {
+          "predicted": 58,
+          "observed": 15.9
+        }
+      ]
+    },
+    "osteo": {
+      "name": "골다공증 (골밀도 T-score −2.5 이하, 2024년)",
+      "n": 2438,
+      "auc": 0.733,
+      "predicted": 16.1,
+      "observed": 13,
+      "groups": {
+        "남 50대": {
+          "n": 357,
+          "predicted": 3.5,
+          "observed": 4.2
+        },
+        "남 60대": {
+          "n": 408,
+          "predicted": 4.3,
+          "observed": 4.4
+        },
+        "남 70세↑": {
+          "n": 392,
+          "predicted": 4.7,
+          "observed": 4.7
+        },
+        "여 50대": {
+          "n": 354,
+          "predicted": 7.7,
+          "observed": 12.3
+        },
+        "여 60대": {
+          "n": 497,
+          "predicted": 28.2,
+          "observed": 21.3
+        },
+        "여 70세↑": {
+          "n": 430,
+          "predicted": 56.6,
+          "observed": 36.7
+        }
+      },
+      "deciles": [
+        {
+          "predicted": 2.7,
+          "observed": 9.4
+        },
+        {
+          "predicted": 3.4,
+          "observed": 6.3
+        },
+        {
+          "predicted": 3.7,
+          "observed": 2.9
+        },
+        {
+          "predicted": 4.3,
+          "observed": 5.7
+        },
+        {
+          "predicted": 4.6,
+          "observed": 3.1
+        },
+        {
+          "predicted": 4.7,
+          "observed": 7.1
+        },
+        {
+          "predicted": 8.2,
+          "observed": 12
+        },
+        {
+          "predicted": 41.2,
+          "observed": 24.6
+        },
+        {
+          "predicted": 53.9,
+          "observed": 37.5
+        },
+        {
+          "predicted": 60.9,
+          "observed": 38.1
+        }
+      ]
+    }
+  }
+}
