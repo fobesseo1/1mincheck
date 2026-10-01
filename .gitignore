@@ -4,3 +4,4 @@ web/e2e-shots/
 brag-output/work/
 *.log
 .DS_Store
+.claude/scheduled_tasks.lock
