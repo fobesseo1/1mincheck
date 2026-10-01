@@ -108,6 +108,8 @@ try {
   ok(!t.includes('숨은 당뇨') && !t.includes('확률 6'), '헷갈리는 용어·꼬리표가 없다');
   ok(/관리하면 줄어드는 것\s*4개/.test(t) && t.includes('비만'), '숫자 카드에 항목 이름이 같이 나온다');
   ok(t.includes('지금 6.4%') && t.includes('1.2'), '관리하면 지방간 6.4 → 1.2');
+  ok(t.includes('생활·검진으로 보는 체크') && t.includes('49세 여성이 받을 검진') && t.includes('유방암 검진'), '맞춤 검진·접종 카드 (49세 여성)');
+  ok(!t.includes('고위험음주'), '안 마시면 음주 카드는 없다');
   await shot('result');
   await click('이 기기에 기록 저장'); ok((await text()).includes('기록을 저장했어요'), '기록 저장');
 
@@ -132,6 +134,8 @@ try {
   const th = await text();
   ok(th.includes('이미 진단받은 질환') && th.includes('관리 중이에요'), '고혈압 진단이 맨 위에 나온다');
   ok(th.includes('함께 확인할 것') && th.indexOf('간 수치 검사') < th.indexOf('관리하면 줄어드는 것'), '과음이면 간 검사 안내가 상단 카드에 나온다');
+  ok(th.includes('고위험음주에 해당해요') && th.includes('주당 알코올'), '거의 매일 소주 1병 → 고위험음주 + 주당 알코올 g');
+  ok(th.includes('대사증후군') && th.includes('치매 위험요인') && th.includes('콩팥'), '추가 체크 카드가 나온다');
   await shot('result-htn-alcohol');
   await p.evaluate(() => { location.hash = '/whatif'; }); await new Promise((r) => setTimeout(r, 300));
   ok((await text()).includes('진단받아 관리 중'), '바꿔보기에서도 고혈압은 ‘진단받아 관리 중’');

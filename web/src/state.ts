@@ -1,5 +1,6 @@
 // 사용자가 답하는 중인 값(Draft)과, 그것을 engine 의 Input 으로 바꾸는 규칙 (docs/spec.md §5)
 import type { Input, Alcohol, Bp } from '../../engine/src/engine.ts';
+import { ALCOHOL_G, type Drink } from '../../engine/src/extras.ts';
 
 type YN = boolean | null;
 type Pick4 = number | null;
@@ -24,6 +25,15 @@ export function alcCalc(freq: AlcFreq | null, amt: Record<DrinkKey, number>) {
   const daily = (pw * per) / 7;
   const cat: Alcohol | null = freq == null ? null : freq === 'none' ? 'none' : per === 0 ? null : daily < 1 ? 'lt1' : daily < 5 ? 'd1_4' : 'd5';
   return { per, daily, cat };
+}
+/** 추가 체크용 음주 상세 (한 번 잔 수·주당 횟수·주당 알코올 g). 안 마시거나 덜 답했으면 undefined */
+export function drinkOf(d: Draft): Drink | undefined {
+  if (!d.alcFreq || d.alcFreq === 'none') return undefined;
+  const { per } = alcCalc(d.alcFreq, d.alcAmt);
+  if (!per) return undefined;
+  const t = ALC_FREQ.find((f) => f.v === d.alcFreq)!.perWeek;
+  const g = d.alcAmt.soju * ALCOHOL_G.sojuBottle + d.alcAmt.beer * ALCOHOL_G.beer500 + d.alcAmt.wine * ALCOHOL_G.wineGlass;
+  return { perOccasion: per, timesPerWeek: t, gramsPerWeek: t * g };
 }
 export const ALC_LABEL: Record<Alcohol, string> = { none: '안 마심', lt1: '하루 평균 1잔 미만', d1_4: '하루 평균 1–4.9잔', d5: '하루 평균 5잔 이상' };
 

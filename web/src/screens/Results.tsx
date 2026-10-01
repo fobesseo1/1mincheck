@@ -1,7 +1,9 @@
 import { useMemo, type ReactNode } from 'react';
 import type { Input } from '../../../engine/src/engine.ts';
 import { useStore, Nav, TabBar, Ring, Gauge, Icon, Crisis } from '../ui.tsx';
-import { toInput, suggestScenario, saveRecords, today } from '../state.ts';
+import { toInput, suggestScenario, saveRecords, today, drinkOf } from '../state.ts';
+import { runExtras } from '../../../engine/src/extras.ts';
+import { ExtraCards } from './Extras.tsx';
 import { viewResults, INK, LOOK } from '../lib/view.ts';
 import { MODULE_OF, DISCLAIMER, MEANING, type ItemId } from '../lib/content.ts';
 
@@ -40,10 +42,10 @@ const Chips = ({ items }: { items: { id: ItemId; name: string }[] }) => (
 );
 
 export function Results() {
-  const { records, setRecords, toast, setDraft } = useStore();
+  const { records, setRecords, toast, setDraft, draft } = useStore();
   const inp = useInput();
   if (!inp) return <NeedInput />;
-  const sc = suggestScenario(inp), r = viewResults(inp, sc);
+  const sc = suggestScenario(inp), r = viewResults(inp, sc), extras = runExtras(inp, drinkOf(draft)), lookX = extras.filter((x) => x.level === 'look');
   const save = () => {
     const next = [...records, { id: String(Date.now()), date: today(), input: inp }];
     if (saveRecords(next)) { setRecords(next); toast('이 기기에 기록을 저장했어요'); } else toast('이 브라우저에서는 저장할 수 없어요');
@@ -145,6 +147,18 @@ export function Results() {
               ) : <span style={{ fontSize: 12, color: '#9fb08f' }}>없음</span>}
             </div>
           ))}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: '14px 0', borderTop: '1px solid rgba(255,255,255,.15)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+              <span style={{ fontSize: 14, fontWeight: 700, color: '#d8e8cf' }}>생활·검진 체크에서 확인할 것</span>
+              <b style={{ fontSize: 30, lineHeight: 1, fontWeight: 900, letterSpacing: '-0.04em', color: '#fff' }}>{lookX.length}<small style={{ fontSize: 14, marginLeft: 2 }}>개</small></b>
+            </div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+              {(lookX.length ? lookX : extras.slice(0, 1)).map((x) => (
+                <button key={x.id} type="button" className="pill" onClick={() => document.querySelector(`[aria-label="${x.name}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
+                  style={{ height: 28, border: 0, background: 'rgba(255,255,255,.12)', color: '#cfe2ef', cursor: 'pointer' }}>{x.name}</button>
+              ))}
+            </div>
+          </div>
         </div>
 
         {/* 그 밖의 항목 */}
@@ -205,6 +219,8 @@ export function Results() {
             <a href="#/whatif" style={{ fontSize: 13, fontWeight: 700 }}>바꿔보기</a>
           </div>
         )}
+
+        <ExtraCards xs={extras} />
 
         <h2 className="h2">지금 이 상태일 가능성</h2>
         <p className="lead" style={{ marginTop: -6, fontSize: 13, color: 'var(--slate)' }}>앞으로 생길 확률이 아니라 지금 상태예요. 같은 나이대·성별 평균과 같은 기준으로 비교했어요.</p>
