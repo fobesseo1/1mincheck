@@ -95,20 +95,18 @@ try {
 
   console.log('결과 (예시 A와 같아야 함)'); ok((await route()) === '#/result', '#/result');
   const t = await text();
-  ok(/또래 평균보다 낮음\s*4개/.test(t), '또래 평균보다 낮음 4개');
-  ok(t.includes('40대 여성 평균과 비교하면') && t.includes('낮은 편'), '한눈에 보기 문장');
-  ok(t.includes('아직 진단받지 않은 당뇨가 지금 있을 가능성') && t.includes('40대 여성 평균 5.2% 기준 · 평균의 약 0.6배로 낮은 편이에요'), '숨은 당뇨: 무엇의 가능성인지 + 또래 비교');
-  ok(!t.includes('확률 6'), '‘확률 6’ 같은 헷갈리는 꼬리표가 없다');
-  ok(/관리하면 낮아지는 항목\s*4개/.test(t), '관리하면 낮아지는 항목 4개');
-  ok(/챙겨볼 항목\s*3개/.test(t), '챙겨볼 항목 3개');
-  ok(t.includes('2.9%') && t.includes('성인 여성 평균 21.6% 기준'), '숨은 당뇨 2.9%, 지방간은 성인 여성 평균과 비교');
+  ok(t.includes('한눈에 보기') && t.includes('먼저 확인할 것') && t.includes('또래와 비슷') && t.includes('또래보다 낮음'), '한눈에 보기: 중요한 순서로 묶음');
+  ok(t.includes('이미 당뇨일 확률') && t.includes('또래의 약 2.1배예요') && t.includes('공복혈당'), '이미 당뇨일 확률: 또래 배수 + 검사 권유');
+  ok(t.includes('40대 여성 중 진단받지 않은 사람 평균'), '당뇨는 진단받지 않은 또래와 비교');
+  ok(!t.includes('숨은 당뇨') && !t.includes('확률 6'), '헷갈리는 용어·꼬리표가 없다');
+  ok(/관리하면 줄어드는 것\s*4개/.test(t) && t.includes('비만'), '숫자 카드에 항목 이름이 같이 나온다');
   ok(t.includes('지금 6.4%') && t.includes('1.2'), '관리하면 지방간 6.4 → 1.2');
   await shot('result');
   await click('이 기기에 기록 저장'); ok((await text()).includes('기록을 저장했어요'), '기록 저장');
 
   console.log('상세'); await p.evaluate(() => { location.hash = '/detail/dm'; });
   await new Promise((r) => setTimeout(r, 300));
-  const td = await text(); ok(td.includes('관리해도 남는 1명') && td.includes('5') && td.includes('/ 11점'), '숨은 당뇨 상세: 3명→1명, 선별점수'); await shot('detail-dm');
+  const td = await text(); ok(td.includes('관리해도 남는 1명') && td.includes('또래의 약 2.1배예요') && td.includes('/ 11점'), '당뇨 상세: 또래 배수, 3명→1명, 선별점수'); await shot('detail-dm');
   for (const id of ['htn', 'chol', 'obesity', 'nafld', 'osa', 'isi', 'dep', 'gad', 'osteo', 'gerd', 'diet']) {
     await p.evaluate((id) => { location.hash = '/detail/' + id; }, id); await new Promise((r) => setTimeout(r, 200));
     ok((await text()).includes('다음에 할 일'), `상세 ${id} 열림`);
@@ -119,7 +117,17 @@ try {
   await click('처음 값으로'); ok(/낮아지는 항목\s*0개/.test(await text()), '처음 값으로 되돌리면 0개');
   await p.evaluate(() => { const s = document.getElementById('wi-wa'); const set = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set; set.call(s, '-5'); s.dispatchEvent(new Event('input', { bubbles: true })); });
   await new Promise((r) => setTimeout(r, 200));
-  ok((await text()).includes('1.3'), '허리 −5cm 슬라이더 → 숨은 당뇨 1.3%'); await shot('whatif');
+  ok((await text()).includes('1.3'), '허리 −5cm 슬라이더 → 당뇨 1.3%'); await shot('whatif');
+
+  console.log('고혈압 진단 + 과음이면 숨기지 않고 맨 앞에'); await p.evaluate(() => { location.hash = '/life'; }); await new Promise((r) => setTimeout(r, 300));
+  await click('고혈압', '진단받은'); await click('거의 매일', '술은'); await click('소주 늘리기'); await click('소주 늘리기');
+  await p.evaluate(() => { location.hash = '/result'; }); await new Promise((r) => setTimeout(r, 400));
+  const th = await text();
+  ok(th.includes('이미 진단받은 질환') && th.includes('관리 중이에요'), '고혈압 진단이 맨 위에 나온다');
+  ok(th.includes('술을 하루 평균 5잔 이상') && th.includes('간 수치 검사'), '과음이면 간 검사 안내가 먼저 확인할 것에 나온다');
+  await shot('result-htn-alcohol');
+  await p.evaluate(() => { location.hash = '/whatif'; }); await new Promise((r) => setTimeout(r, 300));
+  ok((await text()).includes('진단받아 관리 중'), '바꿔보기에서도 고혈압은 ‘진단받아 관리 중’');
 
   console.log('기록'); await p.evaluate(() => { location.hash = '/record'; }); await new Promise((r) => setTimeout(r, 300));
   ok((await text()).includes('아직 기록이 하나예요'), '기록 1개 상태'); await shot('record-one');

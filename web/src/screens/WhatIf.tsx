@@ -6,7 +6,7 @@ import { whatIfRows } from '../lib/view.ts';
 import { useInput, NeedInput } from './Results.tsx';
 
 const ALC: [Alcohol, string][] = [['none', '안 마심'], ['lt1', '1잔 미만'], ['d1_4', '1–4.9잔'], ['d5', '5잔+']];
-const TONE = { down: ['var(--lime)', 'var(--ink)'], up: ['var(--look-bg)', 'var(--look)'], same: ['var(--bg)', 'var(--slate)'] } as const;
+const TONE = { down: ['var(--lime)', 'var(--ink)'], up: ['var(--look-bg)', 'var(--look)'], same: ['var(--bg)', 'var(--slate)'], na: ['var(--bg)', 'var(--charcoal)'] } as const;
 
 export function WhatIf() {
   const inp = useInput();

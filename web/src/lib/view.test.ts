@@ -5,24 +5,43 @@ import { toInput, fromInput, suggestScenario, emptyDraft, basicError } from '../
 
 const S = Object.fromEntries(samples.map((s) => [s.id, s]));
 
-describe('결과 화면 값이 캔버스 디자인(예시 A/B/C)과 같다', () => {
-  it('A · 기본', () => {
+const names = (xs: { name: string }[]) => xs.map((x) => x.name);
+
+describe('결과 화면 (엔진 값은 그대로, 묶음·비교만 검사)', () => {
+  it('A · 기본: 확률 값은 캔버스와 같고, 당뇨는 진단받지 않은 또래와 비교한다', () => {
     const r = viewResults(S.A.input, S.A.scenario);
-    expect([r.lower, r.improvedN, r.look]).toEqual([4, 4, 3]);
-    expect(r.prob.slice(0, 5).map((p) => p.main)).toEqual(['3', '10', '14', '6', '1']);
-    expect(r.rings.map((g) => g.idx)).toEqual(['56', '78', '30']);
+    expect(r.prob.slice(0, 5).map((p) => p.pct)).toEqual(['2.9', '9.7', '13.6', '6.4', '1.0']);
     expect(r.score.map((g) => g.v)).toEqual(['24.2', '11', '57', '1', '2', '7']);
-    expect(r.manage.map((m) => `${m.name}:${m.a}→${m.b}`)).toEqual(['지방간:6.4→1.2', '숨은 당뇨:2.9→1.3']);
+    const dm = r.prob[0].cmp!;
+    expect(dm.peer).toBeCloseTo(1.37, 1);             // 40대 여성 당뇨 5.2% 중 진단받지 않은 사람 비율
+    expect(dm.label).toBe('매우 높음');                // 2.9 / 1.37 ≈ 2.1배 (엔진 기준 2배 이상)
+    expect(names(r.first)).toEqual(['이미 당뇨일 확률']);
+    expect(names(r.low)).toEqual(['고혈압', '지방간', '우울']);
+    expect(names(r.same)).toEqual(['고콜레스테롤']);
+    expect(names(r.improved)).toEqual(['당뇨', '고혈압', '비만', '지방간']);
   });
-  it('B · 증상 있음', () => {
+  it('B · 증상 있음: 불면·우울·역류가 먼저 확인할 것에 들어간다', () => {
     const r = viewResults(S.B.input, S.B.scenario);
-    expect([r.lower, r.look]).toEqual([3, 5]);
-    expect(r.strong.map((s) => s.name)).toEqual(['불면', '우울', '위식도역류']);
-    expect(r.prob[4].main).toBe('36');
+    expect(names(r.first)).toEqual(['이미 당뇨일 확률', '우울', '불면', '위식도역류']);
+    expect(r.prob[4].pct).toBe('36.3');
   });
-  it('C · 모두 양호', () => {
+  it('C · 모두 양호: 먼저 확인할 것이 없다', () => {
     const r = viewResults(S.C.input, S.C.scenario);
-    expect([r.lower, r.improvedN, r.look, r.hasManage]).toEqual([4, 0, 0, false]);
+    expect([r.first.length, r.diagnosed.length, r.hasManage]).toEqual([0, 0, false]);
+  });
+  it('59세 남성·고혈압 진단·과음·당뇨 가족력: 진단 질환, 간 검사, 당뇨 2.5배가 맨 앞에 나온다', () => {
+    const me = { ...S.A.input, age: 59, sex: 'M' as const, heightCm: 181, weightKg: 79, waistCm: 88.9, alcohol: 'd5' as const, famDM: true,
+      dx: { htn: true, dm: false, chol: false }, meno: null };
+    const r = viewResults(me, suggestScenario(me));
+    expect(names(r.diagnosed)).toEqual(['고혈압']);
+    expect(r.first[0].name).toBe('간');
+    const dm = r.prob[0];
+    expect(dm.pct).toBe('15.6');
+    expect(dm.cmp!.peer).toBeCloseTo(6.3, 1);
+    expect(dm.cmp!.headline).toBe('또래의 약 2.5배예요');
+    expect(dm.cmp!.action).toContain('공복혈당');
+    expect(r.prob.find((p) => p.id === 'nafld')!.note).toContain('간 수치 검사');
+    expect(r.prob.find((p) => p.id === 'htn')!.status).toBe('managed');
   });
 });
 
@@ -31,7 +50,8 @@ describe('상세·바꿔보기·기록', () => {
     const d = viewDetail('dm', S.A.input, S.A.scenario);
     expect([d.n, d.m, d.removed]).toEqual([3, 1, 2]);
     expect(d.parts.filter((p) => p.v > 0).map((p) => p.v)).toEqual([3, 2]);
-    expect(d.bands.map((b) => b.v)).toEqual([0.6, 2.1, 5.2, 11.6, 19.6, 27.9]);
+    // 연령대별 '진단받지 않은 사람 중 당뇨' 비율 (유병률 0.6·2.1·5.2·11.6·19.6·27.9% 에서 환산)
+    expect(d.bands.map((b) => Math.round(b.v * 10) / 10)).toEqual([0.3, 1.2, 1.4, 3.2, 5.8, 8.9]);
   });
   it('바꿔보기: 체중 −4kg·허리 −5cm면 4개 항목이 낮아진다', () => {
     const w = whatIfRows(S.A.input, applyScenario(S.A.input, S.A.scenario));
@@ -56,10 +76,10 @@ describe('음주·허리 입력', () => {
     const { waistCmOf, emptyDraft } = await import('../state.ts');
     expect(waistCmOf({ ...emptyDraft(), waist: '32', waistUnit: 'in' })).toBe(81.3);
   });
-  it('또래 비교 문장', async () => {
-    const { compareText } = await import('./view.ts');
-    expect(compareText(2.9, 5.2, '낮음')).toBe('평균의 약 0.6배로 낮은 편이에요');
-    expect(compareText(13.6, 15.5, '비슷')).toBe('평균의 약 0.9배로 비슷한 수준이에요');
+  it('진단받지 않은 또래 당뇨 비율 = 유병률 × (1 − 인지율) ÷ (1 − 유병률 × 인지율)', async () => {
+    const { undiagnosedDm } = await import('./view.ts');
+    expect(undiagnosedDm(20.9, 55)).toBeCloseTo(6.27, 1);   // 50대 남성, 인지율 74.7%
+    expect(undiagnosedDm(2.1, 35)).toBeCloseTo(1.20, 1);    // 30대 여성, 인지율 43.3%
   });
 });
 

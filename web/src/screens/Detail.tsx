@@ -1,8 +1,8 @@
 import type { ReactNode, CSSProperties } from 'react';
 import { useStore, Nav, Icon, People, Gauge, Crisis } from '../ui.tsx';
 import { suggestScenario } from '../state.ts';
-import { viewDetail, f1, statusText, flagOf, compareText, INK, LOOK } from '../lib/view.ts';
-import { NAMES, TOOL, BADGE, WHAT, HOW, NEXT, SRC, KNHANES, MODULE_OF, MEANING, DISCLAIMER, type ItemId } from '../lib/content.ts';
+import { viewDetail, f1, statusText, flagOf, INK, LOOK } from '../lib/view.ts';
+import { NAMES, TITLE, TOOL, BADGE, WHAT, HOW, NEXT, NEXT_SPECIAL, SRC, KNHANES, MODULE_OF, MEANING, DISCLAIMER, type ItemId } from '../lib/content.ts';
 import { useInput, NeedInput } from './Results.tsx';
 
 const MOD_ROUTE = { sleep: '/sleep', mind: '/mind', gerd: '/digest', diet: '/diet' };
@@ -16,14 +16,14 @@ export function Detail({ id }: { id: ItemId }) {
   if (!inp) return <NeedInput />;
   if (!NAMES[id]) return <NeedInput />;
   const d = viewDetail(id, inp, suggestScenario(inp)), r = d.r;
-  const flag = flagOf(r), col = flag ? LOOK : INK;
+  const flag = flagOf(r, inp), col = flag ? LOOK : INK;
   const sc = SCALE[id];
   const mod = MODULE_OF[id];
   const sources = [...SRC[id], KNHANES];
   const card = (children: ReactNode, style?: CSSProperties) => <div className="card" style={{ padding: 18, display: 'flex', flexDirection: 'column', gap: 10, ...style }}>{children}</div>;
   return (
     <div className="page fade">
-      <Nav back="/result" title={NAMES[id]} sub={TOOL[id]} />
+      <Nav back="/result" title={TITLE[id]} sub={TOOL[id]} />
       {d.crisis && <Crisis />}
 
       {/* 핵심 숫자 */}
@@ -34,9 +34,11 @@ export function Detail({ id }: { id: ItemId }) {
         </div>
         {r.status === 'ok' && d.isProb && r.value != null && (<>
           {MEANING[id] && <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--obsidian)', marginTop: 10 }}>{MEANING[id]}</div>}
-          <div><span style={{ fontSize: 96, lineHeight: 0.95, fontWeight: 900, letterSpacing: '-0.06em', color: 'var(--obsidian)' }}>{f1(r.value)}</span><b style={{ fontSize: 26, color: 'var(--obsidian)' }}>%</b></div>
+          {d.cmp && <div style={{ fontSize: 30, lineHeight: 1.2, fontWeight: 900, letterSpacing: '-0.04em', color: d.cmp.col, marginTop: 4 }}>{d.cmp.headline}</div>}
+          <div><span style={{ fontSize: 72, lineHeight: 1, fontWeight: 900, letterSpacing: '-0.06em', color: 'var(--obsidian)' }}>{f1(r.value)}</span><b style={{ fontSize: 22, color: 'var(--obsidian)' }}>%</b></div>
           <div style={{ fontSize: 14, color: 'var(--charcoal)' }}>나와 같은 조건인 사람 100명 중 약 <b>{d.n}명</b>{id === 'dm' ? ' · 상대 오차 ±약 25%' : ''}</div>
-          {r.peer != null && <div style={{ marginTop: 6, padding: '10px 14px', borderRadius: 14, background: d.ratioBg, color: d.ratioFg, fontSize: 14, fontWeight: 600 }}>{id === 'nafld' ? `성인 ${inp.sex === 'F' ? '여성' : '남성'}` : d.group} 평균 {f1(r.peer)}% 기준 · {compareText(r.value, r.peer, r.ratioLabel)}</div>}
+          {d.cmp && <div style={{ fontSize: 13, color: 'var(--slate)' }}>또래 평균 {id === 'dm' ? '약 ' : ''}{f1(d.cmp.peer)}% ({d.cmp.who})</div>}
+          {d.cmp?.action && <div style={{ marginTop: 6, padding: '10px 14px', borderRadius: 14, background: 'var(--look-bg)', color: LOOK, fontSize: 14, fontWeight: 600, lineHeight: 1.5 }}>→ {d.cmp.action}</div>}
           <div style={{ marginTop: 14, width: '100%' }}><People cells={d.people} /></div>
           <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', justifyContent: 'center', fontSize: 12, color: 'var(--obsidian)', marginTop: 8 }}>
             <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><i style={{ width: 10, height: 10, borderRadius: '50%', background: INK }} />{d.removed ? `관리해도 남는 ${d.m}명` : `100명 중 ${d.n}명`}</span>
@@ -55,9 +57,10 @@ export function Detail({ id }: { id: ItemId }) {
           <div style={{ fontSize: 20, fontWeight: 800, color: col }}>{r.category}</div>
         </>)}
         {r.status === 'ok' && !d.isProb && r.value == null && <div style={{ fontSize: 26, fontWeight: 800, color: INK, marginTop: 14 }}>{r.category}</div>}
-        {r.status === 'managed' && <><div style={{ fontSize: 26, fontWeight: 800, color: INK, marginTop: 14 }}>관리 중</div><p style={{ margin: 0, fontSize: 14 }}>이미 진단받은 항목이라 확률 대신 관리를 도와드려요. 정기 진료와 처방을 이어가 주세요.</p></>}
-        {r.status === 'criteria' && <><div style={{ fontSize: 24, fontWeight: 800, color: LOOK, marginTop: 14 }}>측정 혈압이 고혈압 기준이에요</div><p style={{ margin: 0, fontSize: 14 }}>140/90 이상이면 확률이 아니라 기준 해당이에요. 며칠에 걸쳐 다시 재 보고, 계속 높으면 진료를 받아 보세요.</p></>}
-        {(r.status === 'na' || r.status === 'excluded') && <><div style={{ fontSize: 24, fontWeight: 800, color: INK, marginTop: 14 }}>{statusText[r.status]}</div><p style={{ margin: 0, fontSize: 14 }}>{r.notes?.[0]}</p></>}
+        {r.status === 'managed' && <><div style={{ fontSize: 26, fontWeight: 800, color: INK, marginTop: 14 }}>진단받아 관리 중</div><p style={{ margin: 0, fontSize: 14, lineHeight: 1.6 }}>{d.statusNote}</p></>}
+        {r.status === 'criteria' && <><div style={{ fontSize: 24, fontWeight: 800, color: LOOK, marginTop: 14 }}>측정 혈압이 고혈압 기준이에요</div><p style={{ margin: 0, fontSize: 14, lineHeight: 1.6 }}>{d.statusNote}</p></>}
+        {r.status === 'excluded' && <><div style={{ fontSize: 24, fontWeight: 800, color: LOOK, marginTop: 14 }}>{id === 'nafld' ? '술 때문에 간 검사가 필요해요' : statusText[r.status]}</div><p style={{ margin: 0, fontSize: 14, lineHeight: 1.6, color: LOOK }}>{d.statusNote}</p></>}
+        {r.status === 'na' && <><div style={{ fontSize: 24, fontWeight: 800, color: INK, marginTop: 14 }}>{statusText[r.status]}</div><p style={{ margin: 0, fontSize: 14 }}>{d.statusNote}</p></>}
         {r.status === 'needs_input' && mod && <><div style={{ fontSize: 22, fontWeight: 800, color: INK, marginTop: 14 }}>답하면 볼 수 있어요</div>
           <a className="cta" href={'#' + MOD_ROUTE[mod]} onClick={() => setDraft((x) => ({ ...x, modules: { ...x.modules, [mod]: true } }))} style={{ marginTop: 10 }}>질문 답하기</a></>}
         <p style={{ margin: '10px 0 0', fontSize: 14, lineHeight: 1.55 }}>{WHAT[id]}</p>
@@ -77,13 +80,13 @@ export function Detail({ id }: { id: ItemId }) {
           <div style={{ display: 'flex', gap: 8 }}>{d.bands.map((b) => <div key={b.l} style={{ flex: 1, textAlign: 'center', fontSize: 11 }}><b style={{ color: 'var(--obsidian)', fontWeight: b.mine ? 800 : 500 }}>{f1(b.v)}</b><div style={{ color: 'var(--slate)' }}>{b.l}</div></div>)}</div>
         </>) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {[['나', r.unit === '%' ? r.value : null, INK], ['또래 평균', r.peer, '#c2c6be']].map(([k, v, c]) => (
+            {[['나', r.unit === '%' ? r.value : null, INK], ['또래 평균', d.cmp?.peer ?? r.peer, '#c2c6be']].map(([k, v, c]) => (
               <div key={k as string}><div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14 }}><span>{k as string}</span><b>{v == null ? (r.unit === '%' ? '–' : `${r.score ?? r.value}점`) : `${f1(v as number)}%`}</b></div>
                 {v != null && <div className="bar" style={{ marginTop: 6 }}><i style={{ width: `${Math.min(100, ((v as number) / Math.max(30, r.peer! * 1.3, (r.value ?? 0) * 1.3)) * 100)}%`, background: c as string }} /></div>}</div>
             ))}
           </div>
         )}
-        <p className="help" style={{ margin: 0 }}>{r.notes?.find((n) => n.includes('동년배'))?.replace('동년배', '또래') ?? (id === 'isi' ? '또래 값은 ISI 10점 이상 비율이에요.' : id === 'osa' ? '또래 값은 40–69세 수면다원검사 기준 수면호흡장애(AHI 5 이상) 비율이에요(2004).' : id === 'nafld' ? '또래 값은 간지방지수 기준 성인 전체 비율이에요.' : '같은 나이대·성별 한국인 통계예요.')}</p>
+        <p className="help" style={{ margin: 0 }}>{id === 'dm' ? '막대는 각 연령대에서 진단받지 않은 사람 중 당뇨인 비율(유병률에서 이미 진단받은 사람을 뺀 값), 점은 내 값이에요.' : r.notes?.find((n) => n.includes('동년배'))?.replace('동년배', '또래') ?? (id === 'isi' ? '또래 값은 ISI 10점 이상 비율이에요.' : id === 'osa' ? '또래 값은 40–69세 수면다원검사 기준 수면호흡장애(AHI 5 이상) 비율이에요(2004).' : id === 'nafld' ? '또래 값은 간지방지수 기준 성인 전체 비율이에요.' : '같은 나이대·성별 한국인 통계예요.')}</p>
       </>)}
 
       {/* 당뇨 점수 내역 */}
@@ -113,7 +116,7 @@ export function Detail({ id }: { id: ItemId }) {
 
       {card(<>
         <b style={{ fontSize: 15, color: 'var(--obsidian)' }}>다음에 할 일</b>
-        {NEXT[id].map((t, k) => (
+        {(NEXT_SPECIAL[`${id}:${r.status}`] ?? NEXT[id]).map((t, k) => (
           <div key={t.t} style={{ display: 'flex', gap: 14, padding: '12px 0', borderTop: '1px solid var(--line)' }}>
             <span style={{ width: 30, height: 30, flexShrink: 0, borderRadius: 10, background: 'var(--linen)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 800, color: INK }}>{k + 1}</span>
             <div><b style={{ fontSize: 15, color: 'var(--obsidian)' }}>{t.t}</b><div style={{ fontSize: 13, lineHeight: 1.5, marginTop: 3 }}>{t.d}</div></div>

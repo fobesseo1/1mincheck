@@ -9,7 +9,7 @@ const S = samples.find((s) => s.id === defaultSampleId)!;
 const R = viewResults(S.input, S.scenario), D = viewDetail('dm', S.input, S.scenario), W = whatIfRows(S.input, applyScenario(S.input, S.scenario));
 const REC = S.previous ? viewRecord(S.previous.input, S.input) : null;
 const WI = W.rows.filter((r) => r.tone === 'down').map((r) => ({ ...r, b: r.unit === '%' ? r.b + '%' : r.b, a: r.unit === '%' ? r.a + '%' : r.a }));
-const ITEMS: [string, string][] = [['숨은 당뇨', '모형 확률'], ['고혈압', '추정'], ['고콜레스테롤', '추정'], ['지방간', '점수표 확률'], ['우울', '추정'], ['골다공증', '50세+'], ['비만·복부비만', '등급'], ['수면무호흡', '점수'], ['불면', '점수'], ['불안', '점수'], ['위식도역류', '점수'], ['식생활', '참고 지표']];
+const ITEMS: [string, string][] = [['이미 당뇨일 확률', '모형 확률'], ['고혈압', '추정'], ['고콜레스테롤', '추정'], ['지방간', '점수표 확률'], ['우울', '추정'], ['골다공증', '50세+'], ['비만·복부비만', '등급'], ['수면무호흡', '점수'], ['불면', '점수'], ['불안', '점수'], ['위식도역류', '점수'], ['식생활', '참고 지표']];
 const SRC = [
   ['국가 통계', '2025 국민건강영양조사 주요결과', '질병관리청 · 성·연령별 원표, 2023–2025 3년 평균', 'https://www.kdca.go.kr/bbs/kdca/42/312791/artclView.do'],
   ['한국인 모형', '한국형 당뇨 선별점수', 'Diabetes Care 2012 · 개발 9,602명 · 검증 8,391명', 'https://pmc.ncbi.nlm.nih.gov/articles/PMC3402268/'],
@@ -19,7 +19,7 @@ const FAQ = [
   ['진단을 해 주는 앱인가요?', '아니에요. 나와 나이·성별이 같은 한국인 통계에 검증된 설문 점수를 더해, 비슷한 사람 100명 중 몇 명인지 보여주는 참고 정보예요. 확인은 국가건강검진과 진료로 해 주세요.'],
   ['내 정보는 어디에 저장되나요?', '서버로 보내지 않아요. 모든 계산은 휴대폰 안에서 하고, 기록 저장을 누른 경우에만 이 기기에 남아요.'],
   ['왜 어떤 항목은 확률이 아니라 점수인가요?', '수면무호흡·불면·불안·위식도역류는 검증된 점수와 등급만 있고, 확률로 바꿀 근거가 부족해요. 근거가 없는 숫자는 만들지 않아요.'],
-  ['숫자는 얼마나 정확한가요?', '항목마다 근거 수준이 달라서 모형 확률·추정·점수·참고 지표로 나눠 표시해요. 예를 들어 숨은 당뇨 확률은 상대 오차 ±약 25%라고 함께 알려드려요.'],
+  ['숫자는 얼마나 정확한가요?', '항목마다 근거 수준이 달라서 모형 확률·추정·점수·참고 지표로 나눠 표시해요. 예를 들어 이미 당뇨일 확률은 상대 오차 ±약 25%라고 함께 알려드려요.'],
   ['앱을 설치해야 하나요?', '설치 없이 웹에서 바로 쓸 수 있어요. 휴대폰 브라우저에서 ‘홈 화면에 추가’를 하면 앱처럼 열려요.'],
 ];
 
@@ -48,7 +48,7 @@ export function Landing() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
             <div className="dark" style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 12, borderRadius: 24 }}>
               <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--lime)' }}>관리하면 이만큼 줄어요</span>
-              <b style={{ fontSize: 21, lineHeight: 1.3, letterSpacing: '-0.03em' }}>{R.scenarioText}이면<br />{R.improvedN}개 항목이 낮아져요</b>
+              <b style={{ fontSize: 21, lineHeight: 1.3, letterSpacing: '-0.03em' }}>{R.scenarioText}이면<br />{R.improved.length}개 항목이 낮아져요</b>
               {WI.map((w) => <div key={w.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '11px 14px', borderRadius: 12, background: 'var(--spruce)', fontSize: 14 }}><span>{w.name}</span><span><span style={{ opacity: .7 }}>{w.b}</span> → <b style={{ color: 'var(--lime)' }}>{w.a}</b></span></div>)}
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: 20, borderRadius: 24, background: 'var(--linen)' }}>
@@ -58,7 +58,7 @@ export function Landing() {
           </div>
           <div className="c2" style={{ display: 'flex', flexDirection: 'column', gap: 16, paddingTop: 40 }}>
             <Card style={{ padding: 24, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
-              <span className="cap" style={{ alignSelf: 'flex-start' }}>숨은 당뇨 · {S.input.age}세 {S.input.sex === 'F' ? '여성' : '남성'} 예시</span>
+              <span className="cap" style={{ alignSelf: 'flex-start' }}>이미 당뇨일 확률 · {S.input.age}세 {S.input.sex === 'F' ? '여성' : '남성'} 예시</span>
               <People cells={D.people} cols={10} size={18} />
               <div><b style={{ fontSize: 44, fontWeight: 900, letterSpacing: '-0.05em', color: 'var(--obsidian)' }}>{D.n}</b><b style={{ color: 'var(--obsidian)' }}>명 / 100명</b></div>
             </Card>
