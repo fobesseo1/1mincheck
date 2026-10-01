@@ -11,6 +11,8 @@ import { Landing } from './screens/Landing.tsx';
 import { samples } from '../../src/sampleData.ts';
 import type { ItemId } from './lib/content.ts';
 import { stressSamples } from './lib/stress.ts';
+import { isDev } from './lib/dev.ts';
+import { Dev } from './screens/Dev.tsx';
 
 const APP: Record<string, () => JSX.Element> = {
   '/start': Start, '/intro': Intro, '/info': Info, '/life': Life, '/modules': Modules,
@@ -36,13 +38,15 @@ export function App() {
   else if (route === '/whatif') screen = <WhatIf key={JSON.stringify(draft)} />;
   else if (route === '/record') screen = <Record />;
   else if (route.startsWith('/detail/')) screen = <div className="app"><Detail id={route.slice(8) as ItemId} /></div>;
+  else if (route === '/dev') screen = <div className="app"><Dev /></div>;
   else screen = <Landing />;
 
   return (
     <StoreCtx.Provider value={{ draft, setDraft, reset, records, setRecords, toast }}>
       {screen}
       {msg && <div className="toast" role="status">{msg}</div>}
-      {import.meta.env.DEV && route.startsWith('/') && route !== '/' && (
+      {isDev() && <a href="#/dev" style={{ position: 'fixed', top: 8, left: 8, zIndex: 50, padding: '3px 8px', borderRadius: 8, background: '#ffd84d', color: '#4a3800', fontSize: 11, fontWeight: 800, textDecoration: 'none' }}>개발자 모드 · 보정 확인</a>}
+      {(import.meta.env.DEV || isDev()) && route.startsWith('/') && route !== '/' && (
         <div className="demo" role="group" aria-label="개발용 예시 불러오기">
           {[...samples, ...stressSamples].map((s) => <button key={s.id} type="button" onClick={() => { setDraft(() => fromInput(s.input)); toast(`예시 ${s.label} 불러옴`); }}>{s.label}</button>)}
         </div>

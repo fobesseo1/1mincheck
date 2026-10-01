@@ -7,23 +7,23 @@ const S = Object.fromEntries(samples.map((s) => [s.id, s]));
 
 const names = (xs: { name: string }[]) => xs.map((x) => x.name);
 
-describe('결과 화면 (엔진 값은 그대로, 묶음·비교만 검사)', () => {
-  it('A · 기본: 확률 값은 캔버스와 같고, 당뇨는 진단받지 않은 또래와 비교한다', () => {
+describe('결과 화면 (엔진 값 → 실측 보정, 묶음·비교 검사)', () => {
+  it('A · 기본: 당뇨·고혈압·콜레스테롤은 실측 보정값, 또래는 진단받지 않은 사람의 실측 비율', () => {
     const r = viewResults(S.A.input, S.A.scenario);
-    expect(r.prob.slice(0, 4).map((p) => p.pct)).toEqual(['2.9', '9.7', '13.6', '6.4']);
+    expect(r.prob.slice(0, 4).map((p) => p.pct)).toEqual(['1.4', '4.1', '9.3', '6.4']);
     // 우울은 확률 대신 PHQ-2 점수(2점)로
     expect(r.score.map((g) => g.v)).toEqual(['24.2', '2', '11', '57', '1', '2', '7']);
     const dm = r.prob[0].cmp!;
-    expect(dm.peer).toBeCloseTo(1.37, 1);             // 40대 여성 당뇨 5.2% 중 진단받지 않은 사람 비율
-    expect(dm.label).toBe('매우 높음');                // 2.9 / 1.37 ≈ 2.1배 (엔진 기준 2배 이상)
-    expect(names(r.first)).toEqual(['이미 당뇨일 확률']);
-    expect(names(r.low)).toEqual(['고혈압', '지방간']);
-    expect(names(r.same)).toEqual(['고콜레스테롤']);
+    expect(dm.peer).toBe(1.5);                         // 40대 여성 중 진단받지 않은 사람의 실측 당뇨 비율
+    expect(dm.label).toBe('비슷');                     // 보정 1.4% vs 실측 1.5%
+    expect(names(r.first)).toEqual([]);
+    expect(names(r.low)).toEqual(['지방간']);
+    expect(names(r.same)).toEqual(['당뇨', '고혈압', '고콜레스테롤']);
     expect(names(r.improved)).toEqual(['당뇨', '고혈압', '비만', '지방간']);
   });
   it('B · 증상 있음: 불면·우울·역류가 먼저 확인할 것에 들어간다', () => {
     const r = viewResults(S.B.input, S.B.scenario);
-    expect(names(r.first)).toEqual(['이미 당뇨일 확률', '불면', '우울', '위식도역류']);
+    expect(names(r.first)).toEqual(['불면', '우울', '위식도역류']);
     const dep = r.score.find((s) => s.id === 'dep')!;
     expect([dep.v, dep.unit, dep.cat]).toEqual(['4', 'PHQ-2 / 6점', 'PHQ-2 양성']);
   });
@@ -44,16 +44,16 @@ describe('결과 화면 (엔진 값은 그대로, 묶음·비교만 검사)', ()
     const r = viewResults(S.C.input, S.C.scenario);
     expect([r.first.length, r.diagnosed.length, r.hasManage]).toEqual([0, 0, false]);
   });
-  it('59세 남성·고혈압 진단·과음·당뇨 가족력: 진단 질환, 간 검사, 당뇨 2.5배가 맨 앞에 나온다', () => {
+  it('59세 남성·고혈압 진단·과음·당뇨 가족력: 진단 질환, 간 검사, 당뇨 2.2배가 맨 앞에 나온다', () => {
     const me = { ...S.A.input, age: 59, sex: 'M' as const, heightCm: 181, weightKg: 79, waistCm: 88.9, alcohol: 'd5' as const, famDM: true,
       dx: { htn: true, dm: false, chol: false }, meno: null };
     const r = viewResults(me, suggestScenario(me));
     expect(names(r.diagnosed)).toEqual(['고혈압']);
     expect(r.first.map((f) => f.short).slice(0, 2)).toEqual(['당뇨', '간']);
     const dm = r.prob[0];
-    expect(dm.pct).toBe('15.6');
-    expect(dm.cmp!.peer).toBeCloseTo(6.3, 1);
-    expect(dm.cmp!.headline).toBe('또래의 약 2.5배예요');
+    expect(dm.pct).toBe('16.3');                       // 엔진 15.6% → 보정 16.3%
+    expect(dm.cmp!.peer).toBe(7.3);                    // 50대 남성 중 진단받지 않은 사람의 실측 비율
+    expect(dm.cmp!.headline).toBe('또래의 약 2.2배예요');
     expect(dm.cmp!.action).toContain('공복혈당');
     expect(r.prob.find((p) => p.id === 'nafld')!.note).toContain('간 수치 검사');
     expect(r.prob.find((p) => p.id === 'htn')!.status).toBe('managed');
@@ -61,16 +61,16 @@ describe('결과 화면 (엔진 값은 그대로, 묶음·비교만 검사)', ()
     expect(r.hero!.id).toBe('dm');
     expect(r.others.map((f) => f.short)).toContain('간');
   });
-  it('극단 예시: 먼저 확인할 것 9개, 진단 3개, 낮음 최대', async () => {
+  it('극단 예시: 먼저 확인할 것 8개, 진단 3개, 낮음 최대', async () => {
     const { stressSamples: X } = await import('./stress.ts');
     const v = X.map((s) => viewResults(s.input, suggestScenario(s.input)));
-    expect(v[0].first.length).toBe(9);
+    expect(v[0].first.length).toBe(8);
     expect(v[1].diagnosed.length).toBe(3);
     expect(v[2].first.length).toBe(0);
     expect(v[2].hero).toBe(null);
     // 우울 배수가 더 커도 상단 대표는 신체 항목, 마음·수면·소화는 그 뒤
-    expect(v.map((r) => r.hero?.id ?? '-')).toEqual(['dm', 'nafld', '-', 'dm']);
-    expect(v[0].others.map((f) => f.short)).toEqual(['고혈압', '고콜레스테롤', '간', '수면무호흡', '불면', '우울', '불안', '위식도역류']);
+    expect(v.map((r) => r.hero?.id ?? '-')).toEqual(['htn', 'nafld', '-', 'dm']);
+    expect(v[0].others.map((f) => f.short)).toEqual(['당뇨', '간', '수면무호흡', '불면', '우울', '불안', '위식도역류']);
     console.log(v.map((r) => [r.first.length, r.improved.length, r.low.length, r.same.length, r.watch.length, r.diagnosed.length].join('/')));
   });
 });
@@ -98,12 +98,12 @@ describe('검진 수치 (선택 입력): 있으면 추정보다 실제 수치가
 });
 
 describe('상세·바꿔보기·기록', () => {
-  it('숨은 당뇨 상세: 100명 중 3명 → 1명, 점수 5 = 나이 3 + 허리 2', () => {
+  it('당뇨 상세: 보정 1.4% → 100명 중 1명, 점수 5 = 나이 3 + 허리 2', () => {
     const d = viewDetail('dm', S.A.input, S.A.scenario);
-    expect([d.n, d.m, d.removed]).toEqual([3, 1, 2]);
+    expect([d.n, d.m, d.removed]).toEqual([1, 1, 0]);
     expect(d.parts.filter((p) => p.v > 0).map((p) => p.v)).toEqual([3, 2]);
-    // 연령대별 '진단받지 않은 사람 중 당뇨' 비율 (유병률 0.6·2.1·5.2·11.6·19.6·27.9% 에서 환산)
-    expect(d.bands.map((b) => Math.round(b.v * 10) / 10)).toEqual([0.3, 1.2, 1.4, 3.2, 5.8, 8.9]);
+    // 연령대별 '진단받지 않은 사람 중 실측 당뇨 비율' (국민건강영양조사 2022–2024, 여성)
+    expect(d.bands.map((b) => b.v)).toEqual([0.3, 1.1, 1.5, 3.3, 3.5, 4.7]);
   });
   it('바꿔보기: 체중 −4kg·허리 −5cm면 4개 항목이 낮아진다', () => {
     const w = whatIfRows(S.A.input, applyScenario(S.A.input, S.A.scenario));
@@ -128,10 +128,11 @@ describe('음주·허리 입력', () => {
     const { waistCmOf, emptyDraft } = await import('../state.ts');
     expect(waistCmOf({ ...emptyDraft(), waist: '32', waistUnit: 'in' })).toBe(81.3);
   });
-  it('진단받지 않은 또래 당뇨 비율 = 유병률 × (1 − 인지율) ÷ (1 − 유병률 × 인지율)', async () => {
-    const { undiagnosedDm } = await import('./view.ts');
-    expect(undiagnosedDm(20.9, 55)).toBeCloseTo(6.27, 1);   // 50대 남성, 인지율 74.7%
-    expect(undiagnosedDm(2.1, 35)).toBeCloseTo(1.20, 1);    // 30대 여성, 인지율 43.3%
+  it('또래 평균 = 진단받지 않은 같은 성별·연령대의 실측 비율 (국민건강영양조사 2022–2024)', async () => {
+    const { peerOf } = await import('../../../engine/src/calibrate.ts');
+    expect(peerOf('dm', 'M', 55)).toBe(7.3);
+    expect(peerOf('htn', 'M', 55)).toBe(15.3);
+    expect(peerOf('osteo', 'F', 45)).toBe(null);
   });
 });
 

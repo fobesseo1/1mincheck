@@ -11,6 +11,7 @@
  */
 import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
 import { runAll, type Input } from '../engine/src/engine.ts';
+import { calibrate, CAL_IDS, type CalId } from '../engine/src/calibrate.ts';
 
 type Person = { year: number; w: number; inp: Input; out: Record<string, number> };
 const people: Person[] = readFileSync(new URL('./.cache/people.jsonl', import.meta.url), 'utf8').trim().split('\n').map((l) => JSON.parse(l));
@@ -35,19 +36,23 @@ const r1 = (v: number) => Math.round(v * 10) / 10, r3 = (v: number) => Math.roun
 const band = (a: number) => (a < 30 ? '19–29' : a < 40 ? '30대' : a < 50 ? '40대' : a < 60 ? '50대' : a < 70 ? '60대' : '70세↑');
 
 // ── 엔진 실행 ──
-const rows = people.map((p) => ({ ...p, R: Object.fromEntries(runAll(p.inp).map((r) => [r.id, r])) }));
+// 앱에 보이는 값 = 보정값 (당뇨·고혈압·콜레스테롤·골다공증). 검증 표에는 엔진값과 보정값을 함께 남긴다
+const rows = people.map((p) => ({ ...p, R: Object.fromEntries(runAll(p.inp).map((r) => {
+  const cal = (CAL_IDS as string[]).includes(r.id) && r.value != null ? calibrate(r.id as CalId, r.value, p.inp.sex, p.inp.age) : r.value;
+  return [r.id, { ...r, engine: r.value, value: cal }];
+})) }));
 
 // ── 검증 ──
 const validation: Record<string, unknown> = {};
 for (const id of IDS) {
   const xs = rows.filter((r) => r.out[id] != null && r.R[id].status === 'ok' && r.R[id].value != null)
-    .map((r) => ({ p: r.R[id].value as number, y: r.out[id], w: r.w, sex: r.inp.sex, age: r.inp.age }));
+    .map((r) => ({ p: r.R[id].value as number, e: r.R[id].engine as number, y: r.out[id], w: r.w, sex: r.inp.sex, age: r.inp.age }));
   if (!xs.length) continue;
   const groups: Record<string, { n: number; predicted: number; observed: number }> = {};
   for (const sex of ['M', 'F'] as const) for (const b of ['19–29', '30대', '40대', '50대', '60대', '70세↑']) {
     const g = xs.filter((x) => x.sex === sex && band(x.age) === b);
     if (g.length < 50) continue;
-    groups[`${sex === 'M' ? '남' : '여'} ${b}`] = { n: g.length, predicted: r1(wmean(g.map((x) => ({ v: x.p, w: x.w })))), observed: r1(100 * wmean(g.map((x) => ({ v: x.y, w: x.w })))) };
+    groups[`${sex === 'M' ? '남' : '여'} ${b}`] = { n: g.length, engine: r1(wmean(g.map((x) => ({ v: x.e, w: x.w })))), predicted: r1(wmean(g.map((x) => ({ v: x.p, w: x.w })))), observed: r1(100 * wmean(g.map((x) => ({ v: x.y, w: x.w })))) };
   }
   // 예측값 10분위별 실제 비율
   const sorted = [...xs].sort((a, b) => a.p - b.p), deciles = [];
@@ -55,8 +60,8 @@ for (const id of IDS) {
     const g = sorted.slice(Math.floor((k * sorted.length) / 10), Math.floor(((k + 1) * sorted.length) / 10));
     deciles.push({ predicted: r1(wmean(g.map((x) => ({ v: x.p, w: x.w })))), observed: r1(100 * wmean(g.map((x) => ({ v: x.y, w: x.w })))) });
   }
-  validation[id] = { name: NAMES[id], n: xs.length, auc: r3(auc(xs)),
-    predicted: r1(wmean(xs.map((x) => ({ v: x.p, w: x.w })))), observed: r1(100 * wmean(xs.map((x) => ({ v: x.y, w: x.w })))), groups, deciles };
+  validation[id] = { name: NAMES[id], n: xs.length, auc: r3(auc(xs)), aucEngine: r3(auc(xs.map((x) => ({ ...x, p: x.e })))),
+    engine: r1(wmean(xs.map((x) => ({ v: x.e, w: x.w })))), predicted: r1(wmean(xs.map((x) => ({ v: x.p, w: x.w })))), observed: r1(100 * wmean(xs.map((x) => ({ v: x.y, w: x.w })))), groups, deciles };
 }
 
 // ── 또래 백분위: 같은 성별, 나이 ±5세, 진단받지 않은 사람의 엔진 확률 분포 (가중 분위수 5–95%) ──
@@ -83,9 +88,10 @@ for (const id of PCT_IDS) {
 }
 
 const meta = { source: '국민건강영양조사 제9기(2022–2024) 원시자료, 질병관리청', weights: 'wt_itvex/3 (이용지침서 기수 내 3개년 통합)', adults: people.length,
-  note: '혈압은 ‘모름’으로 계산(앱 기본 상태). 진단받지 않은 사람만. 운동은 유산소 신체활동 실천(주 150분)으로 대체', generated: new Date().toISOString().slice(0, 10) };
+  note: '혈압은 ‘모름’으로 계산(앱 기본 상태). 진단받지 않은 사람만. 운동은 유산소 신체활동 실천(주 150분)으로 대체. predicted·auc = 보정값(앱에 보이는 값), engine·aucEngine = 보정 전. 보정 계수를 만든 자료와 같으므로 보정 확인은 analysis/results/calibration.json(다른 해 자료)을 본다',
+  generated: new Date().toISOString().slice(0, 10) };
 mkdirSync(new URL('./results/', import.meta.url), { recursive: true });
 writeFileSync(new URL('./results/validation.json', import.meta.url), JSON.stringify({ meta, validation }, null, 2));
 writeFileSync(new URL('../engine/src/percentiles.json', import.meta.url), JSON.stringify({ meta: { ...meta, quantiles: Q, window: '같은 성별, 나이 ±5세', minCell }, ...percentiles }));
-for (const [id, v] of Object.entries(validation) as [string, any][]) console.log(`${id}: n=${v.n} AUC=${v.auc} 예측 평균 ${v.predicted}% / 실제 ${v.observed}%`);
+for (const [id, v] of Object.entries(validation) as [string, any][]) console.log(`${id}: n=${v.n} AUC 엔진 ${v.aucEngine} → 보정 ${v.auc} · 평균 엔진 ${v.engine}% → 보정 ${v.predicted}% / 실제 ${v.observed}%`);
 console.log('percentiles minCell', minCell);

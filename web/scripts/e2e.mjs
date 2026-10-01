@@ -101,11 +101,12 @@ try {
 
   console.log('결과 (예시 A와 같아야 함)'); ok((await route()) === '#/result', '#/result');
   const t = await text();
-  ok(t.indexOf('먼저 확인할 것 1개') < t.indexOf('이미 당뇨일 확률') && /또래의 약\s*2.1\s*배/.test(t.slice(0, 400)), '맨 위: 먼저 확인할 것 + 또래의 약 2.1배 크게');
-  ok(t.indexOf('공복혈당') < t.indexOf('관리하면 줄어드는 것'), '검사 권유 하늘색 박스가 상단 카드 안에 있다');
+  // 실측 보정 후 예시 A(49세 여성): 당뇨 1.4% vs 진단받지 않은 또래 실측 1.5% → 또래와 비슷, 먼저 확인할 것 없음
+  ok(t.slice(0, 600).includes('먼저 확인할 것 없음') && t.slice(0, 600).includes('또래보다 높은 항목이 없어요'), '맨 위: 또래보다 높은 항목 없음 (보정 후)');
   ok(t.includes('그 밖의 항목') && t.includes('또래와 비슷') && t.includes('또래보다 낮음'), '그 밖의 항목 묶음');
-  ok(t.includes('이미 당뇨일 확률') && t.includes('또래의 약 2.1배예요') && t.includes('공복혈당'), '이미 당뇨일 확률: 또래 배수 + 검사 권유');
-  ok(t.includes('40대 여성 중 진단받지 않은 사람 평균'), '당뇨는 진단받지 않은 또래와 비교');
+  ok(t.includes('이미 당뇨일 확률') && t.includes('또래와 비슷해요') && /1\.4\s*%/.test(t), '이미 당뇨일 확률: 보정 1.4% · 또래와 비슷');
+  ok(t.includes('40대 여성 중 진단받지 않은 사람'), '또래 = 진단받지 않은 사람의 실측 비율');
+  ok(!t.includes('DEV ·') && !t.includes('개발자 모드'), '일반 주소에서는 개발자 정보가 안 보인다');
   ok(!t.includes('숨은 당뇨') && !t.includes('확률 6'), '헷갈리는 용어·꼬리표가 없다');
   ok(/관리하면 줄어드는 것\s*4개/.test(t) && t.includes('비만'), '숫자 카드에 항목 이름이 같이 나온다');
   ok(t.includes('지금 6.4%') && t.includes('1.2'), '관리하면 지방간 6.4 → 1.2');
@@ -119,7 +120,8 @@ try {
 
   console.log('상세'); await p.evaluate(() => { location.hash = '/detail/dm'; });
   await new Promise((r) => setTimeout(r, 300));
-  const td = await text(); ok(td.includes('관리해도 남는 1명') && td.includes('또래의 약 2.1배예요') && td.includes('/ 11점'), '당뇨 상세: 또래 배수, 3명→1명, 선별점수'); await shot('detail-dm');
+  const td = await text(); ok(td.includes('100명 중 1명') && td.includes('또래와 비슷해요') && td.includes('/ 11점'), '당뇨 상세: 보정값·또래 비교·선별점수');
+  ok(td.includes('낮은 쪽에서 약 40번째'), '또래 100명 중 내 위치 (백분위)'); await shot('detail-dm');
   for (const id of ['htn', 'chol', 'obesity', 'nafld', 'osa', 'isi', 'dep', 'gad', 'osteo', 'gerd', 'diet']) {
     await p.evaluate((id) => { location.hash = '/detail/' + id; }, id); await new Promise((r) => setTimeout(r, 200));
     ok((await text()).includes('다음에 할 일'), `상세 ${id} 열림`);
@@ -131,7 +133,7 @@ try {
   await click('처음 값으로'); ok(/낮아지는 항목\s*0개/.test(await text()), '처음 값으로 되돌리면 0개');
   await p.evaluate(() => { const s = document.getElementById('wi-wa'); const set = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set; set.call(s, '-5'); s.dispatchEvent(new Event('input', { bubbles: true })); });
   await new Promise((r) => setTimeout(r, 200));
-  ok((await text()).includes('1.3'), '허리 −5cm 슬라이더 → 당뇨 1.3%'); await shot('whatif');
+  ok(/1\.4 →\s*0\.7/.test(await text()), '허리 −5cm 슬라이더 → 당뇨 1.4 → 0.7%'); await shot('whatif');
 
   console.log('고혈압 진단 + 과음이면 숨기지 않고 맨 앞에'); await p.evaluate(() => { location.hash = '/life'; }); await new Promise((r) => setTimeout(r, 300));
   await click('고혈압', '진단받은'); await click('거의 매일', '술은'); await click('소주 늘리기'); await click('소주 늘리기');
@@ -165,6 +167,16 @@ try {
   ok(tl.includes('검진 수치') && tl.includes('반영됨'), '결과 화면에 ‘검진 수치 n개 반영됨’');
   await shot('result-lab');
   await click('모두 지우기').catch(() => {});
+
+  console.log('개발자 모드 (?dev=1616)');
+  await p.goto(BASE.replace(/\/?$/, '/') + '?dev=1616#/result', { waitUntil: 'networkidle0' }); await new Promise((r) => setTimeout(r, 400));
+  const tdv = await text();
+  ok(tdv.includes('개발자 모드') && tdv.includes('DEV · 엔진'), '개발자 모드: 엔진값 → 보정값 표시');
+  await p.evaluate(() => { location.hash = '/dev'; }); await new Promise((r) => setTimeout(r, 300));
+  ok((await text()).includes('확인 자료 AUC'), '개발자 모드: /dev 보정 확인 화면'); await shot('dev');
+  await p.goto(BASE.replace(/\/?$/, '/') + '?dev=1#/result', { waitUntil: 'networkidle0' }); await new Promise((r) => setTimeout(r, 300));
+  ok(!(await text()).includes('DEV ·'), '?dev=1 로는 켜지지 않는다');
+  await p.goto(BASE.replace(/\/?$/, '/') + '?dev=1616#/result', { waitUntil: 'networkidle0' });
 
   console.log('결과 화면 깨짐 검사 (예시·극단값 × 폰 폭 360/430)');
   const hasDemo = await p.evaluate(() => !!document.querySelector('.demo'));

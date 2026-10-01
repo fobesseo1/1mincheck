@@ -1,0 +1,326 @@
+{
+  "meta": {
+    "version": "보정 v1 (국민건강영양조사 2022–2024)",
+    "source": "국민건강영양조사 제9기(2022–2024) 원시자료, 질병관리청",
+    "method": "로지스틱 재보정: logit(p′) = a[성별·연령대] + b·logit(엔진 확률), 진단받지 않은 사람, 가중치 wt_itvex/3",
+    "generated": "2026-10-01"
+  },
+  "check": {
+    "dm": {
+      "check": "2022–2023으로 만들고 2024로 확인",
+      "nTrain": 8785,
+      "nTest": 4608,
+      "auc": {
+        "engine": 0.758,
+        "calibrated": 0.754
+      },
+      "mean": {
+        "engine": 3.8,
+        "calibrated": 3.2,
+        "observed": 3.9
+      },
+      "groups": {
+        "남 19–29": {
+          "n": 290,
+          "engine": 1.1,
+          "calibrated": 1.2,
+          "observed": 0.9
+        },
+        "남 30대": {
+          "n": 265,
+          "engine": 2.7,
+          "calibrated": 1.1,
+          "observed": 3.3
+        },
+        "남 40대": {
+          "n": 320,
+          "engine": 5.9,
+          "calibrated": 2.9,
+          "observed": 5.9
+        },
+        "남 50대": {
+          "n": 368,
+          "engine": 6.5,
+          "calibrated": 8,
+          "observed": 6
+        },
+        "남 60대": {
+          "n": 353,
+          "engine": 6.1,
+          "calibrated": 8.2,
+          "observed": 8.4
+        },
+        "남 70세↑": {
+          "n": 348,
+          "engine": 4.6,
+          "calibrated": 4.2,
+          "observed": 10.6
+        },
+        "여 19–29": {
+          "n": 353,
+          "engine": 0.8,
+          "calibrated": 0.2,
+          "observed": 0.3
+        },
+        "여 30대": {
+          "n": 301,
+          "engine": 1.8,
+          "calibrated": 1.3,
+          "observed": 0.8
+        },
+        "여 40대": {
+          "n": 475,
+          "engine": 3.4,
+          "calibrated": 1.5,
+          "observed": 1.7
+        },
+        "여 50대": {
+          "n": 539,
+          "engine": 4.1,
+          "calibrated": 3.2,
+          "observed": 3.2
+        },
+        "여 60대": {
+          "n": 540,
+          "engine": 4.2,
+          "calibrated": 3.1,
+          "observed": 3.9
+        },
+        "여 70세↑": {
+          "n": 456,
+          "engine": 4.9,
+          "calibrated": 4.5,
+          "observed": 5.2
+        }
+      }
+    },
+    "htn": {
+      "check": "2022–2023으로 만들고 2024로 확인",
+      "nTrain": 7666,
+      "nTest": 4066,
+      "auc": {
+        "engine": 0.71,
+        "calibrated": 0.725
+      },
+      "mean": {
+        "engine": 23.5,
+        "calibrated": 8.5,
+        "observed": 9.9
+      },
+      "groups": {
+        "남 19–29": {
+          "n": 312,
+          "engine": 3.6,
+          "calibrated": 3.3,
+          "observed": 4.2
+        },
+        "남 30대": {
+          "n": 270,
+          "engine": 12.1,
+          "calibrated": 6.3,
+          "observed": 9.2
+        },
+        "남 40대": {
+          "n": 322,
+          "engine": 28.2,
+          "calibrated": 14,
+          "observed": 16.4
+        },
+        "남 50대": {
+          "n": 313,
+          "engine": 40.8,
+          "calibrated": 13.9,
+          "observed": 18
+        },
+        "남 60대": {
+          "n": 264,
+          "engine": 52.5,
+          "calibrated": 17.2,
+          "observed": 16.4
+        },
+        "남 70세↑": {
+          "n": 230,
+          "engine": 62,
+          "calibrated": 19.4,
+          "observed": 16.7
+        },
+        "여 19–29": {
+          "n": 368,
+          "engine": 0.9,
+          "calibrated": 0.9,
+          "observed": 1
+        },
+        "여 30대": {
+          "n": 318,
+          "engine": 3.9,
+          "calibrated": 2.7,
+          "observed": 2
+        },
+        "여 40대": {
+          "n": 477,
+          "engine": 12.1,
+          "calibrated": 4.2,
+          "observed": 6.5
+        },
+        "여 50대": {
+          "n": 500,
+          "engine": 26.6,
+          "calibrated": 7.9,
+          "observed": 8.6
+        },
+        "여 60대": {
+          "n": 428,
+          "engine": 43,
+          "calibrated": 12.2,
+          "observed": 13.9
+        },
+        "여 70세↑": {
+          "n": 264,
+          "engine": 67.4,
+          "calibrated": 18.6,
+          "observed": 22.6
+        }
+      }
+    },
+    "chol": {
+      "check": "2022–2023으로 만들고 2024로 확인",
+      "nTrain": 7602,
+      "nTest": 3900,
+      "auc": {
+        "engine": 0.601,
+        "calibrated": 0.646
+      },
+      "mean": {
+        "engine": 25,
+        "calibrated": 10,
+        "observed": 11.5
+      },
+      "groups": {
+        "남 19–29": {
+          "n": 292,
+          "engine": 4.9,
+          "calibrated": 4.6,
+          "observed": 4.8
+        },
+        "남 30대": {
+          "n": 259,
+          "engine": 15.9,
+          "calibrated": 11.8,
+          "observed": 13.2
+        },
+        "남 40대": {
+          "n": 299,
+          "engine": 28,
+          "calibrated": 12.9,
+          "observed": 18.6
+        },
+        "남 50대": {
+          "n": 294,
+          "engine": 38,
+          "calibrated": 10.1,
+          "observed": 18.5
+        },
+        "남 60대": {
+          "n": 288,
+          "engine": 39.8,
+          "calibrated": 7,
+          "observed": 6.1
+        },
+        "남 70세↑": {
+          "n": 307,
+          "engine": 35.4,
+          "calibrated": 3.3,
+          "observed": 4.5
+        },
+        "여 19–29": {
+          "n": 354,
+          "engine": 5.1,
+          "calibrated": 4.6,
+          "observed": 5.2
+        },
+        "여 30대": {
+          "n": 299,
+          "engine": 9.8,
+          "calibrated": 6.6,
+          "observed": 8
+        },
+        "여 40대": {
+          "n": 474,
+          "engine": 15.3,
+          "calibrated": 10,
+          "observed": 10.3
+        },
+        "여 50대": {
+          "n": 404,
+          "engine": 41.1,
+          "calibrated": 19.4,
+          "observed": 21.1
+        },
+        "여 60대": {
+          "n": 327,
+          "engine": 56,
+          "calibrated": 19.5,
+          "observed": 16.7
+        },
+        "여 70세↑": {
+          "n": 303,
+          "engine": 53.7,
+          "calibrated": 12.3,
+          "observed": 7.9
+        }
+      }
+    },
+    "osteo": {
+      "check": "2024 짝수 행으로 만들고 홀수 행으로 확인",
+      "nTrain": 1218,
+      "nTest": 1220,
+      "auc": {
+        "engine": 0.747,
+        "calibrated": 0.776
+      },
+      "mean": {
+        "engine": 16.4,
+        "calibrated": 13,
+        "observed": 13.6
+      },
+      "groups": {
+        "남 50대": {
+          "n": 178,
+          "engine": 3.5,
+          "calibrated": 3.5,
+          "observed": 4.8
+        },
+        "남 60대": {
+          "n": 190,
+          "engine": 4.3,
+          "calibrated": 5.2,
+          "observed": 3.5
+        },
+        "남 70세↑": {
+          "n": 189,
+          "engine": 4.7,
+          "calibrated": 4.6,
+          "observed": 4.9
+        },
+        "여 50대": {
+          "n": 182,
+          "engine": 7.4,
+          "calibrated": 12.8,
+          "observed": 11.5
+        },
+        "여 60대": {
+          "n": 260,
+          "engine": 28.2,
+          "calibrated": 23,
+          "observed": 20
+        },
+        "여 70세↑": {
+          "n": 221,
+          "engine": 57.1,
+          "calibrated": 31.7,
+          "observed": 42
+        }
+      }
+    }
+  }
+}

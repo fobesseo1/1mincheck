@@ -1,7 +1,8 @@
 import type { ReactNode, CSSProperties } from 'react';
 import { useStore, Nav, Icon, People, Gauge, Crisis } from '../ui.tsx';
 import { suggestScenario } from '../state.ts';
-import { viewDetail, f1, statusText, flagOf, INK, LOOK } from '../lib/view.ts';
+import { viewDetail, f1, statusText, flagOf, INK, LOOK, type ViewResult } from '../lib/view.ts';
+import { DevNote } from './DevNote.tsx';
 import { NAMES, TITLE, TOOL, BADGE, WHAT, WHY, HOW, NEXT, NEXT_SPECIAL, SRC, KNHANES, MODULE_OF, MEANING, DISCLAIMER, type ItemId } from '../lib/content.ts';
 import { useInput, NeedInput } from './Results.tsx';
 
@@ -37,7 +38,11 @@ export function Detail({ id }: { id: ItemId }) {
           {d.cmp && <div style={{ fontSize: 30, lineHeight: 1.2, fontWeight: 900, letterSpacing: '-0.04em', color: d.cmp.col, marginTop: 4 }}>{d.cmp.headline}</div>}
           <div><span style={{ fontSize: 72, lineHeight: 1, fontWeight: 900, letterSpacing: '-0.06em', color: 'var(--obsidian)' }}>{f1(r.value)}</span><b style={{ fontSize: 22, color: 'var(--obsidian)' }}>%</b></div>
           <div style={{ fontSize: 14, color: 'var(--charcoal)' }}>나와 같은 조건인 사람 100명 중 약 <b>{d.n}명</b>{id === 'dm' ? ' · 상대 오차 ±약 25%' : ''}</div>
-          {d.cmp && <div style={{ fontSize: 13, color: 'var(--slate)' }}>또래 평균 {id === 'dm' ? '약 ' : ''}{f1(d.cmp.peer)}% ({d.cmp.who})</div>}
+          {d.cmp && <div style={{ fontSize: 13, color: 'var(--slate)' }}>또래 평균 {f1(d.cmp.peer)}% ({d.cmp.who})</div>}
+          {d.rank != null && <div style={{ marginTop: 4, padding: '8px 14px', borderRadius: 12, background: 'var(--bg)', fontSize: 13, lineHeight: 1.5 }}>
+            같은 나이(±5세)·성별 100명을 줄 세우면 <b>낮은 쪽에서 약 {d.rank}번째</b>예요
+          </div>}
+          <div style={{ width: '100%', marginTop: 6 }}><DevNote id={id} raw={(r as ViewResult).raw} value={r.value} rawPeer={(r as ViewResult).rawPeer} peer={d.cmp?.peer} sex={inp.sex} age={inp.age} /></div>
           {d.cmp?.action && <div style={{ marginTop: 6, padding: '10px 14px', borderRadius: 14, background: 'var(--look-bg)', color: LOOK, fontSize: 14, fontWeight: 600, lineHeight: 1.5 }}>→ {d.cmp.action}</div>}
           <div style={{ marginTop: 14, width: '100%' }}><People cells={d.people} /></div>
           <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', justifyContent: 'center', fontSize: 12, color: 'var(--obsidian)', marginTop: 8 }}>

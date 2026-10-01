@@ -1,10 +1,21 @@
-// 화면에 보여줄 값 만들기. 확률·점수 계산은 engine 의 runAll()·whatIf() 결과만 쓴다.
-// 예외 하나: 당뇨의 또래 비교 기준(진단받지 않은 또래 중 당뇨 비율)은 spec §6-1 의 식과
-// prevalence.json 의 인지율로 여기서 환산한다(엔진 코드는 그대로).
+// 화면에 보여줄 값 만들기. 확률·점수 계산은 engine 의 runAll()·whatIf() 결과를 쓰고,
+// 당뇨·고혈압·콜레스테롤·골다공증 확률은 실측 보정(engine/src/calibrate.ts, 국민건강영양조사 2022–2024)을 거친다.
+// 또래 평균은 같은 성별·연령대에서 '진단받지 않은 사람'의 실측 비율이다. 엔진 식은 그대로.
 import { runAll as engineRunAll, whatIf as engineWhatIf, ratioLabel, type Input, type Result } from '../../../engine/src/engine.ts';
-import P from '../../../engine/src/prevalence.json';
 import { drinkOf, type AppInput } from '../state.ts';
 import type { Lab } from '../../../engine/src/extras.ts';
+import { calibrate, peerOf, CAL_IDS, type CalId } from '../../../engine/src/calibrate.ts';
+import { rankOf } from '../../../engine/src/percentile.ts';
+
+/** 보정 전 엔진 값(개발자 모드에서 함께 보여준다) */
+export type ViewResult = Result & { raw?: number; rawPeer?: number | null };
+const isCal = (id: string): id is CalId => (CAL_IDS as string[]).includes(id);
+function cal(r: Result, i: Input): ViewResult {
+  if (!isCal(r.id) || r.status !== 'ok') return r;
+  const peer = peerOf(r.id, i.sex, i.age);
+  return { ...r, raw: r.value ?? undefined, rawPeer: r.peer, value: r.value == null ? null : calibrate(r.id, r.value, i.sex, i.age),
+    range: r.range ? [calibrate(r.id, r.range[0], i.sex, i.age), calibrate(r.id, r.range[1], i.sex, i.age)] : undefined, peer: peer ?? r.peer };
+}
 
 // ── 적용 범위 맞추기 (엔진 숫자는 그대로, 원 연구 대상이 아니면 보여주지 않는다) ──
 /** 지방간 점수 원 연구(Lee 2014)는 주당 알코올 남 140g·여 70g 초과를 빼고 만들었다 */
@@ -15,7 +26,7 @@ export const labOf = (i: Input): Lab => (i as AppInput).lab ?? {};
 const MEASURED = 'measured' as Result['status'];
 function fit(R: Result[], i: Input): Result[] {
   const L = labOf(i);
-  return R.map((r) => {
+  return R.map((r): Result => {
     // 검진 수치가 있으면 추정보다 실제 수치가 우선
     if (r.id === 'dm' && L.glu != null && r.status !== 'managed') {
       if (L.glu >= 126) return { ...r, status: 'criteria', value: null, range: undefined, flags: [...(r.flags ?? []), 'MEASURED'],
@@ -35,10 +46,14 @@ function fit(R: Result[], i: Input): Result[] {
     // 불면: 첫 질문 '아니요'는 ISI 0점이 아니라 '측정 안 함'
     if (r.id === 'isi' && r.status === 'ok' && i.sleep && !i.sleep.insGate) return { ...r, value: null, score: undefined, category: '불면 선별 음성' };
     return r;
-  });
+  }).map((r) => cal(r, i));
 }
-export const runAll = (i: Input) => fit(engineRunAll(i), i);
-export const whatIf = (b: Input, a: Input) => engineWhatIf(b, a).map((w) => (w.id === 'nafld' ? { ...w, before: nafldOverAlcohol(b) ? null : w.before, after: nafldOverAlcohol(a) ? null : w.after } : w));
+export const runAll = (i: Input): ViewResult[] => fit(engineRunAll(i), i);
+export const whatIf = (b: Input, a: Input) => engineWhatIf(b, a).map((w) => {
+  if (w.id === 'nafld') return { ...w, before: nafldOverAlcohol(b) ? null : w.before, after: nafldOverAlcohol(a) ? null : w.after };
+  if (isCal(w.id)) return { ...w, before: w.before == null ? null : calibrate(w.id, w.before, b.sex, b.age), after: w.after == null ? null : calibrate(w.id, w.after, a.sex, a.age) };
+  return w;
+});
 import { NAMES, TITLE, BADGE, PROB_IDS, MEANING, PEER_NOTE, ACTION, MANAGED, EXCLUDED_NAFLD, EXCLUDED_NAFLD_STUDY, CRITERIA_HTN, type ItemId } from './content.ts';
 
 export type Scenario = { weightKg: number; waistCm: number };
@@ -65,21 +80,15 @@ export function ratioStyle(label?: string) {
 export const statusText: Record<string, string> = { managed: '진단받아 관리 중', criteria: '측정 수치가 기준 해당', measured: '검진 수치 반영', na: '대상 아님', excluded: '술 때문에 계산 안 함', needs_input: '답하면 볼 수 있어요' };
 const xfmt = (x: number) => (x < 0.1 ? x.toFixed(2) : (Math.round(x * 10) / 10).toFixed(1));
 
-/** 진단받지 않은 사람 중 당뇨 비율 = 유병률 × (1 − 인지율) ÷ (1 − 유병률 × 인지율)  (spec §6-1) */
-export function undiagnosedDm(prevalencePct: number, age: number) {
-  const aw = (age < 40 ? P.dm.awareness['19-39'] : P.dm.awareness['30+']) / 100, p = prevalencePct / 100;
-  return (100 * p * (1 - aw)) / (1 - p * aw);
-}
-
 /** 또래 비교: 같은 기준의 또래 값, 몇 배인지, 낮음/비슷/높음, 한 줄 결론, 다음 행동 */
 export function cmpOf(id: ItemId, r: Result, inp: Input) {
   if (r.status !== 'ok' || r.unit !== '%' || r.value == null || r.peer == null) return null;
   const grp = groupLabel(inp);
-  let peer = r.peer, who = `${grp} 평균`, note = PEER_NOTE[id] ?? '';
-  if (id === 'dm') {
-    peer = undiagnosedDm(r.peer, inp.age);
-    who = `${grp} 중 진단받지 않은 사람 평균`;
-    note = `또래 당뇨 유병률 ${f1(r.peer)}%에서 이미 진단받은 사람을 빼고 계산한 값이에요.`;
+  const peer = r.peer;
+  let who = `${grp} 평균`, note = PEER_NOTE[id] ?? '';
+  if (isCal(id)) {
+    who = `${grp} 중 진단받지 않은 사람`;
+    note = '국민건강영양조사(2022–2024)에서 아직 진단받지 않은 같은 또래가 실제로 검사에서 기준에 해당한 비율이에요.';
   }
   if (id === 'nafld') who = `성인 ${inp.sex === 'F' ? '여성' : '남성'} 평균`;
   const x = r.value / peer, label = ratioLabel(r.value, peer);
@@ -177,6 +186,7 @@ export function viewResults(inp: Input, sc: Scenario) {
       pct: r.value != null ? f1(r.value) : r.range ? `${r.range[0]}–${r.range[1]}` : '–', n: r.value != null ? Math.round(r.value) : null,
       cmp: c, peerTxt: c ? `${id === 'dm' ? '약 ' : ''}${f1(c.peer)}` : '', meW: v != null ? (v / top) * 100 : 0, peerW: c ? (c.peer / top) * 100 : 0,
       note: statusNote(id, r, inp), tone: r.status === 'excluded' || r.status === 'criteria' ? 'look' : r.status === 'managed' ? 'managed' : 'plain',
+      raw: (r as ViewResult).raw, rawPeer: (r as ViewResult).rawPeer,
       // 검진 수치가 있지만 기준 미만인 경우: 확률 옆에 실제 수치를 함께
       measured: id === 'dm' && r.flags?.includes('GLU_PRE') ? `검진 공복혈당 ${L.glu}mg/dL · 당뇨 전단계(100–125)예요. 당화혈색소도 확인해 보세요.`
         : id === 'dm' && r.flags?.includes('GLU_OK') ? `검진 공복혈당 ${L.glu}mg/dL · 정상(100 미만)이라 실제 가능성은 이보다 낮아요.` : '' };
@@ -241,7 +251,7 @@ export function viewDetail(id: ItemId, inp: Input, sc: Scenario) {
   if (['dm', 'htn', 'chol', 'obesity'].includes(id)) {
     const ages = [25, 35, 45, 55, 65, 75], L = ['20대', '30대', '40대', '50대', '60대', '70+'];
     const mine = Math.min(5, Math.max(0, Math.floor(inp.age / 10) - 2));
-    bands = ages.map((a, k) => { const p = byId(runAll({ ...inp, age: a }))[id].peer ?? 0; return { l: L[k], v: id === 'dm' ? undiagnosedDm(p, a) : p, mine: k === mine }; });
+    bands = ages.map((a, k) => ({ l: L[k], v: (isCal(id) ? peerOf(id, inp.sex, a) : byId(runAll({ ...inp, age: a }))[id].peer) ?? 0, mine: k === mine }));
   }
   // 당뇨 점수 내역: 요인 하나씩 빼고 runAll 을 다시 실행한 차이
   let parts: { k: string; v: number }[] = [];
@@ -260,6 +270,7 @@ export function viewDetail(id: ItemId, inp: Input, sc: Scenario) {
   return { r, rA, isProb, ok, n, m, people, removed: Math.max(0, n - m), afterV, bands, parts, group: groupLabel(inp), cmp: c,
     ratioTag: c ? (c.label === '비슷' ? '또래와 비슷' : '또래보다 ' + c.label) : r.status !== 'ok' ? statusText[r.status] : '',
     ratioBg: c?.bg ?? (r.status === 'excluded' || r.status === 'criteria' ? HIGH_BG : SAME_BG), ratioFg: c?.fg ?? (r.status === 'excluded' || r.status === 'criteria' ? LOOK : INK),
+    rank: ok && isProb ? rankOf(id, inp.sex, inp.age, r.value!) : null,
     measured: id === 'dm' && r.flags?.includes('GLU_PRE') ? `검진 공복혈당 ${labOf(inp).glu}mg/dL · 당뇨 전단계(100–125)예요.`
       : id === 'dm' && r.flags?.includes('GLU_OK') ? `검진 공복혈당 ${labOf(inp).glu}mg/dL · 정상(100 미만)이라 실제 가능성은 이보다 낮아요.` : '',
     statusNote: statusNote(id, r, inp), scenarioText: scenarioText(sc), crisis: (r.flags || []).includes('CRISIS') };

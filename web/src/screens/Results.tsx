@@ -4,6 +4,7 @@ import { useStore, Nav, TabBar, Ring, Gauge, Icon, Crisis } from '../ui.tsx';
 import { toInput, suggestScenario, saveRecords, today, drinkOf } from '../state.ts';
 import { runExtras } from '../../../engine/src/extras.ts';
 import { ExtraCards } from './Extras.tsx';
+import { DevNote } from './DevNote.tsx';
 import { viewResults, labOf, INK, LOOK } from '../lib/view.ts';
 import { labCount } from '../lib/labs.ts';
 import { MODULE_OF, DISCLAIMER, MEANING, type ItemId } from '../lib/content.ts';
@@ -254,6 +255,7 @@ export function Results() {
                   </div>
                   <span style={{ fontSize: 12, color: 'var(--slate)' }}>또래 평균 = {c.cmp.who}{c.cmp.note ? ` · ${c.cmp.note}` : ''}</span>
                   {c.cmp.action && <div style={{ padding: '10px 12px', borderRadius: 12, background: 'var(--look-bg)', color: LOOK, fontSize: 13, fontWeight: 600, lineHeight: 1.5 }}>→ {c.cmp.action}</div>}
+                  <DevNote id={c.id} raw={c.raw} value={c.cmp.me} rawPeer={c.rawPeer} peer={c.cmp.peer} sex={inp.sex} age={inp.age} />
                   {c.measured && <div style={{ padding: '10px 12px', borderRadius: 12, background: 'var(--linen)', color: INK, fontSize: 13, fontWeight: 600, lineHeight: 1.5 }}>{c.measured}</div>}
                 </>
               ) : (
