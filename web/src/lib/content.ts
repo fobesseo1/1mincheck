@@ -31,6 +31,11 @@ export const WHAT: Record<ItemId, string> = {
   diet: '7가지 식습관으로 매긴 참고 점수예요. 검증된 척도는 아니에요.',
 };
 
+/** 상세 화면 '왜 중요한가' */
+export const WHY: Partial<Record<ItemId, string>> = {
+  osteo: '골다공증으로 고관절이 부러지면 1년 안에 약 17%가 사망해요(남성 21.5%, 여성 14.6%). 척추 골절은 약 6%예요. 골절 전에 골밀도 검사로 찾아 치료하는 게 중요해요.',
+};
+
 /** 카드·상세 제목 (목록에서는 NAMES 를 짧게 쓴다) */
 export const TITLE: Record<ItemId, string> = { ...NAMES, dm: '이미 당뇨일 확률' };
 /** 또래보다 높을 때 바로 보여줄 다음 행동 */
@@ -120,7 +125,7 @@ export const SRC: Record<ItemId, { t: string; d: string; u: string }[]> = {
   isi: [{ t: '한국인 불면 성차 연구', d: 'PLoS One 2020', u: 'https://pmc.ncbi.nlm.nih.gov/articles/PMC6952093' }, { t: 'ISI 점수 구간', d: 'Bastien 2001', u: 'https://pubmed.ncbi.nlm.nih.gov/11438246/' }],
   dep: [{ t: '우울장애 유병률 추이 2016–2024', d: '주간 건강과 질병 2026', u: 'https://www.phwr.org/journal/view.html?doi=10.56786%2FPHWR.2026.19.15.4' }, { t: 'PHQ-2 타당도', d: 'Kroenke 2003', u: 'https://pubmed.ncbi.nlm.nih.gov/14583691/' }],
   gad: [{ t: '한국판 GAD-7·GAD-2', d: 'Front Psychiatry 2019', u: 'https://pmc.ncbi.nlm.nih.gov/articles/PMC6431620' }],
-  osteo: [{ t: 'OSTA 한국 폐경 전후 여성 검증', d: '대한산부인과학회지 2003', u: 'https://search.bvsalud.org/gim/resource/es/wpr-84071' }],
+  osteo: [{ t: 'OSTA 한국 폐경 전후 여성 검증', d: '대한산부인과학회지 2003', u: 'https://search.bvsalud.org/gim/resource/es/wpr-84071' }, { t: '골다공증 및 골다공증 골절 팩트시트 2023', d: '대한골대사학회·국민건강보험공단 · 50세 이상 2002–2022 골절 후 1년 치명률', u: 'https://www.ksbmr.org' }],
   gerd: [{ t: '한국판 GerdQ 타당도', d: '2019', u: 'https://pmc.ncbi.nlm.nih.gov/articles/PMC6326199' }, { t: '미란성 식도염 위험요인', d: 'J Korean Med Sci 2011', u: 'https://pmc.ncbi.nlm.nih.gov/articles/PMC3082116/' }],
   diet: [{ t: '한국형 건강식생활지수 2022–24', d: '질병관리청 발표 보도', u: 'https://www.newsis.com/view/NISX20260804_0003735294' }],
 };

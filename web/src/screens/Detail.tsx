@@ -2,7 +2,7 @@ import type { ReactNode, CSSProperties } from 'react';
 import { useStore, Nav, Icon, People, Gauge, Crisis } from '../ui.tsx';
 import { suggestScenario } from '../state.ts';
 import { viewDetail, f1, statusText, flagOf, INK, LOOK } from '../lib/view.ts';
-import { NAMES, TITLE, TOOL, BADGE, WHAT, HOW, NEXT, NEXT_SPECIAL, SRC, KNHANES, MODULE_OF, MEANING, DISCLAIMER, type ItemId } from '../lib/content.ts';
+import { NAMES, TITLE, TOOL, BADGE, WHAT, WHY, HOW, NEXT, NEXT_SPECIAL, SRC, KNHANES, MODULE_OF, MEANING, DISCLAIMER, type ItemId } from '../lib/content.ts';
 import { useInput, NeedInput } from './Results.tsx';
 
 const MOD_ROUTE = { sleep: '/sleep', mind: '/mind', gerd: '/digest', diet: '/diet' };
@@ -65,6 +65,12 @@ export function Detail({ id }: { id: ItemId }) {
           <a className="cta" href={'#' + MOD_ROUTE[mod]} onClick={() => setDraft((x) => ({ ...x, modules: { ...x.modules, [mod]: true } }))} style={{ marginTop: 10 }}>질문 답하기</a></>}
         <p style={{ margin: '10px 0 0', fontSize: 14, lineHeight: 1.55 }}>{WHAT[id]}</p>
       </div>
+
+      {WHY[id] && card(<>
+        <b style={{ fontSize: 15, color: 'var(--obsidian)' }}>왜 중요할까요</b>
+        <p style={{ margin: 0, fontSize: 14, lineHeight: 1.6 }}>{WHY[id]}</p>
+        <span className="help">대한골대사학회·국민건강보험공단 팩트시트 2023 (50세 이상, 2002–2022 건강보험 자료)</span>
+      </>)}
 
       {/* 동년배 */}
       {r.peer != null && r.status === 'ok' && card(<>

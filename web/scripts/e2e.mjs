@@ -122,6 +122,7 @@ try {
   for (const id of ['htn', 'chol', 'obesity', 'nafld', 'osa', 'isi', 'dep', 'gad', 'osteo', 'gerd', 'diet']) {
     await p.evaluate((id) => { location.hash = '/detail/' + id; }, id); await new Promise((r) => setTimeout(r, 200));
     ok((await text()).includes('다음에 할 일'), `상세 ${id} 열림`);
+    if (id === 'osteo') ok((await text()).includes('1년 안에 약 17%'), '골다공증 상세: 고관절 골절 1년 사망률');
   }
 
   console.log('바꿔보기'); await p.evaluate(() => { location.hash = '/whatif'; }); await new Promise((r) => setTimeout(r, 300));
