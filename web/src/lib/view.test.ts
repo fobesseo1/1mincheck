@@ -213,3 +213,13 @@ describe('입력 변환', () => {
     expect(suggestScenario(S.C.input)).toEqual({ weightKg: 0, waistCm: 0 });
   });
 });
+
+describe('랜딩 미니 체험', () => {
+  it('나이·성별·키·몸무게만으로 고혈압·당뇨·지방간 3개, 허리 모름이면 범위', async () => {
+    const { miniResults, miniError } = await import('../screens/MiniTrial.tsx');
+    const r = miniResults(45, 'M', 172, 85);
+    expect(r.map((p) => p.id)).toEqual(['htn', 'dm', 'nafld']);
+    expect(r[1].pct).toContain('–'); expect(r[2].pct).toContain('–');
+    expect(miniError('18', '170', '70')).toBeTruthy(); expect(miniError('45', '170', '70')).toBeNull();
+  });
+});

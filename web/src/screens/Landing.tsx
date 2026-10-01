@@ -3,6 +3,7 @@ import type React from 'react';
 import { samples, defaultSampleId } from '../../../src/sampleData.ts';
 import { viewResults, viewDetail, viewRecord, whatIfRows, applyScenario } from '../lib/view.ts';
 import { People, Icon } from '../ui.tsx';
+import { MiniTrial } from './MiniTrial.tsx';
 
 // 랜딩의 예시 숫자: src/sampleData.ts 기본 예시를 engine 으로 계산
 const S = samples.find((s) => s.id === defaultSampleId)!;
@@ -44,30 +45,7 @@ export function Landing() {
             {['서버 저장 없음', '국민건강영양조사 2023–2025', '한국인 검증 설문 도구'].map((t) => <span key={t} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>{Icon.check}{t}</span>)}
           </div>
         </div>
-        <div className="collage">
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <div className="dark" style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 12, borderRadius: 24 }}>
-              <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--lime)' }}>관리하면 이만큼 줄어요</span>
-              <b style={{ fontSize: 21, lineHeight: 1.3, letterSpacing: '-0.03em' }}>{R.scenarioText}이면<br />{R.improved.length}개 항목이 낮아져요</b>
-              {WI.map((w) => <div key={w.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '11px 14px', borderRadius: 12, background: 'var(--spruce)', fontSize: 14 }}><span>{w.name}</span><span><span style={{ opacity: .7 }}>{w.b}</span> → <b style={{ color: 'var(--lime)' }}>{w.a}</b></span></div>)}
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 14, padding: 20, borderRadius: 24, background: 'var(--linen)' }}>
-              <span style={{ width: 48, height: 48, flexShrink: 0, borderRadius: 14, background: 'var(--ink)', color: 'var(--lime)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{Icon.phone}</span>
-              <div><b style={{ color: 'var(--obsidian)' }}>서버 저장 없음</b><div style={{ fontSize: 13, color: 'var(--ink)' }}>모든 계산은 휴대폰 안에서</div></div>
-            </div>
-          </div>
-          <div className="c2" style={{ display: 'flex', flexDirection: 'column', gap: 16, paddingTop: 40 }}>
-            <Card style={{ padding: 24, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
-              <span className="cap" style={{ alignSelf: 'flex-start' }}>이미 당뇨일 확률 · {S.input.age}세 {S.input.sex === 'F' ? '여성' : '남성'} 예시</span>
-              <People cells={D.people} cols={10} size={18} />
-              <div><b style={{ fontSize: 44, fontWeight: 900, letterSpacing: '-0.05em', color: 'var(--obsidian)' }}>{D.n}</b><b style={{ color: 'var(--obsidian)' }}>명 / 100명</b></div>
-            </Card>
-            <div className="grid2">
-              <Card style={{ padding: 18 }}><b style={{ fontSize: 24, fontWeight: 900, color: 'var(--ink)' }}>3년</b><div style={{ fontSize: 12, lineHeight: 1.45 }}>국민건강영양조사 2023–2025 평균</div></Card>
-              <Card style={{ padding: 18 }}><b style={{ fontSize: 24, fontWeight: 900, color: 'var(--ink)' }}>8종</b><div style={{ fontSize: 12, lineHeight: 1.45 }}>한국인 검증 점수·설문 도구</div></Card>
-            </div>
-          </div>
-        </div>
+        <MiniTrial />
       </div></section>
 
       <section id="how" className="wrap"><div className="panel dots" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 44 }}>
