@@ -153,3 +153,19 @@ test('4년 고혈압 (Lim 2013): 표 3 점수 · 위험', () => {
   assert.equal(X.htn4(base({ dx: { htn: true, dm: false, chol: false } }), { sbp: 118, dbp: 76 }), null);
   assert.equal(X.htn4(base({ age: 35 }), { sbp: 118, dbp: 76 }), null);
 });
+
+test('10년 관상동맥질환 (Jee 2014 부록 A): 계산식 · 표시 조건', () => {
+  // 손 계산: 45세 남성, 혈압 정상·총콜 <160·HDL <35·비흡연·당뇨 없음 → x = −0.4630, 1 − 0.99313^e^x = 0.434%
+  assert.ok(Math.abs(X.chd10Risk({ age: 45, sex: 'M', smoke: 'never', dm: false, sbp: 110, dbp: 70, tc: 150, hdl: 30 }) - 0.434) < 0.002);
+  // 위험요인이 늘면 커지고, 금연하면 작아짐
+  const v = { age: 55, sex: 'M' as const, smoke: 'current' as const, dm: false, sbp: 130, dbp: 82, tc: 220, hdl: 42 };
+  assert.ok(X.chd10Risk(v) > X.chd10Risk({ ...v, smoke: 'past' }));
+  assert.ok(X.chd10Risk({ ...v, sbp: 165 }) > X.chd10Risk(v));
+  // 혈압·총콜·HDL 중 하나라도 없으면 없음, 30–74세만
+  const f = base({});
+  assert.equal(X.chd10(f, { sbp: 118, dbp: 76, tc: 200 }), null);
+  assert.ok(X.chd10(f, { sbp: 118, dbp: 76, tc: 200, hdl: 55 })!.head.includes('%'));
+  assert.equal(X.chd10(base({ age: 75 }), { sbp: 118, dbp: 76, tc: 200, hdl: 55 }), null);
+  // 공복혈당 126 이상이면 당뇨로 계산
+  assert.ok(X.chd10(f, { sbp: 118, dbp: 76, tc: 200, hdl: 55, glu: 130 })!.items[0].sub!.includes('당뇨 있음'));
+});

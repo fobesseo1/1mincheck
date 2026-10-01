@@ -26,7 +26,7 @@ export type Lab = Partial<Record<LabKey, number>>;
 export type Level = 'look' | 'note' | 'ok';
 export type Mark = 'yes' | 'maybe' | 'no' | 'unknown' | 'info';
 export interface Extra {
-  id: 'checkup' | 'alcohol' | 'metsyn' | 'lifestyle' | 'liver' | 'dementia' | 'ckd' | 'body' | 'dm10' | 'htn4';
+  id: 'checkup' | 'alcohol' | 'metsyn' | 'lifestyle' | 'liver' | 'dementia' | 'ckd' | 'body' | 'dm10' | 'htn4' | 'chd10';
   name: string;
   level: Level;
   /** 오른쪽 위 꼬리표 (없으면 level 기본값) */
@@ -337,9 +337,50 @@ export function htn4(i: Input, L: Lab = {}): Extra | null {
     source: 'Lim 2013 J Clin Hypertens 15:344 (KoGES 안성·안산 40–69세 4,747명, 4년 추적, 와이블 회귀, 점수 AUC 0.790) 표 3 점수표. 원문 기간이 4년이라 10년으로 늘려 계산하지 않아요. 고혈압 기준은 140/90 이상 또는 약 복용' };
 }
 
+// ── 11. 10년 안에 관상동맥질환(심근경색 등)이 생길 가능성 (Jee 2014 Korean Heart Study, 부록 A 계산식) ──
+// x = Σβ(변수−평균), 10년 위험 = 1 − S0^exp(x). 혈압은 JNC7 구분, 범주는 [기준, 2, 3, 4, 5] 순서의 β·평균.
+const KRS = {
+  M: { age: [0.13759, 45.7991], agesq: [-0.0006964, 2186.58], htn: [[0.24130, 0.40678], [0.54176, 0.18005], [0.79091, 0.06823]],
+    tc: [[0.30303, 0.43540], [0.72508, 0.31439], [1.02770, 0.08486], [1.51018, 0.01387]],
+    hdl: [[-0.41580, 0.31063], [-0.59809, 0.22692], [-0.80256, 0.27050], [-1.13973, 0.11410]],
+    ex: [-0.00207, 0.23029], cur: [0.60138, 0.53016], dm: [0.49443, 0.08389], s0: 0.99313, avg: 1.03 },
+  F: { age: [0.12962, 47.5808], agesq: [-0.0003965, 2363.65], htn: [[0.41491, 0.32308], [0.66187, 0.14102], [1.10282, 0.06657]],
+    tc: [[0.20005, 0.41642], [0.44176, 0.29841], [0.52267, 0.09640], [1.03573, 0.02196]],
+    hdl: [[-0.28121, 0.18651], [-0.18543, 0.16015], [-0.47018, 0.30597], [-0.72046, 0.31451]],
+    ex: [0.23099, 0.03970], cur: [0.67653, 0.05079], dm: [0.58729, 0.06026], s0: 0.99815, avg: 0.40 },
+};
+/** JNC7: 0 정상, 1 전단계(120–139/80–89), 2 1기(140–159/90–99), 3 2기(160/100 이상). 둘 중 높은 쪽 */
+const jnc7 = (sbp: number, dbp: number) => Math.max(sbp >= 160 ? 3 : sbp >= 140 ? 2 : sbp >= 120 ? 1 : 0, dbp >= 100 ? 3 : dbp >= 90 ? 2 : dbp >= 80 ? 1 : 0);
+export type ChdIn = { age: number; sex: 'M' | 'F'; smoke: Input['smoke']; dm: boolean; sbp: number; dbp: number; tc: number; hdl: number };
+export function chd10Risk(v: ChdIn) {
+  const K = KRS[v.sex], cat = (xs: number[][], k: number) => xs.reduce((a, [b, m], j) => a + b * ((k === j + 1 ? 1 : 0) - m), 0);
+  const h = jnc7(v.sbp, v.dbp), t = v.tc < 160 ? 0 : v.tc < 200 ? 1 : v.tc < 240 ? 2 : v.tc < 280 ? 3 : 4, d = v.hdl < 35 ? 0 : v.hdl < 45 ? 1 : v.hdl < 50 ? 2 : v.hdl < 60 ? 3 : 4;
+  const x = K.age[0] * (v.age - K.age[1]) + K.agesq[0] * (v.age * v.age - K.agesq[1]) + cat(K.htn, h) + cat(K.tc, t) + cat(K.hdl, d)
+    + K.ex[0] * ((v.smoke === 'past' ? 1 : 0) - K.ex[1]) + K.cur[0] * ((v.smoke === 'current' ? 1 : 0) - K.cur[1]) + K.dm[0] * ((v.dm ? 1 : 0) - K.dm[1]);
+  return 100 * (1 - K.s0 ** Math.exp(x));
+}
+const r2 = (v: number) => (v < 0.1 ? '0.1 미만' : v < 10 ? v.toFixed(1) : String(Math.round(v)));
+export function chd10(i: Input, L: Lab = {}): Extra | null {
+  if (L.sbp == null || L.dbp == null || L.tc == null || L.hdl == null || i.age < 30 || i.age > 74) return null;
+  const dm = i.dx.dm || (L.glu != null && L.glu >= 126);
+  const v: ChdIn = { age: i.age, sex: i.sex, smoke: i.smoke, dm, sbp: L.sbp, dbp: L.dbp, tc: L.tc, hdl: L.hdl };
+  const r = chd10Risk(v), best = chd10Risk({ ...v, smoke: 'never', dm: false, sbp: 110, dbp: 70, tc: 150, hdl: 60 }), K = KRS[i.sex];
+  const quit = i.smoke === 'current' ? chd10Risk({ ...v, smoke: 'past' }) : null;
+  return { id: 'chd10', name: '10년 안에 심근경색 등이 생길 가능성', level: r > K.avg ? 'look' : 'note', tag: '참고사항',
+    head: `계산식으로 본 10년 안 관상동맥질환(심근경색·급사) 가능성은 약 ${r2(r)}%예요`,
+    items: [
+      { t: '반영한 값', s: 'info', sub: `검진 혈압 ${L.sbp}/${L.dbp}, 총콜레스테롤 ${L.tc}, HDL ${L.hdl}, 흡연, 당뇨${dm ? ' 있음' : ' 없음'}` },
+      { t: '같은 나이·성별, 위험요인이 모두 좋다면', s: 'info', sub: `약 ${r2(best)}% (혈압 120/80 미만·총콜레스테롤 160 미만·HDL 60 이상·비흡연·당뇨 없음)` },
+      ...(quit != null ? [{ t: '담배를 끊으면', s: 'info' as Mark, sub: `약 ${r2(quit)}%` }] : []),
+      { t: `연구 참가자 ${i.sex === 'F' ? '여성' : '남성'} 평균`, s: 'info', sub: `${K.avg}%` },
+    ],
+    action: '혈압·콜레스테롤·혈당 관리와 금연이 가장 크게 낮춰요. 이미 협심증·심근경색 진단을 받았다면 이 계산은 해당되지 않아요.',
+    source: 'Jee 2014 BMJ Open 4:e005025 (Korean Heart Study, 30–74세 26만 8,315명, 중앙 11.6년 추적, AUC 남 0.764·여 0.812) 부록 A 계산식. 결과는 심근경색·급사 등 관상동맥질환만이고 뇌졸중은 포함하지 않아요. 건강검진센터 수검자(1996–2001년) 기준이라 일반 인구와 다를 수 있어요' };
+}
+
 /** 모든 추가 체크. 순서: 검진 → 주의가 필요한 것 → 나머지 */
 export function runExtras(i: Input, d?: Drink, L: Lab = {}): Extra[] {
-  const xs = [dm10(i, L), htn4(i, L), alcohol(i, d), metsyn(i, L), body(i), lifestyle(i, d), liver(i, d), dementia(i, d), ckd(i, L)].filter((x): x is Extra => !!x);
+  const xs = [dm10(i, L), htn4(i, L), chd10(i, L), alcohol(i, d), metsyn(i, L), body(i), lifestyle(i, d), liver(i, d), dementia(i, d), ckd(i, L)].filter((x): x is Extra => !!x);
   const rank = { look: 0, note: 1, ok: 2 };
   return [checkup(i), ...xs.sort((a, b) => rank[a.level] - rank[b.level])];
 }
