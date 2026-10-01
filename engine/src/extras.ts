@@ -295,14 +295,17 @@ export function kdrScore(i: Input, bp: 'normal' | 'pre' | 'htn') {
 export function dm10(i: Input, L: Lab = {}): Extra | null {
   if (i.dx.dm || (L.glu != null && L.glu >= 126) || i.age < 40 || i.age > 69 || i.waistCm == null) return null;
   const K = KDR[i.sex];
-  const bps: ('normal' | 'pre' | 'htn')[] = htnYes(i) ? ['htn'] : i.bp === 'elevated' ? ['pre'] : i.bp === 'normal' ? ['normal'] : ['normal', 'pre', 'htn'];
+  // 원문 혈압 구분: 전단계 120–139/80–89, 고혈압 140/90 이상 또는 약 복용. 검진 혈압이 있으면 그 값으로
+  const bpNum = L.sbp != null && L.dbp != null;
+  const bpm = bpNum ? (L.sbp! >= 140 || L.dbp! >= 90 ? 'htn' : L.sbp! >= 120 || L.dbp! >= 80 ? 'pre' : 'normal') : null;
+  const bps: ('normal' | 'pre' | 'htn')[] = i.dx.htn ? ['htn'] : bpm ? [bpm] : htnYes(i) ? ['htn'] : i.bp === 'elevated' ? ['pre'] : i.bp === 'normal' ? ['normal'] : ['normal', 'pre', 'htn'];
   const ss = bps.map((b) => kdrScore(i, b)), rs = ss.map((s) => K.risk[kdrBand(s)]);
   const lo = Math.min(...rs), hi = Math.max(...rs), avg = 22.7;
   const pct = lo === hi ? `${lo}%` : `${lo}–${hi}%`;
   return { id: 'dm10', name: '10년 안에 당뇨가 생길 가능성', level: hi > avg ? 'look' : 'note', tag: '참고사항',
     head: `비슷한 점수였던 사람 중 ${pct}가 10년 안에 당뇨가 됐어요`,
     items: [
-      { t: '점수', s: 'info', sub: `${ss.length > 1 ? `${Math.min(...ss)}–${Math.max(...ss)}` : ss[0]}점 / 100 (도시 거주로 계산${ss.length > 1 ? ', 혈압을 몰라 범위로' : ''})` },
+      { t: '점수', s: 'info', sub: `${ss.length > 1 ? `${Math.min(...ss)}–${Math.max(...ss)}` : ss[0]}점 / 100 (도시 거주로 계산${bpm && !i.dx.htn ? `, 검진 혈압 ${L.sbp}/${L.dbp} 반영` : ''}${ss.length > 1 ? ', 혈압을 몰라 범위로' : ''})` },
       { t: '연구 참가자 전체 평균', s: 'info', sub: `${avg}%` },
     ],
     action: '공복혈당·당화혈색소 검사를 받으면 지금 상태(전단계인지)를 정확히 알 수 있어요. 허리를 줄이고 금연하면 점수가 내려가요.',

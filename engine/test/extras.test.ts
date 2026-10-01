@@ -127,7 +127,10 @@ test('검진 수치: 대사증후군 5개가 모두 확인되고, 콩팥은 eGFR
   assert.equal(X.ckd(base({}), { upro: 3 }).level, 'look');
   assert.equal(X.ckd(base({}), { upro: 1 }).level, 'note');                           // ± 는 재검 권유
   assert.ok(!X.dementia(base({ dx: { htn: false, dm: false, chol: true } })).items.some((x) => x.t === '높은 LDL 콜레스테롤'));   // 측정 안 한 LDL 을 측정한 것처럼 쓰지 않음
-  assert.equal(X.dm10(base({ bp: 'normal' }), { glu: 130 }), null);                   // 이미 당뇨 기준이면 10년 발생 카드 없음
+  assert.equal(X.dm10(base({ bp: 'normal' }), { glu: 130 }), null);
+  assert.ok(X.dm10(base({}), { sbp: 112, dbp: 72 })!.head.includes('10.8%'));          // 검진 혈압 정상 → 범위 대신 한 값
+  assert.ok(!X.dm10(base({}), { sbp: 128, dbp: 76 })!.head.includes('–'));
+  assert.ok(X.dm10(base({}), { sbp: 128, dbp: 76 })!.items[0].sub!.includes('검진 혈압 128/76'));                   // 이미 당뇨 기준이면 10년 발생 카드 없음
 });
 
 test('runExtras: 검진이 맨 앞, 주의 항목이 그다음', () => {
