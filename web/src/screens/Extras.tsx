@@ -1,25 +1,25 @@
 import type { Extra } from '../../../engine/src/extras.ts';
 import { INK, LOOK } from '../lib/view.ts';
 
-const LV = { look: ['var(--look-bg)', LOOK, '확인 필요'], note: ['var(--linen)', INK, '참고'], ok: ['var(--linen)', INK, '양호'] } as const;
+const LV = { look: ['var(--look-bg)', LOOK, '확인 필요'], note: ['var(--linen)', INK, '참고'], ok: ['var(--linen)', INK, '해당 없음'] } as const;
 const MARK = {
   yes: ['●', LOOK, '해당'], maybe: ['◐', LOOK, '확인'], no: ['○', '#9aa096', '아님'], unknown: ['?', 'var(--slate)', '모름'], info: ['·', 'var(--slate)', ''],
 } as const;
-const CHECK = { yes: ['●', INK, '대상'], maybe: ['◐', INK, '조건부'], no: ['○', '#9aa096', ''], unknown: ['?', 'var(--slate)', ''], info: ['·', 'var(--slate)', ''] } as const;
+const CHECK = { yes: ['●', INK, '권장'], maybe: ['◐', INK, '조건부'], no: ['○', '#9aa096', ''], unknown: ['?', 'var(--slate)', ''], info: ['·', 'var(--slate)', ''] } as const;
 
 /** 생활·검진으로 보는 추가 체크 카드 (engine/src/extras.ts) */
 export function ExtraCards({ xs }: { xs: Extra[] }) {
   return (
     <>
       <h2 className="h2">생활·검진으로 보는 체크</h2>
-      <p className="lead" style={{ marginTop: -6, fontSize: 13, color: 'var(--slate)' }}>새 질문 없이 지금 답으로 공식 기준과 검증된 점수를 적용했어요. 확률이 아니라 기준에 해당하는지예요.</p>
+      <p className="lead" style={{ marginTop: -6, fontSize: 13, color: 'var(--slate)' }}>새 질문 없이 지금 답으로 공식 기준과 검증된 점수를 적용했어요. 대부분 확률이 아니라 기준에 해당하는지예요. ‘모름’은 낮다는 뜻이 아니에요.</p>
       {xs.map((x) => {
         const [bg, fg, tag] = LV[x.level], M = x.id === 'checkup' ? CHECK : MARK;
         return (
           <section key={x.id} className="card" aria-label={x.name} style={{ padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: 10 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
               <b style={{ fontSize: 15, color: 'var(--obsidian)' }}>{x.name}</b>
-              {x.id !== 'checkup' && <span className="tag" style={{ background: bg, color: fg }}>{tag}</span>}
+              <span className="tag" style={{ background: bg, color: fg, flexShrink: 0 }}>{x.tag ?? tag}</span>
             </div>
             <b style={{ fontSize: 19, fontWeight: 900, letterSpacing: '-0.03em', lineHeight: 1.35, color: x.level === 'look' ? LOOK : 'var(--obsidian)' }}>{x.head}</b>
             <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>

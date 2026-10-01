@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import type { Alcohol } from '../../../engine/src/engine.ts';
 import { Nav, TabBar, Icon } from '../ui.tsx';
-import { suggestScenario } from '../state.ts';
+import { suggestScenario, type AppInput } from '../state.ts';
 import { whatIfRows } from '../lib/view.ts';
 import { useInput, NeedInput } from './Results.tsx';
 
@@ -19,7 +19,8 @@ export function WhatIf() {
   if (!inp) return <NeedInput />;
   const r1 = (x: number) => Math.round(x * 10) / 10;
   const after = { ...inp, weightKg: r1(inp.weightKg + dw), waistCm: inp.waistCm == null ? null : r1(inp.waistCm + dwa),
-    smoke: smoke ? 'current' as const : inp.smoke === 'current' ? 'never' as const : inp.smoke, alcohol: alc, exercise: ex };
+    smoke: smoke ? 'current' as const : inp.smoke === 'current' ? 'never' as const : inp.smoke, alcohol: alc, exercise: ex,
+    alc: alc === inp.alcohol ? (inp as AppInput).alc : undefined };   // 음주 단계를 바꾸면 원답(종류별 양)은 더 이상 맞지 않는다
   const { rows, down, up } = whatIfRows(inp, after);
   const sign = (n: number, u: string) => (n === 0 ? '그대로' : `${n > 0 ? '+' : '−'}${Math.abs(n)}${u}`);
   const reset = () => { setDw(0); setDwa(0); setAlc(inp.alcohol); setEx(inp.exercise !== false); setSmoke(inp.smoke === 'current'); };
@@ -79,6 +80,7 @@ export function WhatIf() {
         <div className="help" style={{ padding: '0 4px', display: 'flex', flexDirection: 'column', gap: 4 }}>
           <span>· 고혈압은 {inp.waistCm != null ? '허리' : '체중(BMI)'} 변화로 계산한 추정이에요(한국인 코호트).</span>
           <span>· 고콜레스테롤은 BMI 25를 넘나들 때만 바뀌어요. 체중 영향은 대략적이에요.</span>
+          <span>· 계산 모형에서 숫자가 어떻게 바뀌는지 보여주는 거예요. 실제로 바꿨을 때 그만큼 줄어든다는 치료 효과는 아니에요.</span>
         </div>
       </div>
       <TabBar at="whatif" />

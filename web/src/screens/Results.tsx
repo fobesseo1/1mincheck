@@ -42,10 +42,10 @@ const Chips = ({ items }: { items: { id: ItemId; name: string }[] }) => (
 );
 
 export function Results() {
-  const { records, setRecords, toast, setDraft, draft } = useStore();
+  const { records, setRecords, toast, setDraft } = useStore();
   const inp = useInput();
   if (!inp) return <NeedInput />;
-  const sc = suggestScenario(inp), r = viewResults(inp, sc), extras = runExtras(inp, drinkOf(draft)), lookX = extras.filter((x) => x.level === 'look');
+  const sc = suggestScenario(inp), r = viewResults(inp, sc), extras = runExtras(inp, drinkOf(inp)), lookX = extras.filter((x) => x.level === 'look');
   const save = () => {
     const next = [...records, { id: String(Date.now()), date: today(), input: inp }];
     if (saveRecords(next)) { setRecords(next); toast('이 기기에 기록을 저장했어요'); } else toast('이 브라우저에서는 저장할 수 없어요');

@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { samples } from '../../../src/sampleData.ts';
 import { viewResults, viewDetail, viewRecord, whatIfRows, applyScenario } from './view.ts';
-import { toInput, fromInput, suggestScenario, emptyDraft, basicError } from '../state.ts';
+import { toInput, fromInput, suggestScenario, emptyDraft, basicError, type AppInput } from '../state.ts';
 
 const S = Object.fromEntries(samples.map((s) => [s.id, s]));
 
@@ -10,20 +10,35 @@ const names = (xs: { name: string }[]) => xs.map((x) => x.name);
 describe('결과 화면 (엔진 값은 그대로, 묶음·비교만 검사)', () => {
   it('A · 기본: 확률 값은 캔버스와 같고, 당뇨는 진단받지 않은 또래와 비교한다', () => {
     const r = viewResults(S.A.input, S.A.scenario);
-    expect(r.prob.slice(0, 5).map((p) => p.pct)).toEqual(['2.9', '9.7', '13.6', '6.4', '1.0']);
-    expect(r.score.map((g) => g.v)).toEqual(['24.2', '11', '57', '1', '2', '7']);
+    expect(r.prob.slice(0, 4).map((p) => p.pct)).toEqual(['2.9', '9.7', '13.6', '6.4']);
+    // 우울은 확률 대신 PHQ-2 점수(2점)로
+    expect(r.score.map((g) => g.v)).toEqual(['24.2', '2', '11', '57', '1', '2', '7']);
     const dm = r.prob[0].cmp!;
     expect(dm.peer).toBeCloseTo(1.37, 1);             // 40대 여성 당뇨 5.2% 중 진단받지 않은 사람 비율
     expect(dm.label).toBe('매우 높음');                // 2.9 / 1.37 ≈ 2.1배 (엔진 기준 2배 이상)
     expect(names(r.first)).toEqual(['이미 당뇨일 확률']);
-    expect(names(r.low)).toEqual(['고혈압', '지방간', '우울']);
+    expect(names(r.low)).toEqual(['고혈압', '지방간']);
     expect(names(r.same)).toEqual(['고콜레스테롤']);
     expect(names(r.improved)).toEqual(['당뇨', '고혈압', '비만', '지방간']);
   });
   it('B · 증상 있음: 불면·우울·역류가 먼저 확인할 것에 들어간다', () => {
     const r = viewResults(S.B.input, S.B.scenario);
-    expect(names(r.first)).toEqual(['이미 당뇨일 확률', '우울', '불면', '위식도역류']);
-    expect(r.prob[4].pct).toBe('36.3');
+    expect(names(r.first)).toEqual(['이미 당뇨일 확률', '불면', '우울', '위식도역류']);
+    const dep = r.score.find((s) => s.id === 'dep')!;
+    expect([dep.v, dep.unit, dep.cat]).toEqual(['4', 'PHQ-2 / 6점', 'PHQ-2 양성']);
+  });
+  it('C · 불면 첫 질문 ‘아니요’는 ISI 0점이 아니라 측정 안 함', () => {
+    const isi = viewResults(S.C.input, S.C.scenario).score.find((s) => s.id === 'isi')!;
+    expect([isi.v, isi.cat]).toEqual(['–', '불면 선별 음성']);
+  });
+  it('지방간: 원 연구 음주 기준(여 주 70g·남 140g)을 넘으면 점수 대신 간 수치 검사', () => {
+    const alc = { freq: 'w3_4' as const, amt: { soju: 1, beer: 0, wine: 0 } };          // 주 3.5회 × 47g ≈ 164g
+    const fi: AppInput = { ...S.A.input, alcohol: 'd1_4', alc }, mi: AppInput = { ...S.A.input, sex: 'M', meno: null, alcohol: 'd1_4', alc: { ...alc, freq: 'w1_2' } };
+    const f = viewResults(fi, S.A.scenario);
+    expect(f.prob.find((p) => p.id === 'nafld')!.status).toBe('excluded');
+    expect(f.first.map((x) => x.big)).toContain('간 수치 검사로 확인해요');
+    const m = viewResults(mi, S.A.scenario);   // 남 주 70g
+    expect(m.prob.find((p) => p.id === 'nafld')!.status).toBe('ok');
   });
   it('C · 모두 양호: 먼저 확인할 것이 없다', () => {
     const r = viewResults(S.C.input, S.C.scenario);
@@ -55,7 +70,7 @@ describe('결과 화면 (엔진 값은 그대로, 묶음·비교만 검사)', ()
     expect(v[2].hero).toBe(null);
     // 우울 배수가 더 커도 상단 대표는 신체 항목, 마음·수면·소화는 그 뒤
     expect(v.map((r) => r.hero?.id ?? '-')).toEqual(['dm', 'nafld', '-', 'dm']);
-    expect(v[0].others.map((f) => f.short)).toEqual(['고혈압', '고콜레스테롤', '간', '우울', '수면무호흡', '불면', '불안', '위식도역류']);
+    expect(v[0].others.map((f) => f.short)).toEqual(['고혈압', '고콜레스테롤', '간', '수면무호흡', '불면', '우울', '불안', '위식도역류']);
     console.log(v.map((r) => [r.first.length, r.improved.length, r.low.length, r.same.length, r.watch.length, r.diagnosed.length].join('/')));
   });
 });
@@ -100,7 +115,11 @@ describe('음주·허리 입력', () => {
 
 describe('입력 변환', () => {
   it('Input → 화면 답변 → Input 이 그대로 돌아온다', () => {
-    for (const s of samples) expect(toInput(fromInput(s.input))).toEqual(s.input);
+    // 예시에는 음주 원답이 없어 대표 답(alc)이 붙는다. 엔진 Input 부분은 그대로 돌아와야 한다
+    for (const s of samples) { const { alc: _a, ...back } = toInput(fromInput(s.input))!; expect(back).toEqual(s.input); }
+    // 원답이 있는 기록은 그대로 복원된다
+    const rec: AppInput = { ...samples[0].input, alcohol: 'd1_4', alc: { freq: 'w3_4', amt: { soju: 0.5, beer: 2, wine: 0 } } };
+    expect(toInput(fromInput(rec))).toEqual(rec);
   });
   it('19세 미만은 막는다', () => {
     expect(basicError({ ...emptyDraft(), age: '17' })).toBe('under19');

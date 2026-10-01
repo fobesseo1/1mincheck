@@ -26,13 +26,16 @@ export function alcCalc(freq: AlcFreq | null, amt: Record<DrinkKey, number>) {
   const cat: Alcohol | null = freq == null ? null : freq === 'none' ? 'none' : per === 0 ? null : daily < 1 ? 'lt1' : daily < 5 ? 'd1_4' : 'd5';
   return { per, daily, cat };
 }
-/** 추가 체크용 음주 상세 (한 번 잔 수·주당 횟수·주당 알코올 g). 안 마시거나 덜 답했으면 undefined */
-export function drinkOf(d: Draft): Drink | undefined {
-  if (!d.alcFreq || d.alcFreq === 'none') return undefined;
-  const { per } = alcCalc(d.alcFreq, d.alcAmt);
+/** 엔진 Input + 화면에서 받은 음주 원답(횟수·종류별 양). 엔진은 alc 를 쓰지 않고, 기록에도 함께 저장된다 */
+export type AppInput = Input & { alc?: { freq: AlcFreq; amt: Record<DrinkKey, number> } };
+/** 음주 상세 (한 번 잔 수·주당 횟수·주당 알코올 g). 안 마시거나 원답이 없으면(예전 기록) undefined */
+export function drinkOf(i: Input): Drink | undefined {
+  const a = (i as AppInput).alc;
+  if (!a || a.freq === 'none') return undefined;
+  const { per } = alcCalc(a.freq, a.amt);
   if (!per) return undefined;
-  const t = ALC_FREQ.find((f) => f.v === d.alcFreq)!.perWeek;
-  const g = d.alcAmt.soju * ALCOHOL_G.sojuBottle + d.alcAmt.beer * ALCOHOL_G.beer500 + d.alcAmt.wine * ALCOHOL_G.wineGlass;
+  const t = ALC_FREQ.find((f) => f.v === a.freq)!.perWeek;
+  const g = a.amt.soju * ALCOHOL_G.sojuBottle + a.amt.beer * ALCOHOL_G.beer500 + a.amt.wine * ALCOHOL_G.wineGlass;
   return { perOccasion: per, timesPerWeek: t, gramsPerWeek: t * g };
 }
 export const ALC_LABEL: Record<Alcohol, string> = { none: '안 마심', lt1: '하루 평균 1잔 미만', d1_4: '하루 평균 1–4.9잔', d5: '하루 평균 5잔 이상' };
@@ -111,15 +114,16 @@ export const dietError = (d: Draft) => (done(d.diet) ? null : '7문항에 모두
 export const phq2Sum = (d: Draft) => (d.mind.phq[0] ?? 0) + (d.mind.phq[1] ?? 0);
 
 /** Draft → engine Input. 기본정보가 덜 됐으면 null */
-export function toInput(d: Draft): Input | null {
+export function toInput(d: Draft): AppInput | null {
   if (basicError(d) || lifeError(d)) return null;
-  const inp: Input = {
+  const inp: AppInput = {
     age: num(d.age), sex: d.sex!, heightCm: num(d.height), weightKg: num(d.weight),
     waistCm: waistCmOf(d),
     smoke: d.smoke!, alcohol: alcCalc(d.alcFreq, d.alcAmt).cat!, famDM: !!d.famDM,
     dx: { htn: d.dx.htn, dm: d.dx.dm, chol: d.dx.chol }, bp: d.bp!,
     exercise: d.exercise, meno: menoShown(d) ? (d.meno === 'unknown' ? null : (d.meno as boolean)) : null,
   };
+  if (d.alcFreq !== 'none') inp.alc = { freq: d.alcFreq!, amt: { ...d.alcAmt } };
   if (d.modules.sleep && !sleepError(d)) {
     const s = d.sleep;
     inp.sleep = { snore: !!s.snore, tired: !!s.tired, apnea: !!s.apnea, neck: !!s.neck, insGate: !!s.insGate, ...(s.insGate ? { isi: s.isi as number[] } : {}) };
@@ -134,7 +138,7 @@ export function toInput(d: Draft): Input | null {
 }
 
 /** Input → Draft (기록·예시 불러오기용) */
-export function fromInput(i: Input): Draft {
+export function fromInput(i: AppInput): Draft {
   const d = emptyDraft();
   Object.assign(d, {
     age: String(i.age), sex: i.sex, height: String(i.heightCm), weight: String(i.weightKg),
@@ -147,6 +151,7 @@ export function fromInput(i: Input): Draft {
     dx: { ...i.dx, none: !i.dx.htn && !i.dx.dm && !i.dx.chol },
     modules: { sleep: !!i.sleep, mind: !!i.mind, gerd: !!i.gerd, diet: !!i.diet },
   });
+  if (i.alc) Object.assign(d, { alcFreq: i.alc.freq, alcAmt: { ...i.alc.amt } });   // 저장된 원답이 있으면 그대로
   if (i.sleep) d.sleep = { ...i.sleep, isi: i.sleep.isi ? [...i.sleep.isi] : Array(7).fill(null) };
   if (i.mind) d.mind = { phq: i.mind.phq.length === 9 ? [...i.mind.phq] : [...i.mind.phq, ...Array(7).fill(null)], gad: [...i.mind.gad] };
   if (i.gerd) d.gerd = { gate: i.gerd.gate, gq: i.gerd.gq ? [...i.gerd.gq] : Array(6).fill(null) };
@@ -171,7 +176,7 @@ export function loadDraft(): Draft {
 }
 export function saveDraft(d: Draft) { try { sessionStorage.setItem(DKEY, JSON.stringify(d)); } catch { /* 무시 */ } }
 
-export interface RecordItem { id: string; date: string; input: Input }
+export interface RecordItem { id: string; date: string; input: AppInput }
 export function loadRecords(): RecordItem[] {
   try { const s = localStorage.getItem(RKEY); return s ? (JSON.parse(s) as RecordItem[]) : []; } catch { return []; }
 }

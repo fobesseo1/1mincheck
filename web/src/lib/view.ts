@@ -1,9 +1,28 @@
 // 화면에 보여줄 값 만들기. 확률·점수 계산은 engine 의 runAll()·whatIf() 결과만 쓴다.
 // 예외 하나: 당뇨의 또래 비교 기준(진단받지 않은 또래 중 당뇨 비율)은 spec §6-1 의 식과
 // prevalence.json 의 인지율로 여기서 환산한다(엔진 코드는 그대로).
-import { runAll, whatIf, ratioLabel, type Input, type Result } from '../../../engine/src/engine.ts';
+import { runAll as engineRunAll, whatIf as engineWhatIf, ratioLabel, type Input, type Result } from '../../../engine/src/engine.ts';
 import P from '../../../engine/src/prevalence.json';
-import { NAMES, TITLE, BADGE, PROB_IDS, MEANING, PEER_NOTE, ACTION, MANAGED, EXCLUDED_NAFLD, CRITERIA_HTN, type ItemId } from './content.ts';
+import { drinkOf } from '../state.ts';
+
+// ── 적용 범위 맞추기 (엔진 숫자는 그대로, 원 연구 대상이 아니면 보여주지 않는다) ──
+/** 지방간 점수 원 연구(Lee 2014)는 주당 알코올 남 140g·여 70g 초과를 빼고 만들었다 */
+export const NAFLD_ALC_MAX = { M: 140, F: 70 };
+export const nafldOverAlcohol = (i: Input) => { const d = drinkOf(i); return !!d && d.gramsPerWeek > NAFLD_ALC_MAX[i.sex]; };
+function fit(R: Result[], i: Input): Result[] {
+  return R.map((r) => {
+    if (r.id === 'nafld' && r.status !== 'excluded' && nafldOverAlcohol(i))
+      return { ...r, status: 'excluded', value: null, range: undefined, flags: [...(r.flags ?? []), 'ALC_OVER_STUDY'] };
+    // 우울: PHQ 점수로 'PHQ 10점 이상일 확률'을 다시 추정하지 않고 점수·선별 결과로 보여준다
+    if (r.id === 'dep' && r.status === 'ok') return { ...r, unit: 'score', type: 'C', value: r.score ?? null };
+    // 불면: 첫 질문 '아니요'는 ISI 0점이 아니라 '측정 안 함'
+    if (r.id === 'isi' && r.status === 'ok' && i.sleep && !i.sleep.insGate) return { ...r, value: null, score: undefined, category: '불면 선별 음성' };
+    return r;
+  });
+}
+export const runAll = (i: Input) => fit(engineRunAll(i), i);
+export const whatIf = (b: Input, a: Input) => engineWhatIf(b, a).map((w) => (w.id === 'nafld' ? { ...w, before: nafldOverAlcohol(b) ? null : w.before, after: nafldOverAlcohol(a) ? null : w.after } : w));
+import { NAMES, TITLE, BADGE, PROB_IDS, MEANING, PEER_NOTE, ACTION, MANAGED, EXCLUDED_NAFLD, EXCLUDED_NAFLD_STUDY, CRITERIA_HTN, type ItemId } from './content.ts';
 
 export type Scenario = { weightKg: number; waistCm: number };
 export const INK = '#163300', LOOK = '#0b4c72', LOW_BG = '#e2f6d5', SAME_BG = '#f2f4f0', HIGH_BG = '#dfeaf1';
@@ -37,7 +56,7 @@ export function undiagnosedDm(prevalencePct: number, age: number) {
 
 /** 또래 비교: 같은 기준의 또래 값, 몇 배인지, 낮음/비슷/높음, 한 줄 결론, 다음 행동 */
 export function cmpOf(id: ItemId, r: Result, inp: Input) {
-  if (r.status !== 'ok' || r.value == null || r.peer == null) return null;
+  if (r.status !== 'ok' || r.unit !== '%' || r.value == null || r.peer == null) return null;
   const grp = groupLabel(inp);
   let peer = r.peer, who = `${grp} 평균`, note = PEER_NOTE[id] ?? '';
   if (id === 'dm') {
@@ -62,6 +81,7 @@ export function flagOf(r: Result, inp: Input): 'strong' | 'mild' | null {
     case 'isi': return r.category === '중등도' || r.category === '심함' ? 'strong' : r.category === '경계' ? 'mild' : null;
     case 'osa': return r.category === '고위험' ? 'strong' : r.category === '중위험' ? 'mild' : null;
     case 'gad': return r.category === '선별 양성' ? 'strong' : null;
+    case 'dep': return r.category === 'PHQ-2 양성' || (r.score ?? 0) >= 10 ? 'strong' : null;
     case 'gerd': return r.category === '가능성 높음' ? 'strong' : null;
     case 'diet': return r.category === '양호' ? null : 'mild';
   }
@@ -69,9 +89,9 @@ export function flagOf(r: Result, inp: Input): 'strong' | 'mild' | null {
 }
 
 /** 확률이 없는 상태의 안내 문구 */
-export function statusNote(id: ItemId, r: Result) {
+export function statusNote(id: ItemId, r: Result, inp?: Input) {
   if (r.status === 'managed') return MANAGED[id] ?? '이미 진단받아 관리 중이에요.';
-  if (r.status === 'excluded') return id === 'nafld' ? EXCLUDED_NAFLD : r.notes?.[0] ?? '';
+  if (r.status === 'excluded') return id === 'nafld' ? (r.flags?.includes('ALC_OVER_STUDY') ? EXCLUDED_NAFLD_STUDY(inp?.sex ?? 'M') : EXCLUDED_NAFLD) : r.notes?.[0] ?? '';
   if (r.status === 'criteria') return CRITERIA_HTN;
   if (r.status === 'na') return r.notes?.[0] ?? '';
   if (r.status === 'needs_input') return '관련 질문에 답하면 볼 수 있어요.';
@@ -91,7 +111,9 @@ export function viewResults(inp: Input, sc: Scenario) {
   /** 먼저 확인할 것. tag = 오른쪽 짧은 표시(배수·등급), big = 상단 큰 결론 */
   type First = { id: ItemId; name: string; short: string; line: string; action: string; tag: string; big: string; c: ReturnType<typeof cmpOf> };
   const first: First[] = [];
-  if (by.nafld.status === 'excluded') first.push({ id: 'nafld', name: '간', short: '간', line: '술을 하루 평균 5잔 이상 드셔서 지방간 점수로는 판단할 수 없어요', action: '간 수치 검사로 술 때문에 간이 상했는지 확인해 보세요.', tag: '과음', big: '간 검사가 필요해요', c: null });
+  if (by.nafld.status === 'excluded') first.push(by.nafld.flags?.includes('ALC_OVER_STUDY')
+    ? { id: 'nafld', name: '간', short: '간', line: `술이 주 ${NAFLD_ALC_MAX[inp.sex]}g을 넘어 지방간 점수로는 판단하지 않아요`, action: '간 수치(AST·ALT·감마지티피) 검사로 간 상태를 확인해 보세요.', tag: '음주', big: '간 수치 검사로 확인해요', c: null }
+    : { id: 'nafld', name: '간', short: '간', line: '술을 하루 평균 5잔 이상 드셔서 지방간 점수로는 판단할 수 없어요', action: '간 수치 검사로 술 때문에 간이 상했는지 확인해 보세요.', tag: '과음', big: '간 검사가 필요해요', c: null });
   if (by.htn.status === 'criteria') first.push({ id: 'htn', name: '고혈압', short: '고혈압', line: '측정 혈압이 고혈압 기준(140/90 이상)이에요', action: '며칠에 걸쳐 다시 재 보고 진료를 받아 보세요.', tag: '기준 이상', big: '혈압이 고혈압 기준이에요', c: null });
   [...PROB_IDS, 'osteo' as ItemId].forEach((id) => {
     const c = cmp[id]; if (!c?.high) return;
@@ -133,7 +155,7 @@ export function viewResults(inp: Input, sc: Scenario) {
     return { id, title: TITLE[id], badge: BADGE[r.type] + (id === 'dep' && r.category ? ' · ' + r.category : ''), status: r.status, meaning: MEANING[id] ?? '',
       pct: r.value != null ? f1(r.value) : r.range ? `${r.range[0]}–${r.range[1]}` : '–', n: r.value != null ? Math.round(r.value) : null,
       cmp: c, peerTxt: c ? `${id === 'dm' ? '약 ' : ''}${f1(c.peer)}` : '', meW: v != null ? (v / top) * 100 : 0, peerW: c ? (c.peer / top) * 100 : 0,
-      note: statusNote(id, r), tone: r.status === 'excluded' || r.status === 'criteria' ? 'look' : r.status === 'managed' ? 'managed' : 'plain' };
+      note: statusNote(id, r, inp), tone: r.status === 'excluded' || r.status === 'criteria' ? 'look' : r.status === 'managed' ? 'managed' : 'plain' };
   });
 
   // ── 점수 카드 ──
@@ -141,10 +163,12 @@ export function viewResults(inp: Input, sc: Scenario) {
     const r = by[id], fl = flagOf(r, inp);
     return { id, name: NAMES[id], v, unit, frac: Math.max(0, Math.min(1, frac)), cat: r.status === 'ok' ? r.category ?? '–' : statusText[r.status], col: fl ? LOOK : INK, note, status: r.status };
   };
-  const ob = by.obesity, isi = by.isi, dt = by.diet, osa = by.osa, gad = by.gad, gd = by.gerd;
+  const ob = by.obesity, isi = by.isi, dt = by.diet, osa = by.osa, gad = by.gad, gd = by.gerd, dp = by.dep;
+  const phqMax = inp.mind?.phq.length === 9 ? 27 : 6;
   const score = [
     S('obesity', f1(ob.value!), 'BMI', (ob.value! - 15) / 20, ob.category === '정상' ? '정상 범위예요' : String(ob.notes?.[0] ?? '').replace('BMI 25 미만 체중: ', '') + '면 BMI 25 미만'),
-    S('isi', isi.value == null ? '–' : String(isi.value), 'ISI / 28점', (isi.value ?? 0) / 28, isi.peer != null ? `또래 약 ${isi.peer}%가 10점 이상` : '수면 질문에 답하면 볼 수 있어요'),
+    S('dep', dp.value == null ? '–' : String(dp.value), `${phqMax === 27 ? 'PHQ-9' : 'PHQ-2'} / ${phqMax}점`, (dp.value ?? 0) / phqMax, dp.status === 'needs_input' ? '마음 질문에 답하면 볼 수 있어요' : dp.peer != null ? `또래 약 ${f1(dp.peer)}%가 PHQ-9 10점 이상` : ''),
+    S('isi', isi.value == null ? '–' : String(isi.value), 'ISI / 28점', (isi.value ?? 0) / 28, isi.status === 'ok' && isi.value == null ? '첫 질문에서 불면 없음 · 7문항 점수는 재지 않았어요' : isi.peer != null ? `또래 약 ${isi.peer}%가 10점 이상` : '수면 질문에 답하면 볼 수 있어요'),
     S('diet', dt.value == null ? '–' : String(dt.value), '참고 지표 / 100', (dt.value ?? 0) / 100, dt.value == null ? '식생활 질문에 답하면 볼 수 있어요' : dt.flags?.length ? '보완할 점: ' + dt.flags.join(', ') : '골고루 잘 드시고 있어요'),
     S('osa', osa.value == null ? '–' : String(osa.value), 'STOP-Bang / 8점', (osa.value ?? 0) / 8, osa.value == null ? '수면 질문에 답하면 볼 수 있어요' : osa.category === '저위험' ? '낮을 때 안심하기 좋은 도구' : '높다고 확정은 아니에요'),
     S('gad', gad.value == null ? '–' : String(gad.value), 'GAD-2 / 6점', (gad.value ?? 0) / 6, gad.value == null ? '마음 질문에 답하면 볼 수 있어요' : gad.category === '선별 양성' ? '2주 넘게 이어지면 상담을 권해요' : '3점부터 자세히 봐요'),
@@ -190,7 +214,7 @@ export function viewDetail(id: ItemId, inp: Input, sc: Scenario) {
   const people = Array.from({ length: 100 }, (_, k) => (k < Math.min(n, m) ? 'keep' : k < n ? 'gone' : 'rest'));
   // 또래 곡선: 나이만 바꿔 runAll 을 다시 실행해 연령대별 또래 값을 얻는다 (당뇨는 같은 기준으로 환산)
   let bands: { l: string; v: number; mine: boolean }[] = [];
-  if (['dm', 'htn', 'chol', 'obesity', 'dep'].includes(id)) {
+  if (['dm', 'htn', 'chol', 'obesity'].includes(id)) {
     const ages = [25, 35, 45, 55, 65, 75], L = ['20대', '30대', '40대', '50대', '60대', '70+'];
     const mine = Math.min(5, Math.max(0, Math.floor(inp.age / 10) - 2));
     bands = ages.map((a, k) => { const p = byId(runAll({ ...inp, age: a }))[id].peer ?? 0; return { l: L[k], v: id === 'dm' ? undiagnosedDm(p, a) : p, mine: k === mine }; });
@@ -212,7 +236,7 @@ export function viewDetail(id: ItemId, inp: Input, sc: Scenario) {
   return { r, rA, isProb, ok, n, m, people, removed: Math.max(0, n - m), afterV, bands, parts, group: groupLabel(inp), cmp: c,
     ratioTag: c ? (c.label === '비슷' ? '또래와 비슷' : '또래보다 ' + c.label) : r.status !== 'ok' ? statusText[r.status] : '',
     ratioBg: c?.bg ?? (r.status === 'excluded' || r.status === 'criteria' ? HIGH_BG : SAME_BG), ratioFg: c?.fg ?? (r.status === 'excluded' || r.status === 'criteria' ? LOOK : INK),
-    statusNote: statusNote(id, r), scenarioText: scenarioText(sc), crisis: (r.flags || []).includes('CRISIS') };
+    statusNote: statusNote(id, r, inp), scenarioText: scenarioText(sc), crisis: (r.flags || []).includes('CRISIS') };
 }
 
 /** 기록 비교 */
@@ -229,7 +253,7 @@ export function viewRecord(prev: Input, cur: Input) {
     const d = Math.round((b.value - a.value) * 10) / 10;
     if (d === 0) { same.push(`${TITLE[id]} ${fmt(b.value)}`); return; }
     const better = id === 'diet' ? d > 0 : d < 0; if (better) down++;
-    const max = b.unit === 'bmi' ? 20 : b.unit === '%' ? 30 : id === 'diet' ? 100 : id === 'isi' ? 28 : 18, base = b.unit === 'bmi' ? 15 : 0;
+    const max = b.unit === 'bmi' ? 20 : b.unit === '%' ? 30 : id === 'diet' ? 100 : id === 'isi' || id === 'dep' ? 28 : 18, base = b.unit === 'bmi' ? 15 : 0;
     const y = (v: number) => 24 - Math.min(1, (v - base) / max) * 20;
     rows.push({ id, name: TITLE[id] + (b.unit === 'bmi' ? ' (BMI)' : ''), b: fmt(a.value), a: fmt(b.value), y1: y(a.value), y2: y(b.value),
       delta: (d > 0 ? '+' : '−') + (b.unit === 'score' ? Math.abs(d) + '점' : f1(Math.abs(d)) + (b.unit === '%' ? '%p' : '')), better,

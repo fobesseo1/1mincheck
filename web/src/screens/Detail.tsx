@@ -17,7 +17,7 @@ export function Detail({ id }: { id: ItemId }) {
   if (!NAMES[id]) return <NeedInput />;
   const d = viewDetail(id, inp, suggestScenario(inp)), r = d.r;
   const flag = flagOf(r, inp), col = flag ? LOOK : INK;
-  const sc = SCALE[id];
+  const sc: [number, number, string] | undefined = id === 'dep' ? (inp.mind?.phq.length === 9 ? [0, 27, 'PHQ-9 / 27점'] : [0, 6, 'PHQ-2 / 6점']) : SCALE[id];
   const mod = MODULE_OF[id];
   const sources = [...SRC[id], KNHANES];
   const card = (children: ReactNode, style?: CSSProperties) => <div className="card" style={{ padding: 18, display: 'flex', flexDirection: 'column', gap: 10, ...style }}>{children}</div>;
@@ -80,13 +80,13 @@ export function Detail({ id }: { id: ItemId }) {
           <div style={{ display: 'flex', gap: 8 }}>{d.bands.map((b) => <div key={b.l} style={{ flex: 1, textAlign: 'center', fontSize: 11 }}><b style={{ color: 'var(--obsidian)', fontWeight: b.mine ? 800 : 500 }}>{f1(b.v)}</b><div style={{ color: 'var(--slate)' }}>{b.l}</div></div>)}</div>
         </>) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-            {[['나', r.unit === '%' ? r.value : null, INK], ['또래 평균', d.cmp?.peer ?? r.peer, '#c2c6be']].map(([k, v, c]) => (
+            {[['나', r.unit === '%' ? r.value : null, INK], [r.unit === '%' ? '또래 평균' : '또래 중 기준 이상', d.cmp?.peer ?? r.peer, '#c2c6be']].map(([k, v, c]) => (
               <div key={k as string}><div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14 }}><span>{k as string}</span><b>{v == null ? (r.unit === '%' ? '–' : `${r.score ?? r.value}점`) : `${f1(v as number)}%`}</b></div>
                 {v != null && <div className="bar" style={{ marginTop: 6 }}><i style={{ width: `${Math.min(100, ((v as number) / Math.max(30, r.peer! * 1.3, (r.value ?? 0) * 1.3)) * 100)}%`, background: c as string }} /></div>}</div>
             ))}
           </div>
         )}
-        <p className="help" style={{ margin: 0 }}>{id === 'dm' ? '막대는 각 연령대에서 진단받지 않은 사람 중 당뇨인 비율(유병률에서 이미 진단받은 사람을 뺀 값), 점은 내 값이에요.' : r.notes?.find((n) => n.includes('동년배'))?.replace('동년배', '또래') ?? (id === 'isi' ? '또래 값은 ISI 10점 이상 비율이에요.' : id === 'osa' ? '또래 값은 40–69세 수면다원검사 기준 수면호흡장애(AHI 5 이상) 비율이에요(2004).' : id === 'nafld' ? '또래 값은 간지방지수 기준 성인 전체 비율이에요.' : '같은 나이대·성별 한국인 통계예요.')}</p>
+        <p className="help" style={{ margin: 0 }}>{id === 'dm' ? '막대는 각 연령대에서 진단받지 않은 사람 중 당뇨인 비율(유병률에서 이미 진단받은 사람을 뺀 값), 점은 내 값이에요.' : r.notes?.find((n) => n.includes('동년배'))?.replace('동년배', '또래') ?? (id === 'isi' ? '또래 값은 ISI 10점 이상 비율이에요.' : id === 'dep' ? '또래 값은 같은 나이·성별에서 PHQ-9 10점 이상인 비율이에요(2024).' : id === 'osa' ? '또래 값은 40–69세 수면다원검사 기준 수면호흡장애(AHI 5 이상) 비율이에요(2004).' : id === 'nafld' ? '또래 값은 간지방지수 기준 성인 전체 비율이에요.' : '같은 나이대·성별 한국인 통계예요.')}</p>
       </>)}
 
       {/* 당뇨 점수 내역 */}

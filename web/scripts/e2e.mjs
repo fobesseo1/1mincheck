@@ -108,8 +108,11 @@ try {
   ok(!t.includes('숨은 당뇨') && !t.includes('확률 6'), '헷갈리는 용어·꼬리표가 없다');
   ok(/관리하면 줄어드는 것\s*4개/.test(t) && t.includes('비만'), '숫자 카드에 항목 이름이 같이 나온다');
   ok(t.includes('지금 6.4%') && t.includes('1.2'), '관리하면 지방간 6.4 → 1.2');
-  ok(t.includes('생활·검진으로 보는 체크') && t.includes('49세 여성이 받을 검진') && t.includes('유방암 검진'), '맞춤 검진·접종 카드 (49세 여성)');
+  ok(t.includes('생활·검진으로 보는 체크') && t.includes('49세 여성 권장 검사') && t.includes('유방암 검진'), '맞춤 검진·접종 카드 (49세 여성)');
   ok(!t.includes('고위험음주'), '안 마시면 음주 카드는 없다');
+  ok(t.includes('10년 안에 당뇨가 생길 가능성') && t.includes('정확도 낮음'), '10년 당뇨 카드 (정확도 낮음 표시)');
+  ok(t.includes('허리/키 비율 0.51'), '허리/키 비율 0.51');
+  ok(t.includes('PHQ-2 / 6점') && !t.includes('지금 우울(PHQ-9'), '우울은 확률 대신 PHQ 점수');
   await shot('result');
   await click('이 기기에 기록 저장'); ok((await text()).includes('기록을 저장했어요'), '기록 저장');
 
