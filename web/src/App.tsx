@@ -3,6 +3,7 @@ import { StoreCtx, useRoute } from './ui.tsx';
 import { type Draft, emptyDraft, loadDraft, saveDraft, loadRecords, fromInput, type RecordItem } from './state.ts';
 import { Start, Intro, Info, Life, Modules, Sleep, Mind, Digest, Diet } from './screens/Inputs.tsx';
 import { Results } from './screens/Results.tsx';
+import { Checkup } from './screens/Checkup.tsx';
 import { Detail } from './screens/Detail.tsx';
 import { WhatIf } from './screens/WhatIf.tsx';
 import { Record } from './screens/Record.tsx';
@@ -13,7 +14,7 @@ import { stressSamples } from './lib/stress.ts';
 
 const APP: Record<string, () => JSX.Element> = {
   '/start': Start, '/intro': Intro, '/info': Info, '/life': Life, '/modules': Modules,
-  '/sleep': Sleep, '/mind': Mind, '/digest': Digest, '/diet': Diet,
+  '/sleep': Sleep, '/mind': Mind, '/digest': Digest, '/diet': Diet, '/checkup': Checkup,
 };
 
 export function App() {

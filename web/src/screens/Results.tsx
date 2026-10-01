@@ -4,7 +4,8 @@ import { useStore, Nav, TabBar, Ring, Gauge, Icon, Crisis } from '../ui.tsx';
 import { toInput, suggestScenario, saveRecords, today, drinkOf } from '../state.ts';
 import { runExtras } from '../../../engine/src/extras.ts';
 import { ExtraCards } from './Extras.tsx';
-import { viewResults, INK, LOOK } from '../lib/view.ts';
+import { viewResults, labOf, INK, LOOK } from '../lib/view.ts';
+import { labCount } from '../lib/labs.ts';
 import { MODULE_OF, DISCLAIMER, MEANING, type ItemId } from '../lib/content.ts';
 
 const f1 = (x: number) => (Math.round(x * 10) / 10).toFixed(1);
@@ -45,7 +46,7 @@ export function Results() {
   const { records, setRecords, toast, setDraft } = useStore();
   const inp = useInput();
   if (!inp) return <NeedInput />;
-  const sc = suggestScenario(inp), r = viewResults(inp, sc), extras = runExtras(inp, drinkOf(inp)), lookX = extras.filter((x) => x.level === 'look');
+  const sc = suggestScenario(inp), r = viewResults(inp, sc), extras = runExtras(inp, drinkOf(inp), labOf(inp)), lookX = extras.filter((x) => x.level === 'look'), nLab = labCount(labOf(inp));
   const save = () => {
     const next = [...records, { id: String(Date.now()), date: today(), input: inp }];
     if (saveRecords(next)) { setRecords(next); toast('이 기기에 기록을 저장했어요'); } else toast('이 브라우저에서는 저장할 수 없어요');
@@ -161,6 +162,16 @@ export function Results() {
           </div>
         </div>
 
+        {/* 검진 수치 넣기 (선택) */}
+        <a href="#/checkup" className="card" style={{ padding: '16px 18px', display: 'flex', alignItems: 'center', gap: 14, textDecoration: 'none', color: 'inherit' }}>
+          <span style={{ width: 44, height: 44, flexShrink: 0, borderRadius: 14, background: 'var(--linen)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: INK }}><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><rect x="5" y="4" width="14" height="17" rx="2" /><path d="M9 4h6v3H9zM9 12h6M9 16h4" /></svg></span>
+          <span className="grow">
+            <b style={{ fontSize: 15, color: 'var(--obsidian)' }}>{nLab ? `검진 수치 ${nLab}개 반영됨` : '건강검진 결과지가 있나요?'}</b>
+            <span style={{ display: 'block', fontSize: 13, lineHeight: 1.5 }}>{nLab ? '수치를 고치거나 더 넣을 수 있어요' : '콜레스테롤·콩팥 수치를 넣으면 대사증후군·콩팥이 추정 대신 실제 값으로 나와요'}</span>
+          </span>
+          <span style={{ fontSize: 13, fontWeight: 700, color: INK, whiteSpace: 'nowrap' }}>{nLab ? '고치기' : '넣기'} →</span>
+        </a>
+
         {/* 그 밖의 항목 */}
         <div className="card" style={{ padding: '16px 18px 6px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', paddingBottom: 10 }}>
@@ -243,6 +254,7 @@ export function Results() {
                   </div>
                   <span style={{ fontSize: 12, color: 'var(--slate)' }}>또래 평균 = {c.cmp.who}{c.cmp.note ? ` · ${c.cmp.note}` : ''}</span>
                   {c.cmp.action && <div style={{ padding: '10px 12px', borderRadius: 12, background: 'var(--look-bg)', color: LOOK, fontSize: 13, fontWeight: 600, lineHeight: 1.5 }}>→ {c.cmp.action}</div>}
+                  {c.measured && <div style={{ padding: '10px 12px', borderRadius: 12, background: 'var(--linen)', color: INK, fontSize: 13, fontWeight: 600, lineHeight: 1.5 }}>{c.measured}</div>}
                 </>
               ) : (
                 <div style={{ padding: '10px 12px', borderRadius: 12, fontSize: 13, lineHeight: 1.55, background: c.tone === 'look' ? 'var(--look-bg)' : 'var(--bg)', color: c.tone === 'look' ? LOOK : 'var(--charcoal)', fontWeight: c.tone === 'look' ? 600 : 400 }}>

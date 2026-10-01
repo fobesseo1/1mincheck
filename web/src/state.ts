@@ -1,6 +1,7 @@
 // 사용자가 답하는 중인 값(Draft)과, 그것을 engine 의 Input 으로 바꾸는 규칙 (docs/spec.md §5)
 import type { Input, Alcohol, Bp } from '../../engine/src/engine.ts';
-import { ALCOHOL_G, type Drink } from '../../engine/src/extras.ts';
+import { ALCOHOL_G, type Drink, type Lab } from '../../engine/src/extras.ts';
+import { parseLab, labError, bpOf, type LabDraft } from './lib/labs.ts';
 
 type YN = boolean | null;
 type Pick4 = number | null;
@@ -27,7 +28,7 @@ export function alcCalc(freq: AlcFreq | null, amt: Record<DrinkKey, number>) {
   return { per, daily, cat };
 }
 /** 엔진 Input + 화면에서 받은 음주 원답(횟수·종류별 양). 엔진은 alc 를 쓰지 않고, 기록에도 함께 저장된다 */
-export type AppInput = Input & { alc?: { freq: AlcFreq; amt: Record<DrinkKey, number> } };
+export type AppInput = Input & { alc?: { freq: AlcFreq; amt: Record<DrinkKey, number> }; lab?: Lab };
 /** 음주 상세 (한 번 잔 수·주당 횟수·주당 알코올 g). 안 마시거나 원답이 없으면(예전 기록) undefined */
 export function drinkOf(i: Input): Drink | undefined {
   const a = (i as AppInput).alc;
@@ -49,6 +50,8 @@ export interface Draft {
   mind: { phq: Pick4[]; gad: Pick4[] };
   gerd: { gate: YN; gq: Pick4[] };
   diet: Pick4[];
+  /** 선택 입력: 최근 건강검진 수치 (lib/labs.ts) */
+  lab: LabDraft;
 }
 
 export const emptyDraft = (): Draft => ({
@@ -60,6 +63,7 @@ export const emptyDraft = (): Draft => ({
   mind: { phq: Array(9).fill(null), gad: [null, null] },
   gerd: { gate: null, gq: Array(6).fill(null) },
   diet: Array(7).fill(null),
+  lab: {},
 });
 
 const num = (s: string) => (s.trim() === '' ? NaN : Number(s));
@@ -90,7 +94,7 @@ export function lifeError(d: Draft): string | null {
   if (d.famDM == null) return '가족력을 골라 주세요';
   if (!d.dx.htn && !d.dx.dm && !d.dx.chol && !d.dx.none) return '진단받은 질환을 고르거나 ‘없음’을 눌러 주세요';
   if (!d.bp) return '최근 혈압을 골라 주세요(모르면 ‘모름’)';
-  return null;
+  return labError(d.lab ?? {}, 'life');
 }
 export function sleepError(d: Draft): string | null {
   const s = d.sleep;
@@ -124,6 +128,11 @@ export function toInput(d: Draft): AppInput | null {
     exercise: d.exercise, meno: menoShown(d) ? (d.meno === 'unknown' ? null : (d.meno as boolean)) : null,
   };
   if (d.alcFreq !== 'none') inp.alc = { freq: d.alcFreq!, amt: { ...d.alcAmt } };
+  const lab = parseLab(d.lab ?? {});
+  if (Object.keys(lab).length) {
+    inp.lab = lab;
+    if (lab.sbp != null) inp.bp = bpOf(lab.sbp, lab.dbp!);   // 혈압 숫자가 있으면 범주는 숫자로 정한다
+  }
   if (d.modules.sleep && !sleepError(d)) {
     const s = d.sleep;
     inp.sleep = { snore: !!s.snore, tired: !!s.tired, apnea: !!s.apnea, neck: !!s.neck, insGate: !!s.insGate, ...(s.insGate ? { isi: s.isi as number[] } : {}) };
@@ -152,6 +161,7 @@ export function fromInput(i: AppInput): Draft {
     modules: { sleep: !!i.sleep, mind: !!i.mind, gerd: !!i.gerd, diet: !!i.diet },
   });
   if (i.alc) Object.assign(d, { alcFreq: i.alc.freq, alcAmt: { ...i.alc.amt } });   // 저장된 원답이 있으면 그대로
+  if (i.lab) d.lab = Object.fromEntries(Object.entries(i.lab).map(([k, v]) => [k, String(v)]));
   if (i.sleep) d.sleep = { ...i.sleep, isi: i.sleep.isi ? [...i.sleep.isi] : Array(7).fill(null) };
   if (i.mind) d.mind = { phq: i.mind.phq.length === 9 ? [...i.mind.phq] : [...i.mind.phq, ...Array(7).fill(null)], gad: [...i.mind.gad] };
   if (i.gerd) d.gerd = { gate: i.gerd.gate, gq: i.gerd.gq ? [...i.gerd.gq] : Array(6).fill(null) };

@@ -3,14 +3,31 @@
 // prevalence.json 의 인지율로 여기서 환산한다(엔진 코드는 그대로).
 import { runAll as engineRunAll, whatIf as engineWhatIf, ratioLabel, type Input, type Result } from '../../../engine/src/engine.ts';
 import P from '../../../engine/src/prevalence.json';
-import { drinkOf } from '../state.ts';
+import { drinkOf, type AppInput } from '../state.ts';
+import type { Lab } from '../../../engine/src/extras.ts';
 
 // ── 적용 범위 맞추기 (엔진 숫자는 그대로, 원 연구 대상이 아니면 보여주지 않는다) ──
 /** 지방간 점수 원 연구(Lee 2014)는 주당 알코올 남 140g·여 70g 초과를 빼고 만들었다 */
 export const NAFLD_ALC_MAX = { M: 140, F: 70 };
 export const nafldOverAlcohol = (i: Input) => { const d = drinkOf(i); return !!d && d.gramsPerWeek > NAFLD_ALC_MAX[i.sex]; };
+export const labOf = (i: Input): Lab => (i as AppInput).lab ?? {};
+/** 'measured' = 검진 수치가 있어 추정 대신 실제 값을 보여주는 상태 (화면 전용) */
+const MEASURED = 'measured' as Result['status'];
 function fit(R: Result[], i: Input): Result[] {
+  const L = labOf(i);
   return R.map((r) => {
+    // 검진 수치가 있으면 추정보다 실제 수치가 우선
+    if (r.id === 'dm' && L.glu != null && r.status !== 'managed') {
+      if (L.glu >= 126) return { ...r, status: 'criteria', value: null, range: undefined, flags: [...(r.flags ?? []), 'MEASURED'],
+        notes: [`검진 공복혈당 ${L.glu}mg/dL · 당뇨 진단 기준(126 이상)에 해당해요. 다른 날 다시 재거나 당화혈색소를 확인하고 진료를 받아 보세요.`] };
+      return { ...r, flags: [...(r.flags ?? []), L.glu >= 100 ? 'GLU_PRE' : 'GLU_OK'] };
+    }
+    if (r.id === 'chol' && L.tc != null && r.status !== 'managed') {
+      if (L.tc >= 240) return { ...r, status: 'criteria', value: null, range: undefined, flags: [...(r.flags ?? []), 'MEASURED'],
+        notes: [`검진 총콜레스테롤 ${L.tc}mg/dL · 고콜레스테롤 기준(240 이상)이에요. 진료에서 LDL 등 자세한 수치를 확인하세요.`] };
+      return { ...r, status: MEASURED, value: null, range: undefined, flags: [...(r.flags ?? []), 'MEASURED'],
+        notes: [`검진 총콜레스테롤 ${L.tc}mg/dL · 기준(240) 미만이에요${L.tc >= 200 ? '. 200–239는 경계 범위라 관리가 필요해요' : ''}.`] };
+    }
     if (r.id === 'nafld' && r.status !== 'excluded' && nafldOverAlcohol(i))
       return { ...r, status: 'excluded', value: null, range: undefined, flags: [...(r.flags ?? []), 'ALC_OVER_STUDY'] };
     // 우울: PHQ 점수로 'PHQ 10점 이상일 확률'을 다시 추정하지 않고 점수·선별 결과로 보여준다
@@ -45,7 +62,7 @@ export function groupLabel(i: Input) {
 export function ratioStyle(label?: string) {
   return label === '낮음' ? { bg: LOW_BG, fg: INK, col: INK } : label === '비슷' || !label ? { bg: SAME_BG, fg: INK, col: INK } : { bg: HIGH_BG, fg: LOOK, col: LOOK };
 }
-export const statusText: Record<string, string> = { managed: '진단받아 관리 중', criteria: '측정 혈압이 기준 해당', na: '대상 아님', excluded: '술 때문에 계산 안 함', needs_input: '답하면 볼 수 있어요' };
+export const statusText: Record<string, string> = { managed: '진단받아 관리 중', criteria: '측정 수치가 기준 해당', measured: '검진 수치 반영', na: '대상 아님', excluded: '술 때문에 계산 안 함', needs_input: '답하면 볼 수 있어요' };
 const xfmt = (x: number) => (x < 0.1 ? x.toFixed(2) : (Math.round(x * 10) / 10).toFixed(1));
 
 /** 진단받지 않은 사람 중 당뇨 비율 = 유병률 × (1 − 인지율) ÷ (1 − 유병률 × 인지율)  (spec §6-1) */
@@ -92,7 +109,8 @@ export function flagOf(r: Result, inp: Input): 'strong' | 'mild' | null {
 export function statusNote(id: ItemId, r: Result, inp?: Input) {
   if (r.status === 'managed') return MANAGED[id] ?? '이미 진단받아 관리 중이에요.';
   if (r.status === 'excluded') return id === 'nafld' ? (r.flags?.includes('ALC_OVER_STUDY') ? EXCLUDED_NAFLD_STUDY(inp?.sex ?? 'M') : EXCLUDED_NAFLD) : r.notes?.[0] ?? '';
-  if (r.status === 'criteria') return CRITERIA_HTN;
+  if (r.status === 'criteria') return r.flags?.includes('MEASURED') ? r.notes?.[0] ?? '' : CRITERIA_HTN;
+  if (r.status === MEASURED) return r.notes?.[0] ?? '';
   if (r.status === 'na') return r.notes?.[0] ?? '';
   if (r.status === 'needs_input') return '관련 질문에 답하면 볼 수 있어요.';
   if (r.range) return `허리둘레 등 일부를 몰라 약 ${r.range[0]}–${r.range[1]}% 범위로 보여드려요.`;
@@ -114,7 +132,10 @@ export function viewResults(inp: Input, sc: Scenario) {
   if (by.nafld.status === 'excluded') first.push(by.nafld.flags?.includes('ALC_OVER_STUDY')
     ? { id: 'nafld', name: '간', short: '간', line: `술이 주 ${NAFLD_ALC_MAX[inp.sex]}g을 넘어 지방간 점수로는 판단하지 않아요`, action: '간 수치(AST·ALT·감마지티피) 검사로 간 상태를 확인해 보세요.', tag: '음주', big: '간 수치 검사로 확인해요', c: null }
     : { id: 'nafld', name: '간', short: '간', line: '술을 하루 평균 5잔 이상 드셔서 지방간 점수로는 판단할 수 없어요', action: '간 수치 검사로 술 때문에 간이 상했는지 확인해 보세요.', tag: '과음', big: '간 검사가 필요해요', c: null });
-  if (by.htn.status === 'criteria') first.push({ id: 'htn', name: '고혈압', short: '고혈압', line: '측정 혈압이 고혈압 기준(140/90 이상)이에요', action: '며칠에 걸쳐 다시 재 보고 진료를 받아 보세요.', tag: '기준 이상', big: '혈압이 고혈압 기준이에요', c: null });
+  const L = labOf(inp);
+  if (by.htn.status === 'criteria') first.push({ id: 'htn', name: '고혈압', short: '고혈압', line: L.sbp != null ? `검진 혈압 ${L.sbp}/${L.dbp} · 고혈압 기준(140/90 이상)이에요` : '측정 혈압이 고혈압 기준(140/90 이상)이에요', action: '며칠에 걸쳐 다시 재 보고 진료를 받아 보세요.', tag: '기준 이상', big: '혈압이 고혈압 기준이에요', c: null });
+  if (by.dm.status === 'criteria') first.push({ id: 'dm', name: '혈당', short: '혈당', line: `검진 공복혈당 ${L.glu}mg/dL · 당뇨 기준(126 이상)이에요`, action: '다른 날 다시 재거나 당화혈색소를 확인하고 진료를 받아 보세요.', tag: '기준 이상', big: '공복혈당이 당뇨 기준이에요', c: null });
+  if (by.chol.status === 'criteria') first.push({ id: 'chol', name: '콜레스테롤', short: '고콜레스테롤', line: `검진 총콜레스테롤 ${L.tc}mg/dL · 기준(240 이상)이에요`, action: '진료에서 LDL 등 자세한 수치를 확인하세요.', tag: '기준 이상', big: '총콜레스테롤이 기준 이상이에요', c: null });
   [...PROB_IDS, 'osteo' as ItemId].forEach((id) => {
     const c = cmp[id]; if (!c?.high) return;
     first.push({ id, name: TITLE[id], short: NAMES[id], line: `${f1(c.me)}% · ${c.headline} (${c.who} ${id === 'dm' ? '약 ' : ''}${f1(c.peer)}%)`, action: c.action, tag: `${xfmt(c.x)}배`, big: c.headline, c });
@@ -155,7 +176,10 @@ export function viewResults(inp: Input, sc: Scenario) {
     return { id, title: TITLE[id], badge: BADGE[r.type] + (id === 'dep' && r.category ? ' · ' + r.category : ''), status: r.status, meaning: MEANING[id] ?? '',
       pct: r.value != null ? f1(r.value) : r.range ? `${r.range[0]}–${r.range[1]}` : '–', n: r.value != null ? Math.round(r.value) : null,
       cmp: c, peerTxt: c ? `${id === 'dm' ? '약 ' : ''}${f1(c.peer)}` : '', meW: v != null ? (v / top) * 100 : 0, peerW: c ? (c.peer / top) * 100 : 0,
-      note: statusNote(id, r, inp), tone: r.status === 'excluded' || r.status === 'criteria' ? 'look' : r.status === 'managed' ? 'managed' : 'plain' };
+      note: statusNote(id, r, inp), tone: r.status === 'excluded' || r.status === 'criteria' ? 'look' : r.status === 'managed' ? 'managed' : 'plain',
+      // 검진 수치가 있지만 기준 미만인 경우: 확률 옆에 실제 수치를 함께
+      measured: id === 'dm' && r.flags?.includes('GLU_PRE') ? `검진 공복혈당 ${L.glu}mg/dL · 당뇨 전단계(100–125)예요. 당화혈색소도 확인해 보세요.`
+        : id === 'dm' && r.flags?.includes('GLU_OK') ? `검진 공복혈당 ${L.glu}mg/dL · 정상(100 미만)이라 실제 가능성은 이보다 낮아요.` : '' };
   });
 
   // ── 점수 카드 ──
@@ -236,6 +260,8 @@ export function viewDetail(id: ItemId, inp: Input, sc: Scenario) {
   return { r, rA, isProb, ok, n, m, people, removed: Math.max(0, n - m), afterV, bands, parts, group: groupLabel(inp), cmp: c,
     ratioTag: c ? (c.label === '비슷' ? '또래와 비슷' : '또래보다 ' + c.label) : r.status !== 'ok' ? statusText[r.status] : '',
     ratioBg: c?.bg ?? (r.status === 'excluded' || r.status === 'criteria' ? HIGH_BG : SAME_BG), ratioFg: c?.fg ?? (r.status === 'excluded' || r.status === 'criteria' ? LOOK : INK),
+    measured: id === 'dm' && r.flags?.includes('GLU_PRE') ? `검진 공복혈당 ${labOf(inp).glu}mg/dL · 당뇨 전단계(100–125)예요.`
+      : id === 'dm' && r.flags?.includes('GLU_OK') ? `검진 공복혈당 ${labOf(inp).glu}mg/dL · 정상(100 미만)이라 실제 가능성은 이보다 낮아요.` : '',
     statusNote: statusNote(id, r, inp), scenarioText: scenarioText(sc), crisis: (r.flags || []).includes('CRISIS') };
 }
 

@@ -75,6 +75,28 @@ describe('결과 화면 (엔진 값은 그대로, 묶음·비교만 검사)', ()
   });
 });
 
+describe('검진 수치 (선택 입력): 있으면 추정보다 실제 수치가 우선', () => {
+  const A = S.A.input;
+  it('공복혈당 130 → 당뇨 기준, 110 → 전단계 안내, 콜레스테롤 250 → 기준 이상, 190 → 검진 수치 반영', () => {
+    const hi = viewResults({ ...A, lab: { glu: 130 } } as AppInput, S.A.scenario);
+    expect(hi.prob[0].status).toBe('criteria');
+    expect(hi.first.map((f) => f.big)).toContain('공복혈당이 당뇨 기준이에요');
+    expect(viewResults({ ...A, lab: { glu: 110 } } as AppInput, S.A.scenario).prob[0].measured).toContain('전단계');
+    const c1 = viewResults({ ...A, lab: { tc: 250 } } as AppInput, S.A.scenario);
+    expect(c1.prob.find((p) => p.id === 'chol')!.status).toBe('criteria');
+    const c2 = viewResults({ ...A, lab: { tc: 190 } } as AppInput, S.A.scenario).prob.find((p) => p.id === 'chol')!;
+    expect([c2.status, c2.note.includes('190')]).toEqual(['measured', true]);
+  });
+  it('혈압 숫자 145/85 → 범주 ‘높음’으로 계산, 범위 밖 값과 혈압 한쪽만은 반영하지 않음', async () => {
+    const { parseLab, labError } = await import('./labs.ts');
+    const i = toInput({ ...fromInput(A), lab: { sbp: '145', dbp: '85' } })!;
+    expect([i.bp, i.lab]).toEqual(['high', { sbp: 145, dbp: 85 }]);
+    expect(toInput({ ...fromInput(A), lab: { glu: '9999' } })).toBe(null);          // 범위 밖이면 다음으로 못 넘어가고 이유를 보여준다
+    expect(parseLab({ sbp: '130' })).toEqual({});
+    expect(labError({ sbp: '130' }, 'life')).toContain('두 숫자');
+  });
+});
+
 describe('상세·바꿔보기·기록', () => {
   it('숨은 당뇨 상세: 100명 중 3명 → 1명, 점수 5 = 나이 3 + 허리 2', () => {
     const d = viewDetail('dm', S.A.input, S.A.scenario);

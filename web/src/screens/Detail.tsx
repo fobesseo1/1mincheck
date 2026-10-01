@@ -58,7 +58,9 @@ export function Detail({ id }: { id: ItemId }) {
         </>)}
         {r.status === 'ok' && !d.isProb && r.value == null && <div style={{ fontSize: 26, fontWeight: 800, color: INK, marginTop: 14 }}>{r.category}</div>}
         {r.status === 'managed' && <><div style={{ fontSize: 26, fontWeight: 800, color: INK, marginTop: 14 }}>진단받아 관리 중</div><p style={{ margin: 0, fontSize: 14, lineHeight: 1.6 }}>{d.statusNote}</p></>}
-        {r.status === 'criteria' && <><div style={{ fontSize: 24, fontWeight: 800, color: LOOK, marginTop: 14 }}>측정 혈압이 고혈압 기준이에요</div><p style={{ margin: 0, fontSize: 14, lineHeight: 1.6 }}>{d.statusNote}</p></>}
+        {r.status === 'criteria' && <><div style={{ fontSize: 24, fontWeight: 800, color: LOOK, marginTop: 14 }}>{({ dm: '공복혈당이 당뇨 기준이에요', chol: '총콜레스테롤이 기준 이상이에요' } as Partial<Record<ItemId, string>>)[id] ?? '측정 혈압이 고혈압 기준이에요'}</div><p style={{ margin: 0, fontSize: 14, lineHeight: 1.6 }}>{d.statusNote}</p></>}
+        {(r.status as string) === 'measured' && <><div style={{ fontSize: 24, fontWeight: 800, color: INK, marginTop: 14 }}>검진 수치를 반영했어요</div><p style={{ margin: 0, fontSize: 14, lineHeight: 1.6 }}>{d.statusNote}</p></>}
+        {d.measured && <div style={{ marginTop: 8, padding: '10px 14px', borderRadius: 14, background: 'var(--linen)', color: INK, fontSize: 14, fontWeight: 600, lineHeight: 1.5 }}>{d.measured}</div>}
         {r.status === 'excluded' && <><div style={{ fontSize: 24, fontWeight: 800, color: LOOK, marginTop: 14 }}>{id === 'nafld' ? '술 때문에 간 검사가 필요해요' : statusText[r.status]}</div><p style={{ margin: 0, fontSize: 14, lineHeight: 1.6, color: LOOK }}>{d.statusNote}</p></>}
         {r.status === 'na' && <><div style={{ fontSize: 24, fontWeight: 800, color: INK, marginTop: 14 }}>{statusText[r.status]}</div><p style={{ margin: 0, fontSize: 14 }}>{d.statusNote}</p></>}
         {r.status === 'needs_input' && mod && <><div style={{ fontSize: 22, fontWeight: 800, color: INK, marginTop: 14 }}>답하면 볼 수 있어요</div>

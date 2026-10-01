@@ -153,6 +153,19 @@ try {
   ok((await text()).includes('더 정확히 보기 7문항'), '합계 4점이면 PHQ-9 7문항이 열린다');
   await click('며칠', '9. 차라리'); ok((await text()).includes('자살예방상담 109'), '9번 문항에 답하면 109 안내가 바로 뜬다'); await shot('mind-crisis');
 
+  console.log('검진 수치 (선택 입력)'); await p.evaluate(() => { location.hash = '/life'; }); await new Promise((r) => setTimeout(r, 300));
+  await click('혈압 숫자를 알면'); await type('#lab-sbp', '150'); await type('#lab-dbp', '95'); await new Promise((r) => setTimeout(r, 200));
+  ok(await p.evaluate(() => [...document.querySelectorAll('[aria-label="최근에 잰 혈압은요?"] button, [role=group] button')].some((b) => b.textContent.startsWith('높음') && (b.getAttribute('aria-pressed') === 'true' || b.getAttribute('aria-checked') === 'true'))), '혈압 150/95 → ‘높음’ 자동 선택');
+  await click('건강검진 결과지가 있으면'); ok((await route()) === '#/checkup', '#/checkup 화면');
+  await type('#lab-tc', '250'); await type('#lab-egfr', '55'); await click('1+', '요단백'); await shot('checkup');
+  await click('결과에 반영하기'); await new Promise((r) => setTimeout(r, 400));
+  const tl = await text();
+  ok(tl.includes('검진 총콜레스테롤 250mg/dL') && tl.includes('eGFR 55 · 콩팥 기능 저하'), '검진 수치가 결과에 반영 (콜레스테롤 250, eGFR 55)');
+  ok(tl.includes('검진 150/95'), '혈압 숫자가 대사증후군 카드에 표시');
+  ok(tl.includes('검진 수치') && tl.includes('반영됨'), '결과 화면에 ‘검진 수치 n개 반영됨’');
+  await shot('result-lab');
+  await click('모두 지우기').catch(() => {});
+
   console.log('결과 화면 깨짐 검사 (예시·극단값 × 폰 폭 360/430)');
   const hasDemo = await p.evaluate(() => !!document.querySelector('.demo'));
   if (!hasDemo) console.log('  - 배포 화면이라 예시 버튼이 없어 건너뜀');

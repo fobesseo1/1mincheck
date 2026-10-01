@@ -113,6 +113,18 @@ test('10년 당뇨 (Oh 2021): 표 3 점수 · 표 4 비율', () => {
   assert.equal(X.dm10(base({ dx: { htn: false, dm: true, chol: false } })), null);
 });
 
+test('검진 수치: 대사증후군 5개가 모두 확인되고, 콩팥은 eGFR·요단백이 점수보다 우선', () => {
+  const m = X.metsyn(base({ sex: 'M', waistCm: 92 }), { sbp: 128, dbp: 82, glu: 104, tg: 180, hdl: 45 });
+  assert.deepEqual(m.items.map((x) => x.s), ['yes', 'no', 'yes', 'yes', 'no']);
+  assert.equal(m.head, '대사증후군 기준에 해당해요');
+  const ok = X.metsyn(base({}), { sbp: 118, dbp: 76, glu: 92, tg: 100, hdl: 60 });
+  assert.equal(ok.tag, '기준 아래');
+  assert.ok(X.ckd(base({}), { egfr: 55 }).head.startsWith('eGFR 55'));
+  assert.equal(X.ckd(base({}), { egfr: 95, upro: 0 }).tag, '검사 수치 정상');
+  assert.ok(X.ckd(base({ age: 60 }), { upro: 2 }).head.includes('검사 권장 기준'));   // 60대 3 + 여성 1 + 단백뇨 1 = 5점
+  assert.equal(X.dm10(base({ bp: 'normal' }), { glu: 130 }), null);                   // 이미 당뇨 기준이면 10년 발생 카드 없음
+});
+
 test('runExtras: 검진이 맨 앞, 주의 항목이 그다음', () => {
   const xs = X.runExtras(base({ sex: 'M', age: 66, waistCm: 95, bp: 'high', smoke: 'current', alcohol: 'd5', exercise: false }));
   assert.equal(xs[0].id, 'checkup');

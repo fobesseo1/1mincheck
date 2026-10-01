@@ -1,4 +1,8 @@
 import { useStore, Nav, Progress, H1, Choice, YN, Branch, ScaleItem, Closed, Next, Icon, Crisis, go } from '../ui.tsx';
+import { useEffect, useState } from 'react';
+import { LABS, parseLab, bpOf } from '../lib/labs.ts';
+import type { LabKey } from '../../../engine/src/extras.ts';
+import { LabField } from './Checkup.tsx';
 import { type Draft, type DrinkKey, basicError, lifeError, sleepError, mindError, gerdError, dietError, menoShown, phq2Sum, emptyDraft, ALC_FREQ, DRINKS, ALC_LABEL, alcCalc } from '../state.ts';
 
 // ── 흐름: 기본정보 → 생활 → 관심 분야 → (고른 모듈만) → 결과 ──
@@ -134,6 +138,9 @@ export function Life() {
     if (k === 'none') return { ...x, dx: { htn: false, dm: false, chol: false, none: !dx.none } };
     dx[k] = !dx[k]; dx.none = false; return { ...x, dx };
   });
+  // 혈압 숫자가 있으면 범주를 숫자로 맞춘다
+  const lab = parseLab(d.lab ?? {}), bpNum = lab.sbp != null ? bpOf(lab.sbp, lab.dbp!) : null;
+  useEffect(() => { if (bpNum && d.bp !== bpNum) set({ bp: bpNum }); }, [bpNum]);   // eslint-disable-line react-hooks/exhaustive-deps
   return (
     <div className="page fade">
       <Head s="life" title="생활과 병력" />
@@ -159,8 +166,30 @@ export function Life() {
       </div>
       <Choice q="최근에 잰 혈압은요?" cols={2} value={d.bp} onChange={(v) => set({ bp: v })}
         options={[{ v: 'unknown' as const, t: '모름' }, { v: 'normal' as const, t: '정상', s: '120/80 미만' }, { v: 'elevated' as const, t: '주의', s: '120–139 / 80–89' }, { v: 'high' as const, t: '높음', s: '140 / 90 이상' }]} />
+      <Optional label="혈압 숫자를 알면 (선택)" keys={['sbp', 'dbp']} note={bpNum ? `→ ${({ normal: '정상', elevated: '주의', high: '높음', unknown: '모름' } as const)[bpNum]}으로 계산해요` : '두 숫자를 넣으면 위 칸이 자동으로 정해져요'} />
+      <Optional label="최근 공복혈당을 알면 (선택)" keys={['glu']} />
+      <a href="#/checkup" style={{ alignSelf: 'center', fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>건강검진 결과지가 있으면 더 정확하게 →</a>
       <div className="grow" />
       <Next error={lifeError(d)} to={nextOf(d, 'life')} label="다음: 관심 분야 고르기" />
+    </div>
+  );
+}
+
+/** 접힌 선택 입력 (검진 수치). 누르면 칸이 열린다 */
+function Optional({ label, keys, note }: { label: string; keys: LabKey[]; note?: string }) {
+  const { draft: d } = useStore();
+  const has = keys.some((k) => d.lab?.[k]);
+  const [open, setOpen] = useState(has);
+  return (
+    <div className="card" style={{ padding: '4px 18px' }}>
+      <button type="button" aria-expanded={open} onClick={() => setOpen(!open)}
+        style={{ width: '100%', minHeight: 48, display: 'flex', alignItems: 'center', justifyContent: 'space-between', border: 0, background: 'transparent', padding: 0, fontSize: 14, fontWeight: 700, color: 'var(--ink)' }}>
+        {label}<span style={{ transform: open ? 'rotate(180deg)' : 'none', transition: 'transform .2s' }}>{Icon.down}</span>
+      </button>
+      {open && <div className="fade" style={{ paddingBottom: 8 }}>
+        {LABS.filter((l) => keys.includes(l.key)).map((l) => <LabField key={l.key} l={l} />)}
+        {note && <div className="help" style={{ paddingTop: 6 }}>{note}</div>}
+      </div>}
     </div>
   );
 }

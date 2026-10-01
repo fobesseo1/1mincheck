@@ -19,6 +19,10 @@ export interface Drink {
 /** 알코올 g: 소주 360mL·16.5%, 맥주 500mL·5%, 와인 150mL·12.5%, 에탄올 비중 0.789 */
 export const ALCOHOL_G = { sojuBottle: 360 * 0.165 * 0.789, beer500: 500 * 0.05 * 0.789, wineGlass: 150 * 0.125 * 0.789 };
 
+/** 선택 입력: 최근 건강검진 수치 (없으면 지금처럼 추정·범주로). upro: 0 음성, 1 ±, 2 1+, 3 2+ 이상 */
+export type LabKey = 'sbp' | 'dbp' | 'glu' | 'tc' | 'tg' | 'hdl' | 'egfr' | 'upro';
+export type Lab = Partial<Record<LabKey, number>>;
+
 export type Level = 'look' | 'note' | 'ok';
 export type Mark = 'yes' | 'maybe' | 'no' | 'unknown' | 'info';
 export interface Extra {
@@ -122,22 +126,29 @@ export function alcohol(i: Input, d?: Drink): Extra | null {
 }
 
 // ── 3. 대사증후군 (한국 기준: 허리 남 90·여 85cm, 혈압 130/85, 공복혈당 100, 중성지방 150, HDL 남 40·여 50) ──
-export function metsyn(i: Input): Extra {
-  const F = i.sex === 'F';
+export function metsyn(i: Input, L: Lab = {}): Extra {
+  const F = i.sex === 'F', hdlCut = F ? 50 : 40;
   const waist: Mark = i.waistCm == null ? 'unknown' : waistHigh(i) ? 'yes' : 'no';
-  const bp: Mark = htnYes(i) ? 'yes' : i.bp === 'elevated' ? 'maybe' : i.bp === 'normal' ? 'no' : 'unknown';
-  const glu: Mark = i.dx.dm ? 'yes' : 'unknown';
+  const bpNum = L.sbp != null && L.dbp != null;
+  const bp: Mark = i.dx.htn || (bpNum && (L.sbp! >= 130 || L.dbp! >= 85)) ? 'yes' : bpNum ? 'no' : htnYes(i) ? 'yes' : i.bp === 'elevated' ? 'maybe' : i.bp === 'normal' ? 'no' : 'unknown';
+  const glu: Mark = i.dx.dm || (L.glu != null && L.glu >= 100) ? 'yes' : L.glu != null ? 'no' : 'unknown';
+  const tg: Mark = L.tg == null ? 'unknown' : L.tg >= 150 ? 'yes' : 'no';
+  const hdl: Mark = L.hdl == null ? 'unknown' : L.hdl < hdlCut ? 'yes' : 'no';
+  const val = (v: number | undefined, u: string) => (v == null ? undefined : `검진 ${v}${u}`);
   const items: Extra['items'] = [
     { t: `허리 ${F ? '85' : '90'}cm 이상`, s: waist, sub: i.waistCm == null ? undefined : `${i.waistCm}cm` },
-    { t: '혈압 130/85 이상 또는 약 복용', s: bp, sub: bp === 'maybe' ? '‘주의’ 범위라 130/85를 넘는지 확인' : undefined },
-    { t: '공복혈당 100 이상 또는 당뇨 치료', s: glu, sub: glu === 'unknown' ? '혈액검사로 확인' : undefined },
-    { t: '중성지방 150 이상', s: 'unknown', sub: '혈액검사로 확인 (고지혈증 진단만으로는 알 수 없어요)' },
-    { t: `HDL 콜레스테롤 ${F ? '50' : '40'} 미만`, s: 'unknown', sub: '혈액검사로 확인' },
+    { t: '혈압 130/85 이상 또는 약 복용', s: bp, sub: bpNum ? `검진 ${L.sbp}/${L.dbp}` : bp === 'maybe' ? '‘주의’ 범위라 130/85를 넘는지 확인' : undefined },
+    { t: '공복혈당 100 이상 또는 당뇨 치료', s: glu, sub: val(L.glu, 'mg/dL') ?? (glu === 'unknown' ? '혈액검사로 확인' : undefined) },
+    { t: '중성지방 150 이상', s: tg, sub: val(L.tg, 'mg/dL') ?? '혈액검사로 확인 (고지혈증 진단만으로는 알 수 없어요)' },
+    { t: `HDL 콜레스테롤 ${hdlCut} 미만`, s: hdl, sub: val(L.hdl, 'mg/dL') ?? '혈액검사로 확인' },
   ];
-  const y = items.filter((x) => x.s === 'yes').length;
-  const head = y >= 3 ? '대사증후군 기준에 해당해요' : y === 2 ? '5개 중 2개 해당 · 혈액검사 1개만 더 나오면 대사증후군' : y === 1 ? '5개 중 1개 해당 · 나머지는 혈액검사로 확인' : '확인된 기준은 없어요 · 혈액 기준 3개는 검사로 확인';
-  return { id: 'metsyn', name: '대사증후군', level: y >= 2 ? 'look' : 'note', head, items,
-    action: y >= 2 ? '건강검진 결과지의 공복혈당·중성지방·HDL 콜레스테롤을 확인해 보세요. 3개 이상이면 대사증후군이에요.' : '건강검진 때 혈액 3가지(공복혈당·중성지방·HDL)를 함께 확인하세요.',
+  const y = items.filter((x) => x.s === 'yes').length, unk = items.filter((x) => x.s === 'unknown' || x.s === 'maybe').length;
+  const head = y >= 3 ? '대사증후군 기준에 해당해요' : unk === 0 ? `5개 중 ${y}개 해당 · 대사증후군 기준(3개) 아래예요`
+    : y === 2 ? '5개 중 2개 해당 · 혈액검사 1개만 더 나오면 대사증후군' : y === 1 ? '5개 중 1개 해당 · 나머지는 혈액검사로 확인' : '확인된 기준은 없어요 · 혈액 기준은 검사로 확인';
+  return { id: 'metsyn', name: '대사증후군', level: y >= 2 ? 'look' : unk === 0 ? 'ok' : 'note', tag: y < 2 && unk === 0 ? '기준 아래' : undefined, head, items,
+    action: y >= 3 ? '허리·혈압·혈당·지질이 함께 나빠진 상태예요. 체중과 허리를 줄이면 여러 기준이 함께 좋아져요. 진료에서 관리 계획을 상의하세요.'
+      : y === 2 && unk ? '건강검진 결과지의 공복혈당·중성지방·HDL 콜레스테롤을 확인해 보세요. 3개 이상이면 대사증후군이에요.'
+      : unk ? '건강검진 때 혈액 3가지(공복혈당·중성지방·HDL)를 함께 확인하세요.' : '지금처럼 허리와 혈압을 관리하세요.',
     source: '질병관리청 국가건강정보포털 대사증후군 (NCEP 기준에 허리만 한국인 기준 남 90·여 85cm, 5개 중 3개 이상)' };
 }
 
@@ -212,17 +223,30 @@ export function dementia(i: Input, d?: Drink): Extra {
 }
 
 // ── 7. 콩팥 (Kwon 2012 한국 만성콩팥병 선별 점수 4점↑ + KDIGO 2024: 당뇨·고혈압이면 검사) ──
-export function ckd(i: Input): Extra {
+const UPRO = ['음성', '±', '1+', '2+ 이상'];
+export function ckd(i: Input, L: Lab = {}): Extra {
   const a = i.age, ageP = a >= 70 ? 4 : a >= 60 ? 3 : a >= 50 ? 2 : 0;
+  const prot = L.upro == null ? null : L.upro >= 2;
   const items: Extra['items'] = [
+    ...(L.egfr != null ? [{ t: 'eGFR (콩팥 기능)', s: (L.egfr < 60 ? 'yes' : 'no') as Mark, sub: `검진 ${L.egfr} · 60 미만이면 콩팥 기능 저하` }] : []),
     { t: '나이', s: ageP ? 'yes' : 'no', sub: `${ageP}점` },
     { t: '여성', s: i.sex === 'F' ? 'yes' : 'no', sub: i.sex === 'F' ? '1점' : '0점' },
     { t: '고혈압', s: htnYes(i) ? 'yes' : 'no', sub: htnYes(i) ? '1점' : '0점' },
     { t: '당뇨', s: i.dx.dm ? 'yes' : 'no', sub: i.dx.dm ? '1점' : '0점' },
-    { t: '빈혈·단백뇨·심혈관질환', s: 'unknown', sub: '각 1점 · 앱에서 묻지 않아 0점으로 계산' },
+    prot == null ? { t: '단백뇨', s: 'unknown', sub: '1점 · 검진 요단백으로 확인' } : { t: '단백뇨 (요단백 1+ 이상)', s: prot ? 'yes' : L.upro === 1 ? 'maybe' : 'no', sub: `검진 ${UPRO[L.upro!]} · ${prot ? '1점' : '0점'}` },
+    { t: '빈혈·심혈관질환', s: 'unknown', sub: '각 1점 · 앱에서 묻지 않아 0점으로 계산' },
   ];
-  const s = ageP + (i.sex === 'F' ? 1 : 0) + (htnYes(i) ? 1 : 0) + (i.dx.dm ? 1 : 0);
+  const s = ageP + (i.sex === 'F' ? 1 : 0) + (htnYes(i) ? 1 : 0) + (i.dx.dm ? 1 : 0) + (prot ? 1 : 0);
   const kdigo = htnYes(i) || i.dx.dm;
+  // 검진 eGFR·요단백이 있으면 점수보다 실제 수치가 우선
+  if (L.egfr != null && (L.egfr < 60 || prot)) return { id: 'ckd', name: '콩팥', level: 'look', items,
+    head: L.egfr < 60 ? `eGFR ${L.egfr} · 콩팥 기능 저하 기준(60 미만)이에요` : `요단백 ${UPRO[L.upro!]} · 소변으로 단백이 새고 있어요`,
+    action: '3개월 뒤 다시 검사해서 계속 이 수치면 만성콩팥병이에요. 진료에서 소변 알부민(ACR)과 함께 확인하세요.',
+    source: 'KDIGO 2024 (eGFR 60 미만 또는 알부민뇨가 3개월 이상이면 만성콩팥병), Kwon 2012 Nephrology 선별 점수' };
+  if (L.egfr != null && L.upro != null) return { id: 'ckd', name: '콩팥', level: kdigo ? 'note' : 'ok', tag: '검사 수치 정상', items,
+    head: `eGFR ${L.egfr} · 요단백 ${UPRO[L.upro]} · 콩팥 기능은 정상 범위예요`,
+    action: kdigo ? '당뇨·고혈압이 있으면 매년 eGFR와 소변 알부민을 확인하세요.' : '정기 검진에서 계속 확인하세요.',
+    source: 'KDIGO 2024 만성콩팥병 기준' };
   return { id: 'ckd', name: '콩팥', level: s >= 4 ? 'look' : kdigo || s === 3 ? 'note' : 'ok', tag: s < 4 && !kdigo && s < 3 ? '기준 아래' : undefined,
     head: s >= 4 ? `선별 점수 ${s}점 이상 · 콩팥 기능 검사 권장 기준(4점)이에요` : s === 3 ? `선별 점수 최소 ${s}점 · 1개만 더 해당하면 검사 권장` : `선별 점수 최소 ${s}점 · 검사 권장 기준(4점) 아래`, items,
     action: [s >= 4 && '고위험으로 나온 사람 5명 중 약 1명이 실제로 콩팥 기능이 떨어져 있었어요.', kdigo && '당뇨·고혈압이 있으면 점수와 상관없이 혈액 eGFR와 소변 알부민 검사로 콩팥을 정기적으로 확인하세요.',
@@ -262,8 +286,8 @@ export function kdrScore(i: Input, bp: 'normal' | 'pre' | 'htn') {
   return K.age[Math.floor((i.age - 40) / 5)] + K.urban + (i.smoke === 'never' ? 0 : K.smoke[i.smoke]) + (bp === 'normal' ? 0 : K.bp[bp])
     + (i.famDM ? K.fam : 0) + (waistHigh(i) ? K.waist : 0);
 }
-export function dm10(i: Input): Extra | null {
-  if (i.dx.dm || i.age < 40 || i.age > 69 || i.waistCm == null) return null;
+export function dm10(i: Input, L: Lab = {}): Extra | null {
+  if (i.dx.dm || (L.glu != null && L.glu >= 126) || i.age < 40 || i.age > 69 || i.waistCm == null) return null;
   const K = KDR[i.sex];
   const bps: ('normal' | 'pre' | 'htn')[] = htnYes(i) ? ['htn'] : i.bp === 'elevated' ? ['pre'] : i.bp === 'normal' ? ['normal'] : ['normal', 'pre', 'htn'];
   const ss = bps.map((b) => kdrScore(i, b)), rs = ss.map((s) => K.risk[kdrBand(s)]);
@@ -280,8 +304,8 @@ export function dm10(i: Input): Extra | null {
 }
 
 /** 모든 추가 체크. 순서: 검진 → 주의가 필요한 것 → 나머지 */
-export function runExtras(i: Input, d?: Drink): Extra[] {
-  const xs = [dm10(i), alcohol(i, d), metsyn(i), body(i), lifestyle(i, d), liver(i, d), dementia(i, d), ckd(i)].filter((x): x is Extra => !!x);
+export function runExtras(i: Input, d?: Drink, L: Lab = {}): Extra[] {
+  const xs = [dm10(i, L), alcohol(i, d), metsyn(i, L), body(i), lifestyle(i, d), liver(i, d), dementia(i, d), ckd(i, L)].filter((x): x is Extra => !!x);
   const rank = { look: 0, note: 1, ok: 2 };
   return [checkup(i), ...xs.sort((a, b) => rank[a.level] - rank[b.level])];
 }
