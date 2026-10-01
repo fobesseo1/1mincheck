@@ -120,8 +120,13 @@ test('검진 수치: 대사증후군 5개가 모두 확인되고, 콩팥은 eGFR
   const ok = X.metsyn(base({}), { sbp: 118, dbp: 76, glu: 92, tg: 100, hdl: 60 });
   assert.equal(ok.tag, '기준 아래');
   assert.ok(X.ckd(base({}), { egfr: 55 }).head.startsWith('eGFR 55'));
-  assert.equal(X.ckd(base({}), { egfr: 95, upro: 0 }).tag, '검사 수치 정상');
-  assert.ok(X.ckd(base({ age: 60 }), { upro: 2 }).head.includes('검사 권장 기준'));   // 60대 3 + 여성 1 + 단백뇨 1 = 5점
+  assert.equal(X.ckd(base({}), { egfr: 95, upro: 0 }).tag, '이번 검사 정상 범위');
+  // eGFR 없이 요단백만 양성이어도 재검 안내 (단일 검사로 만성콩팥병이라고 하지 않는다)
+  const up = X.ckd(base({ age: 55, sex: 'M' }), { upro: 2 });
+  assert.equal(up.level, 'look'); assert.ok(up.head.includes('재검') && up.action.includes('한 번의 검사로는 만성콩팥병이라고 하지 않아요'));
+  assert.equal(X.ckd(base({}), { upro: 3 }).level, 'look');
+  assert.equal(X.ckd(base({}), { upro: 1 }).level, 'note');                           // ± 는 재검 권유
+  assert.ok(!X.dementia(base({ dx: { htn: false, dm: false, chol: true } })).items.some((x) => x.t === '높은 LDL 콜레스테롤'));   // 측정 안 한 LDL 을 측정한 것처럼 쓰지 않음
   assert.equal(X.dm10(base({ bp: 'normal' }), { glu: 130 }), null);                   // 이미 당뇨 기준이면 10년 발생 카드 없음
 });
 

@@ -80,12 +80,73 @@ describe('검진 수치 (선택 입력): 있으면 추정보다 실제 수치가
   it('공복혈당 130 → 당뇨 기준, 110 → 전단계 안내, 콜레스테롤 250 → 기준 이상, 190 → 검진 수치 반영', () => {
     const hi = viewResults({ ...A, lab: { glu: 130 } } as AppInput, S.A.scenario);
     expect(hi.prob[0].status).toBe('criteria');
-    expect(hi.first.map((f) => f.big)).toContain('공복혈당이 당뇨 기준이에요');
-    expect(viewResults({ ...A, lab: { glu: 110 } } as AppInput, S.A.scenario).prob[0].measured).toContain('전단계');
+    expect(hi.first.map((f) => f.big)).toContain('당뇨 기준에 해당하는 수치, 확인 필요');
+    expect([hi.prob[0].pct, hi.prob[0].note.includes('확인이 필요해요')]).toEqual(['–', true]);   // 126 이상은 확률(100%)로 표시하지 않음
+    expect(viewResults({ ...A, lab: { glu: 110 } } as AppInput, S.A.scenario).prob[0].measured).toContain('공복혈당장애');
     const c1 = viewResults({ ...A, lab: { tc: 250 } } as AppInput, S.A.scenario);
     expect(c1.prob.find((p) => p.id === 'chol')!.status).toBe('criteria');
     const c2 = viewResults({ ...A, lab: { tc: 190 } } as AppInput, S.A.scenario).prob.find((p) => p.id === 'chol')!;
     expect([c2.status, c2.note.includes('190')]).toEqual(['measured', true]);
+  });
+  describe('공복혈당 반영 (규제 회귀) — 정상·경계·부분 입력에서 숫자와 문구가 같은지', () => {
+    const run = (o: Partial<AppInput>) => viewResults({ ...A, ...o } as AppInput, S.A.scenario);
+    const dm = (o: Partial<AppInput>) => run(o).prob[0];
+    it('126 미만: 화면 숫자 = 문구 숫자, 소수 최대 한 자리 또는 ‘0.1 미만’, 혈당이 오를수록 낮아지지 않음', () => {
+      const gs = [60, 80, 95, 99, 100, 105, 110, 120, 125];
+      const ps = gs.map((g) => dm({ lab: { glu: g } }));
+      for (const p of ps) {
+        expect(p.status).toBe('ok');
+        expect(p.pct).toMatch(/^(\d+\.\d|0\.1 미만)$/);
+        expect(p.measured).toContain(p.pct === '0.1 미만' ? '현재 당뇨 가능성 추정 0.1% 미만' : `현재 당뇨 가능성 추정 약 ${p.pct}%`);
+      }
+      const v = gs.map((g) => run({ lab: { glu: g } }).prob[0].cmp!.me);
+      for (let k = 1; k < v.length; k++) expect(v[k]).toBeGreaterThanOrEqual(v[k - 1]);
+    });
+    it('100 미만은 정상 범위 + 당뇨 배제 불가 문구, 100–125는 공복혈당장애 + 추가 확인을 먼저 확인할 것에', () => {
+      const n = run({ lab: { glu: 95 } });
+      expect(n.prob[0].measured).toContain('정상 범위(100 미만)');
+      expect(n.prob[0].measured).toContain('공복혈당만으로 없다고 할 수는 없어요');
+      expect(n.first.some((f) => f.big.includes('공복혈당장애'))).toBe(false);
+      for (const g of [100, 110, 125]) {
+        const r = run({ lab: { glu: g } });
+        expect(r.prob[0].measured).toContain('공복혈당장애(100–125)');
+        expect(r.first.find((f) => f.big === '공복혈당장애예요 · 추가 확인 필요')!.line).toContain(`현재 당뇨 가능성 ${r.prob[0].pct === '0.1 미만' ? '추정 0.1% 미만' : `추정 약 ${r.prob[0].pct}%`}`);
+      }
+    });
+    it('126 이상은 확률 없이 ‘당뇨 기준에 해당하는 수치, 확인 필요’', () => {
+      for (const g of [126, 140, 200]) {
+        const r = run({ lab: { glu: g } });
+        expect([r.prob[0].status, r.prob[0].pct, r.prob[0].measured]).toEqual(['criteria', '–', '']);
+        expect(r.first.map((f) => f.big)).toContain('당뇨 기준에 해당하는 수치, 확인 필요');
+        expect(JSON.stringify(r)).not.toContain('100.0');
+      }
+    });
+    it('혈당 미입력은 기존 모형(보정값 1.4%), 당뇨 진단자는 혈당을 넣어도 확률 추정 제외', () => {
+      expect(dm({}).pct).toBe('1.4');
+      expect(dm({}).measured).toBe('');
+      const d = dm({ dx: { htn: false, dm: true, chol: false }, lab: { glu: 110 } });
+      expect([d.status, d.pct]).toEqual(['managed', '–']);
+    });
+    it('부분 입력: 혈당 + 혈압 숫자, 혈당 + 콜레스테롤이 서로 영향 없이 반영', () => {
+      const r = run({ lab: { glu: 110, sbp: 125, dbp: 78, tc: 190 } });
+      expect(r.prob[0].measured).toContain('공복혈당장애');
+      expect(r.prob.find((p) => p.id === 'htn')!.status).toBe('measured');
+      expect(r.prob.find((p) => p.id === 'chol')!.status).toBe('measured');
+      expect(r.prob[0].pct).toBe(dm({ lab: { glu: 110 } }).pct);
+    });
+  });
+  it('혈압 숫자가 140/90 미만이면 고혈압 확률 대신 측정 상태(주의혈압·전단계)로, 바꿔보기에서는 ‘검진 수치 반영’', () => {
+    const p = (s: number, d: number) => viewResults({ ...A, lab: { sbp: s, dbp: d } } as AppInput, S.A.scenario).prob.find((x) => x.id === 'htn')!;
+    expect([p(125, 78).status, p(125, 78).note.includes('주의혈압')]).toEqual(['measured', true]);
+    expect(p(135, 85).note).toContain('고혈압 전단계');
+    const w = whatIfRows({ ...A, lab: { sbp: 125, dbp: 78 } } as AppInput, applyScenario(A, S.A.scenario)).rows.find((r) => r.id === 'htn')!;
+    expect(w.delta).toBe('검진 수치 반영');
+  });
+  it('또래 비교와 별도로 공식 검진 권고를 보여준다 (또래와 비슷해도 검사 안내)', () => {
+    const r = viewResults(A, S.A.scenario);
+    expect(r.prob.find((p) => p.id === 'chol')!.screen).toContain('4년마다');          // 49세 여성: 국가검진 이상지질혈증
+    expect(r.prob.find((p) => p.id === 'dm')!.screen).toContain('35세 이상');
+    expect(viewResults({ ...A, age: 66 }, S.A.scenario).prob.find((p) => p.id === 'osteo')!.screen).toContain('골밀도');
   });
   it('혈압 숫자 145/85 → 범주 ‘높음’으로 계산, 범위 밖 값과 혈압 한쪽만은 반영하지 않음', async () => {
     const { parseLab, labError } = await import('./labs.ts');

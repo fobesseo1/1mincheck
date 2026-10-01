@@ -181,7 +181,7 @@ export function liver(i: Input, d?: Drink): Extra | null {
     if (d) {
       const g = d.gramsPerWeek;
       band = g > hi ? 'ald' : g >= lo ? 'metald' : 'masld';
-      items.push({ t: '주당 알코올', s: 'info', sub: `약 ${Math.round(g)}g` });
+      items.push({ t: '주당 알코올', s: 'info', sub: `약 ${Math.round(g)}g (소주 16.5%·맥주 5%·와인 12.5%로 가정한 계산)` });
       items.push({ t: `대사+술 지방간 범위 (${lo}–${hi}g)`, s: band === 'metald' ? 'yes' : 'no' });
       items.push({ t: `알코올 간질환 범위 (${hi}g 초과)`, s: band === 'ald' ? 'yes' : 'no' });
     } else {
@@ -208,11 +208,11 @@ export function dementia(i: Input, d?: Drink): Extra {
   const items: Extra['items'] = [
     { t: '고혈압', s: htnYes(i) ? 'yes' : i.bp === 'unknown' ? 'unknown' : 'no' },
     { t: '당뇨', s: i.dx.dm ? 'yes' : 'no' },
-    { t: '높은 LDL 콜레스테롤', s: i.dx.chol ? 'yes' : 'unknown' },
+    { t: '고지혈증 진단 이력', s: i.dx.chol ? 'yes' : 'unknown' },
     { t: '흡연', s: i.smoke === 'current' ? 'yes' : 'no' },
-    { t: '과음 (주 알코올 168g 초과)', s: wk != null ? (wk > 168 ? 'yes' : 'no') : i.alcohol === 'd5' ? 'yes' : i.alcohol === 'd1_4' ? 'maybe' : 'no' },
+    { t: '과음 (주 알코올 168g 초과 = 영국 21단위)', s: wk != null ? (wk > 168 ? 'yes' : 'no') : i.alcohol === 'd5' ? 'yes' : i.alcohol === 'd1_4' ? 'maybe' : 'no' },
     { t: '비만 (BMI 30 이상)', s: bmiOf(i) >= 30 ? 'yes' : 'no' },
-    { t: '운동 부족', s: i.exercise === false ? 'yes' : i.exercise == null ? 'unknown' : 'no' },
+    { t: '운동 부족', s: i.exercise === false ? 'yes' : i.exercise == null ? 'unknown' : 'no', sub: '앱 질문(주 2회·30분)은 연구 기준과 달라요' },
     { t: '우울', s: dep == null ? 'unknown' : dep ? 'yes' : 'no', sub: dep == null ? '마음 질문에 답하면 확인' : undefined },
   ];
   const n = items.filter((x) => x.s === 'yes').length;
@@ -238,14 +238,20 @@ export function ckd(i: Input, L: Lab = {}): Extra {
   ];
   const s = ageP + (i.sex === 'F' ? 1 : 0) + (htnYes(i) ? 1 : 0) + (i.dx.dm ? 1 : 0) + (prot ? 1 : 0);
   const kdigo = htnYes(i) || i.dx.dm;
-  // 검진 eGFR·요단백이 있으면 점수보다 실제 수치가 우선
-  if (L.egfr != null && (L.egfr < 60 || prot)) return { id: 'ckd', name: '콩팥', level: 'look', items,
-    head: L.egfr < 60 ? `eGFR ${L.egfr} · 콩팥 기능 저하 기준(60 미만)이에요` : `요단백 ${UPRO[L.upro!]} · 소변으로 단백이 새고 있어요`,
-    action: '3개월 뒤 다시 검사해서 계속 이 수치면 만성콩팥병이에요. 진료에서 소변 알부민(ACR)과 함께 확인하세요.',
-    source: 'KDIGO 2024 (eGFR 60 미만 또는 알부민뇨가 3개월 이상이면 만성콩팥병), Kwon 2012 Nephrology 선별 점수' };
-  if (L.egfr != null && L.upro != null) return { id: 'ckd', name: '콩팥', level: kdigo ? 'note' : 'ok', tag: '검사 수치 정상', items,
-    head: `eGFR ${L.egfr} · 요단백 ${UPRO[L.upro]} · 콩팥 기능은 정상 범위예요`,
-    action: kdigo ? '당뇨·고혈압이 있으면 매년 eGFR와 소변 알부민을 확인하세요.' : '정기 검진에서 계속 확인하세요.',
+  const low = L.egfr != null && L.egfr < 60;
+  // 검진 eGFR·요단백이 있으면 점수보다 실제 수치가 우선. eGFR 없이 요단백만 양성이어도 재검 안내 (한 번 검사로 만성콩팥병이라고 하지 않는다)
+  if (low || prot) return { id: 'ckd', name: '콩팥', level: 'look', items,
+    head: low && prot ? `eGFR ${L.egfr} · 요단백 ${UPRO[L.upro!]} · 콩팥 검사를 다시 받아야 해요`
+      : low ? `eGFR ${L.egfr} · 콩팥 기능 저하 기준(60 미만)이에요` : `요단백 ${UPRO[L.upro!]} · 소변 단백 재검이 필요해요`,
+    action: `한 번의 검사로는 만성콩팥병이라고 하지 않아요. 3개월 안에 다시 검사(${L.egfr == null ? 'eGFR와 ' : ''}소변 알부민)해서 계속 이상이면 진료가 필요해요.${L.egfr == null ? ' 결과지에 eGFR이 있으면 함께 넣어 주세요.' : ''}`,
+    source: 'KDIGO 2024 (eGFR 60 미만 또는 알부민뇨가 3개월 이상 지속되면 만성콩팥병), Kwon 2012 Nephrology 선별 점수' };
+  if (L.upro === 1) return { id: 'ckd', name: '콩팥', level: 'note', items,
+    head: '요단백 ± · 다시 검사해 확인해요',
+    action: '±는 일시적으로도 나올 수 있어요. 다음 검진이나 진료에서 소변 검사를 다시 받아 보세요.',
+    source: 'KDIGO 2024 만성콩팥병 기준' };
+  if (L.egfr != null && L.upro != null) return { id: 'ckd', name: '콩팥', level: kdigo ? 'note' : 'ok', tag: '이번 검사 정상 범위', items,
+    head: `eGFR ${L.egfr} · 요단백 음성 · 이번 검사 수치는 정상 범위예요`,
+    action: kdigo ? '당뇨·고혈압이 있으면 매년 eGFR와 소변 알부민을 확인하세요.' : '한 번의 정상 결과예요. 정기 검진에서 계속 확인하세요.',
     source: 'KDIGO 2024 만성콩팥병 기준' };
   return { id: 'ckd', name: '콩팥', level: s >= 4 ? 'look' : kdigo || s === 3 ? 'note' : 'ok', tag: s < 4 && !kdigo && s < 3 ? '기준 아래' : undefined,
     head: s >= 4 ? `선별 점수 ${s}점 이상 · 콩팥 기능 검사 권장 기준(4점)이에요` : s === 3 ? `선별 점수 최소 ${s}점 · 1개만 더 해당하면 검사 권장` : `선별 점수 최소 ${s}점 · 검사 권장 기준(4점) 아래`, items,

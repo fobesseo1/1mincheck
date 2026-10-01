@@ -9,12 +9,13 @@
  * 검증 대상은 '진단받지 않은 사람'이다. 엔진은 진단받은 항목을 '관리 중'으로 보여주고 확률을 내지 않는다.
  * 혈압은 '모름'으로 둔다(앱의 기본 상태). 실측 결과 정의는 이용지침서 표 20.
  */
-import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
-import { runAll, type Input } from '../engine/src/engine.ts';
+import { writeFileSync, mkdirSync } from 'node:fs';
+import { runAll } from '../engine/src/engine.ts';
 import { calibrate, CAL_IDS, type CalId } from '../engine/src/calibrate.ts';
 
-type Person = { year: number; w: number; inp: Input; out: Record<string, number> };
-const people: Person[] = readFileSync(new URL('./.cache/people.jsonl', import.meta.url), 'utf8').trim().split('\n').map((l) => JSON.parse(l));
+import { loadPeople } from './people.ts';
+// 주의: 이 스크립트는 analysis/results/validation.json 과 engine/src/percentiles.json 을 다시 쓴다(보정 v1 기록). 보정 버전을 바꿀 때만 실행.
+const people = loadPeople(process.env.EXTRACT_MODE === 'legacy' ? 'legacy' : 'checked');
 
 const IDS = ['dm', 'htn', 'chol', 'osteo'] as const;
 const NAMES = { dm: '이미 당뇨일 확률 (진단받지 않은 사람 중 공복혈당 126↑ 또는 당화혈색소 6.5%↑)', htn: '고혈압 (진단받지 않은 사람 중 측정 140/90↑)',

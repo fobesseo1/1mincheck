@@ -9,11 +9,12 @@
  * 확인: 당뇨·고혈압·콜레스테롤은 2022–2023으로 만들고 2024로 확인. 골다공증은 2024만 있어 짝수/홀수 행으로 나눠 확인.
  * 최종 계수는 확인을 마친 뒤 전체 자료로 다시 만든다.
  */
-import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
-import { runAll, type Input } from '../engine/src/engine.ts';
-
-type Person = { year: number; w: number; inp: Input; out: Record<string, number> };
-const people: Person[] = readFileSync(new URL('./.cache/people.jsonl', import.meta.url), 'utf8').trim().split('\n').map((l) => JSON.parse(l));
+import { writeFileSync, mkdirSync } from 'node:fs';
+import { runAll } from '../engine/src/engine.ts';
+import { loadPeople } from './people.ts';
+// 주의: 이 스크립트는 engine/src/calibration.json(앱 보정)과 analysis/results/calibration.json 을 다시 쓴다. 보정 버전을 바꿀 때만 실행.
+// 보정 v1 은 EXTRACT_MODE=legacy (예전 추출 규칙)로 만들어졌다. 새 규칙 비교는 analysis/scenarios/compare_calibration.ts.
+const people = loadPeople(process.env.EXTRACT_MODE === 'legacy' ? 'legacy' : 'checked');
 const IDS = ['dm', 'htn', 'chol', 'osteo'] as const;
 type Id = (typeof IDS)[number];
 const bandOf = (age: number) => (age < 30 ? 0 : age >= 70 ? 5 : Math.floor(age / 10) - 2);

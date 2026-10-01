@@ -113,7 +113,7 @@ export function Results() {
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6, paddingBottom: 14 }}>
               <b style={{ fontSize: 26, fontWeight: 900, letterSpacing: '-0.03em', lineHeight: 1.25, color: INK }}>또래보다 높은 항목이 없어요</b>
-              <span style={{ fontSize: 14, lineHeight: 1.5 }}>지금처럼 관리하면서 정기 검진을 받으면 돼요.</span>
+              <span style={{ fontSize: 14, lineHeight: 1.5 }}>또래와 비교한 상대적인 위험일 뿐, 질환이 없다는 뜻은 아니에요. 아래 카드마다 있는 권장 검진은 따로 챙기세요.</span>
             </div>
           )}
           {r.others.length > 0 && (
@@ -263,6 +263,7 @@ export function Results() {
                   {c.status === 'managed' && <b style={{ color: INK }}>진단받아 관리 중 · </b>}{c.note}
                 </div>
               )}
+              {c.screen && <span style={{ fontSize: 12, lineHeight: 1.5, color: 'var(--charcoal)' }}>{c.screen}</span>}
             </a>
           ))}
         </div>

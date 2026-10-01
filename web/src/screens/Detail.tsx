@@ -1,7 +1,7 @@
 import type { ReactNode, CSSProperties } from 'react';
 import { useStore, Nav, Icon, People, Gauge, Crisis } from '../ui.tsx';
 import { suggestScenario } from '../state.ts';
-import { viewDetail, f1, statusText, flagOf, INK, LOOK, type ViewResult } from '../lib/view.ts';
+import { viewDetail, f1, pctText, statusText, flagOf, INK, LOOK, type ViewResult } from '../lib/view.ts';
 import { DevNote } from './DevNote.tsx';
 import { NAMES, TITLE, TOOL, BADGE, WHAT, WHY, HOW, NEXT, NEXT_SPECIAL, SRC, KNHANES, MODULE_OF, MEANING, DISCLAIMER, type ItemId } from '../lib/content.ts';
 import { useInput, NeedInput } from './Results.tsx';
@@ -36,7 +36,7 @@ export function Detail({ id }: { id: ItemId }) {
         {r.status === 'ok' && d.isProb && r.value != null && (<>
           {MEANING[id] && <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--obsidian)', marginTop: 10 }}>{MEANING[id]}</div>}
           {d.cmp && <div style={{ fontSize: 30, lineHeight: 1.2, fontWeight: 900, letterSpacing: '-0.04em', color: d.cmp.col, marginTop: 4 }}>{d.cmp.headline}</div>}
-          <div><span style={{ fontSize: 72, lineHeight: 1, fontWeight: 900, letterSpacing: '-0.06em', color: 'var(--obsidian)' }}>{f1(r.value)}</span><b style={{ fontSize: 22, color: 'var(--obsidian)' }}>%</b></div>
+          <div><span style={{ fontSize: r.value < 0.1 ? 40 : 72, lineHeight: 1, fontWeight: 900, letterSpacing: '-0.06em', color: 'var(--obsidian)' }}>{pctText(r.value)}</span><b style={{ fontSize: 22, color: 'var(--obsidian)' }}>%</b></div>
           <div style={{ fontSize: 14, color: 'var(--charcoal)' }}>나와 같은 조건인 사람 100명 중 약 <b>{d.n}명</b>{id === 'dm' ? ' · 상대 오차 ±약 25%' : ''}</div>
           {d.cmp && <div style={{ fontSize: 13, color: 'var(--slate)' }}>또래 평균 {f1(d.cmp.peer)}% ({d.cmp.who})</div>}
           {d.rank != null && <div style={{ marginTop: 4, padding: '8px 14px', borderRadius: 12, background: 'var(--bg)', fontSize: 13, lineHeight: 1.5 }}>
@@ -63,8 +63,9 @@ export function Detail({ id }: { id: ItemId }) {
         </>)}
         {r.status === 'ok' && !d.isProb && r.value == null && <div style={{ fontSize: 26, fontWeight: 800, color: INK, marginTop: 14 }}>{r.category}</div>}
         {r.status === 'managed' && <><div style={{ fontSize: 26, fontWeight: 800, color: INK, marginTop: 14 }}>진단받아 관리 중</div><p style={{ margin: 0, fontSize: 14, lineHeight: 1.6 }}>{d.statusNote}</p></>}
-        {r.status === 'criteria' && <><div style={{ fontSize: 24, fontWeight: 800, color: LOOK, marginTop: 14 }}>{({ dm: '공복혈당이 당뇨 기준이에요', chol: '총콜레스테롤이 기준 이상이에요' } as Partial<Record<ItemId, string>>)[id] ?? '측정 혈압이 고혈압 기준이에요'}</div><p style={{ margin: 0, fontSize: 14, lineHeight: 1.6 }}>{d.statusNote}</p></>}
+        {r.status === 'criteria' && <><div style={{ fontSize: 24, fontWeight: 800, color: LOOK, marginTop: 14 }}>{({ dm: '당뇨 기준에 해당하는 수치, 확인 필요', chol: '총콜레스테롤이 기준 이상이에요' } as Partial<Record<ItemId, string>>)[id] ?? '측정 혈압이 고혈압 기준이에요'}</div><p style={{ margin: 0, fontSize: 14, lineHeight: 1.6 }}>{d.statusNote}</p></>}
         {(r.status as string) === 'measured' && <><div style={{ fontSize: 24, fontWeight: 800, color: INK, marginTop: 14 }}>검진 수치를 반영했어요</div><p style={{ margin: 0, fontSize: 14, lineHeight: 1.6 }}>{d.statusNote}</p></>}
+        {d.screen && <div style={{ marginTop: 8, padding: '10px 14px', borderRadius: 14, background: 'var(--bg)', color: 'var(--charcoal)', fontSize: 13, lineHeight: 1.5 }}>{d.screen}</div>}
         {d.measured && <div style={{ marginTop: 8, padding: '10px 14px', borderRadius: 14, background: 'var(--linen)', color: INK, fontSize: 14, fontWeight: 600, lineHeight: 1.5 }}>{d.measured}</div>}
         {r.status === 'excluded' && <><div style={{ fontSize: 24, fontWeight: 800, color: LOOK, marginTop: 14 }}>{id === 'nafld' ? '술 때문에 간 검사가 필요해요' : statusText[r.status]}</div><p style={{ margin: 0, fontSize: 14, lineHeight: 1.6, color: LOOK }}>{d.statusNote}</p></>}
         {r.status === 'na' && <><div style={{ fontSize: 24, fontWeight: 800, color: INK, marginTop: 14 }}>{statusText[r.status]}</div><p style={{ margin: 0, fontSize: 14 }}>{d.statusNote}</p></>}

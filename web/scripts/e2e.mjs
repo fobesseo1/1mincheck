@@ -162,7 +162,8 @@ try {
   await type('#lab-tc', '250'); await type('#lab-egfr', '55'); await click('1+', '요단백'); await shot('checkup');
   await click('결과에 반영하기'); await new Promise((r) => setTimeout(r, 400));
   const tl = await text();
-  ok(tl.includes('검진 총콜레스테롤 250mg/dL') && tl.includes('eGFR 55 · 콩팥 기능 저하'), '검진 수치가 결과에 반영 (콜레스테롤 250, eGFR 55)');
+  ok(tl.includes('검진 총콜레스테롤 250mg/dL') && tl.includes('eGFR 55 · 요단백 1+'), '검진 수치가 결과에 반영 (콜레스테롤 250, eGFR 55·요단백 1+)');
+  ok(tl.includes('한 번의 검사로는 만성콩팥병이라고 하지 않아요'), '콩팥: 단일 검사로 확진하지 않는 문구');
   ok(tl.includes('검진 150/95'), '혈압 숫자가 대사증후군 카드에 표시');
   ok(tl.includes('검진 수치') && tl.includes('반영됨'), '결과 화면에 ‘검진 수치 n개 반영됨’');
   await shot('result-lab');
