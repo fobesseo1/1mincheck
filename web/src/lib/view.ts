@@ -79,7 +79,9 @@ export const whatIf = (b: Input, a: Input) => engineWhatIf(b, a).map((w) => {
   if (isCal(w.id)) return { ...w, before: w.before == null ? null : calibrate(w.id, w.before, b.sex, b.age), after: w.after == null ? null : calibrate(w.id, w.after, a.sex, a.age) };
   return w;
 });
-import { NAMES, TITLE, BADGE, PROB_IDS, MEANING, PEER_NOTE, ACTION, MANAGED, EXCLUDED_NAFLD, EXCLUDED_NAFLD_STUDY, CRITERIA_HTN, type ItemId } from './content.ts';
+import { NAMES, TITLE, BADGE, PROB_IDS, MEANING, PEER_NOTE, ACTION, MANAGED, EXCLUDED_NAFLD, EXCLUDED_NAFLD_STUDY, CRITERIA_HTN, SEVERE_HTN, SEVERE_HTN_SYMPTOM, type ItemId } from './content.ts';
+/** 검진 혈압이 매우 높음(수축기 180↑ 또는 이완기 120↑) — 결과 맨 위에 '지금 바로 병원' */
+export const severeBp = (inp: Input) => { const L = labOf(inp); return L.sbp != null && L.dbp != null && (L.sbp >= 180 || L.dbp >= 120); };
 
 export type Scenario = { weightKg: number; waistCm: number };
 export const INK = '#163300', LOOK = '#0b4c72', LOW_BG = '#e2f6d5', SAME_BG = '#f2f4f0', HIGH_BG = '#dfeaf1';
@@ -143,6 +145,7 @@ export function flagOf(r: Result, inp: Input): 'strong' | 'mild' | null {
 export function statusNote(id: ItemId, r: Result, inp?: Input) {
   if (r.status === 'managed') return MANAGED[id] ?? '이미 진단받아 관리 중이에요.';
   if (r.status === 'excluded') return id === 'nafld' ? (r.flags?.includes('ALC_OVER_STUDY') ? EXCLUDED_NAFLD_STUDY(inp?.sex ?? 'M') : EXCLUDED_NAFLD) : r.notes?.[0] ?? '';
+  if (r.status === 'criteria' && id === 'htn' && inp && severeBp(inp)) { const L = labOf(inp); return `${SEVERE_HTN(L.sbp!, L.dbp!)} ${SEVERE_HTN_SYMPTOM}`; }
   if (r.status === 'criteria') return r.flags?.includes('MEASURED') ? r.notes?.[0] ?? '' : CRITERIA_HTN;
   if (r.status === MEASURED) return r.notes?.[0] ?? '';
   if (r.status === 'na') return r.notes?.[0] ?? '';
@@ -200,7 +203,8 @@ export function viewResults(inp: Input, sc: Scenario) {
     ? { id: 'nafld', name: '간', short: '간', line: `술이 주 ${NAFLD_ALC_MAX[inp.sex]}g을 넘어 지방간 점수로는 판단하지 않아요`, action: '간 수치(AST·ALT·감마지티피) 검사로 간 상태를 확인해 보세요.', tag: '음주', big: '간 수치 검사로 확인해요', c: null }
     : { id: 'nafld', name: '간', short: '간', line: '술을 하루 평균 5잔 이상 드셔서 지방간 점수로는 판단할 수 없어요', action: '간 수치 검사로 술 때문에 간이 상했는지 확인해 보세요.', tag: '과음', big: '간 검사가 필요해요', c: null });
   const L = labOf(inp);
-  if (by.htn.status === 'criteria') first.push({ id: 'htn', name: '고혈압', short: '고혈압', line: L.sbp != null ? `검진 혈압 ${L.sbp}/${L.dbp} · 고혈압 기준(140/90 이상)이에요` : '측정 혈압이 고혈압 기준(140/90 이상)이에요', action: '며칠에 걸쳐 다시 재 보고 진료를 받아 보세요.', tag: '기준 이상', big: '혈압이 고혈압 기준이에요', c: null });
+  if (by.htn.status === 'criteria' && severeBp(inp)) first.push({ id: 'htn', name: '혈압', short: '혈압', line: `검진 혈압 ${L.sbp}/${L.dbp} · 매우 높은 혈압(180/120 이상)이에요`, action: `5분 쉬고 다시 재 보세요. 그래도 180/120 이상이면 지금 바로 병원에 가세요. ${SEVERE_HTN_SYMPTOM}`, tag: '지금 바로', big: '혈압이 매우 높아요 · 지금 바로 병원 가세요', c: null });
+  else if (by.htn.status === 'criteria') first.push({ id: 'htn', name: '고혈압', short: '고혈압', line: L.sbp != null ? `검진 혈압 ${L.sbp}/${L.dbp} · 고혈압 기준(140/90 이상)이에요` : '측정 혈압이 고혈압 기준(140/90 이상)이에요', action: '며칠에 걸쳐 다시 재 보고 진료를 받아 보세요.', tag: '기준 이상', big: '혈압이 고혈압 기준이에요', c: null });
   if (by.dm.status === 'criteria') first.push({ id: 'dm', name: '혈당', short: '혈당', line: `검진 공복혈당 ${L.glu}mg/dL · 당뇨 기준(126 이상)이에요`, action: '다른 날 다시 재거나 당화혈색소를 확인하고 진료를 받아 보세요.', tag: '확인 필요', big: '당뇨 기준에 해당하는 수치, 확인 필요', c: null });
   if (by.chol.status === 'criteria') first.push({ id: 'chol', name: '콜레스테롤', short: '고콜레스테롤', line: `검진 총콜레스테롤 ${L.tc}mg/dL · 기준(240 이상)이에요`, action: '진료에서 LDL 등 자세한 수치를 확인하세요.', tag: '기준 이상', big: '총콜레스테롤이 기준 이상이에요', c: null });
   // 공복혈당 전단계(100–125)는 또래 비교와 관계없이 당화혈색소 확인을 먼저 안내
@@ -217,7 +221,7 @@ export function viewResults(inp: Input, sc: Scenario) {
   // 상단 대표: 신체 항목(당뇨·고혈압·콜레스테롤·간·골다공증)을 먼저, 그 안에서 또래 대비 배수가 큰 것.
   // 신체 항목이 없을 때만 마음·수면·소화 항목이 올라간다.
   const BODY: ItemId[] = ['dm', 'htn', 'chol', 'nafld', 'osteo'];
-  const rank = (f: First) => (BODY.includes(f.id) ? 0 : 2) + (f.c ? 0 : 1);
+  const rank = (f: First) => (f.tag === '지금 바로' ? -10 : 0) + (BODY.includes(f.id) ? 0 : 2) + (f.c ? 0 : 1);
   first.sort((a, b) => rank(a) - rank(b) || (b.c?.x ?? 0) - (a.c?.x ?? 0));
   const hero = first[0] ?? null;
   const others = first.slice(1);

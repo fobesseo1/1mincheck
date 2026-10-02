@@ -235,3 +235,21 @@ describe('진단자 카드 설명', () => {
     expect(v.prob.find((p) => p.id === 'chol')!.meaning).not.toBe('');
   });
 });
+
+describe('매우 높은 혈압', () => {
+  const base = S[Object.keys(S)[0]].input as AppInput;
+  const at = (sbp: number, dbp: number) => viewResults({ ...base, dx: { htn: false, dm: false, chol: false }, bp: 'high', lab: { sbp, dbp } } as AppInput, {} as never);
+  it('180/120 이상이면 맨 위에 "지금 바로 병원", 119·응급실이라는 말은 쓰지 않는다', () => {
+    for (const [s, d] of [[190, 125], [180, 95], [150, 120]]) {
+      const h = at(s, d).hero!;
+      expect(h.big).toContain('지금 바로 병원');
+      expect(h.action).toContain('지금 바로 병원');
+      expect(h.big + h.action + h.line).not.toMatch(/119|응급실/);
+      expect(viewDetail('htn', { ...base, dx: { htn: false, dm: false, chol: false }, bp: 'high', lab: { sbp: s, dbp: d } } as AppInput, {} as never).r.status).toBe('criteria');
+    }
+  });
+  it('179/119는 일반 고혈압 기준 안내', () => {
+    const h = at(179, 119).hero!;
+    expect(h.big).not.toContain('지금 바로');
+  });
+});
