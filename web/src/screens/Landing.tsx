@@ -62,11 +62,23 @@ function PromoVideo() {
     io.observe(v); return () => io.disconnect();
   }, [reduce]);
   const base = import.meta.env.BASE_URL;
+  // 휴대폰 폭에서는 세로(9:16) 영상
+  const tall = typeof matchMedia !== 'undefined' && matchMedia('(max-width: 600px)').matches, kind = tall ? '-vertical' : '';
+  // 45초 전체 영상: 버튼을 눌렀을 때만 받아서 소리와 함께 재생, 닫으면 멈춤
+  const dlg = useRef<HTMLDialogElement>(null), full = useRef<HTMLVideoElement>(null);
+  const open = () => { ref.current?.pause(); dlg.current?.showModal(); full.current?.play().catch(() => {}); };
   return (
     <figure style={{ margin: 0, width: '100%', maxWidth: 960, display: 'flex', flexDirection: 'column', gap: 10 }}>
-      <video ref={ref} className="promo" src={`${base}video/promo-20s.mp4`} poster={`${base}video/promo-poster.jpg`} muted loop playsInline preload="none" controls={reduce}
+      <video ref={ref} className={tall ? 'promo promo-tall' : 'promo'} src={`${base}video/promo-20s${kind}.mp4`} poster={`${base}video/promo-poster${kind}.jpg`} muted loop playsInline preload="none" controls={reduce}
         aria-label="1분체크를 쓰는 장면 20초 영상(소리 없음): 몸 정보 입력, 결과 카드, 판정 카드" />
-      <figcaption style={{ fontSize: 13, color: 'var(--slate)', textAlign: 'center' }}>20초로 보는 1분체크 · 화면 속 숫자는 예시예요</figcaption>
+      <figcaption style={{ fontSize: 13, color: 'var(--slate)', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
+        20초로 보는 1분체크 · 화면 속 숫자는 예시예요
+        <button type="button" className="promo-more" onClick={open}>▶ 전체 영상 보기 <small>45초 · 소리 있음</small></button>
+      </figcaption>
+      <dialog ref={dlg} className="promo-dlg" aria-label="1분체크 전체 영상 45초" onClose={() => { full.current?.pause(); if (!reduce) ref.current?.play().catch(() => {}); }} onClick={(e) => { if (e.target === dlg.current) dlg.current?.close(); }}>
+        <button type="button" className="promo-x" aria-label="닫기" onClick={() => dlg.current?.close()}>✕</button>
+        <video ref={full} className="promo" src={`${base}video/promo-45s.mp4`} poster={`${base}video/promo-poster.jpg`} controls playsInline preload="none" />
+      </dialog>
     </figure>
   );
 }
