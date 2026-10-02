@@ -7,7 +7,7 @@ import { ExtraCards } from './Extras.tsx';
 import { DevNote } from './DevNote.tsx';
 import { viewResults, labOf, xfmt, INK, LOOK } from '../lib/view.ts';
 /** 또래의 2배 이상·기준 이상 같은 강한 위험 신호 색 */
-const RED = '#a8231a';
+const RED = '#cb272f';   // 디자인 Alarm Red
 import { labCount } from '../lib/labs.ts';
 import { MODULE_OF, DISCLAIMER, MEANING, type ItemId } from '../lib/content.ts';
 import { verdict, type Verdict } from '../lib/verdict.ts';
@@ -48,32 +48,36 @@ const Chips = ({ items }: { items: { id: ItemId; name: string }[] }) => (
 );
 
 
-/** 단계별 색: ① 지금 바로 ② 병원 확인 ⑤ 관리 중 ③ 습관 바꾸기 ④ 잘하고 있어요 */
-const TONE: Record<Verdict['tier'], { bg: string; fg: string; tagBg: string; tagFg: string }> = {
-  1: { bg: '#fdecea', fg: RED, tagBg: RED, tagFg: '#fff' },
-  2: { bg: 'var(--look-bg)', fg: LOOK, tagBg: LOOK, tagFg: '#fff' },
-  5: { bg: '#fff', fg: 'var(--obsidian)', tagBg: 'var(--ink)', tagFg: 'var(--lime)' },
-  3: { bg: '#fff', fg: 'var(--obsidian)', tagBg: 'var(--linen)', tagFg: 'var(--ink)' },
-  4: { bg: 'var(--linen)', fg: 'var(--ink)', tagBg: 'var(--ink)', tagFg: 'var(--lime)' },
+/**
+ * 단계별 색 (디자인: 숲색 Forest Ink + 라임, 회색 Fog, 빨강 Alarm Red는 띠·글씨에만).
+ * 위험할수록 어둡게(병원 확인 = 숲색 반전 카드 + 라임 제목), 급하면 빨강 띠, 건강하면 밝게(라임).
+ */
+type Tone = { bg: string; fg: string; sub: string; tagBg: string; tagFg: string; numBg: string; numFg: string; top?: string };
+const TONE: Record<Verdict['tier'], Tone> = {
+  1: { bg: '#fff', fg: RED, sub: 'var(--charcoal)', tagBg: RED, tagFg: '#fff', numBg: RED, numFg: '#fff', top: `6px solid ${RED}` },
+  2: { bg: 'var(--ink)', fg: 'var(--lime)', sub: 'rgba(255,255,255,.82)', tagBg: 'var(--lime)', tagFg: 'var(--ink)', numBg: 'var(--ink)', numFg: 'var(--lime)' },
+  5: { bg: 'var(--fog)', fg: 'var(--ink)', sub: 'var(--charcoal)', tagBg: 'var(--ink)', tagFg: '#fff', numBg: 'var(--ink)', numFg: '#fff' },
+  3: { bg: 'var(--linen)', fg: 'var(--ink)', sub: 'var(--charcoal)', tagBg: 'var(--ink)', tagFg: 'var(--lime)', numBg: 'var(--ink)', numFg: 'var(--lime)' },
+  4: { bg: 'var(--lime)', fg: 'var(--ink)', sub: 'var(--ink)', tagBg: 'var(--ink)', tagFg: 'var(--lime)', numBg: 'var(--ink)', numFg: 'var(--lime)' },
 };
 function VerdictCard({ v }: { v: Verdict }) {
   const t = TONE[v.tier];
   return (
-    <section className="card" aria-label="지금 내 상태" style={{ padding: '20px 18px', display: 'flex', flexDirection: 'column', gap: 12, background: t.bg, boxShadow: 'var(--card-shadow)' }}>
+    <section className="card" aria-label="지금 내 상태" style={{ padding: '20px 18px', display: 'flex', flexDirection: 'column', gap: 12, background: t.bg, borderTop: t.top, boxShadow: 'var(--card-shadow)' }}>
       <span className="tag" style={{ alignSelf: 'flex-start', background: t.tagBg, color: t.tagFg }}>{v.tag}</span>
       <h2 style={{ margin: 0, fontSize: 26, lineHeight: 1.3, fontWeight: 900, letterSpacing: '-0.03em', color: t.fg }}>{v.title}</h2>
-      <p style={{ margin: 0, fontSize: 14, lineHeight: 1.55, color: 'var(--charcoal)' }}>{v.sub}</p>
+      <p style={{ margin: 0, fontSize: 14, lineHeight: 1.55, color: t.sub }}>{v.sub}</p>
       <ol style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 8 }}>
         {v.actions.map((a, k) => {
           const body = (<>
-            <span style={{ width: 26, height: 26, flexShrink: 0, borderRadius: 9, background: t.tagBg, color: t.tagFg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 800 }}>{k + 1}</span>
-            <span><b style={{ fontSize: 16, color: 'var(--obsidian)' }}>{a.t}</b>{a.d && <span style={{ display: 'block', fontSize: 13, lineHeight: 1.5, marginTop: 2 }}>{a.d}</span>}</span>
+            <span style={{ width: 26, height: 26, flexShrink: 0, borderRadius: 9, background: t.numBg, color: t.numFg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 800 }}>{k + 1}</span>
+            <span><b style={{ fontSize: 16, color: 'var(--obsidian)' }}>{a.t}</b>{a.d && <span style={{ display: 'block', fontSize: 13, lineHeight: 1.5, marginTop: 2, color: 'var(--charcoal)' }}>{a.d}</span>}</span>
           </>);
-          const st = { display: 'flex', gap: 12, padding: '12px 12px', borderRadius: 14, background: '#fff', textDecoration: 'none', color: 'inherit', border: '1px solid var(--line2)' } as const;
+          const st = { display: 'flex', gap: 12, padding: '12px 12px', borderRadius: 14, background: '#fff', textDecoration: 'none', color: 'inherit', border: v.tier === 2 ? 0 : '1px solid var(--line2)' } as const;
           return <li key={a.t}>{a.href ? <a href={a.href} style={st}>{body}</a> : <div style={st}>{body}</div>}</li>;
         })}
       </ol>
-      {v.also && <span style={{ fontSize: 13, color: 'var(--charcoal)' }}>{v.also}</span>}
+      {v.also && <span style={{ fontSize: 13, color: t.sub }}>{v.also}</span>}
     </section>
   );
 }
@@ -141,7 +145,7 @@ export function Results() {
           {r.score.some((x) => x.status === 'ok' && x.v !== '–') && (
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, padding: '10px 0 12px', borderTop: '1px solid var(--line)' }}>
               {r.score.filter((x) => x.status === 'ok' && x.v !== '–').map((x) => { const risk = /고위험|양성|높음|중등도|심함|중증|2단계|3단계/.test(x.cat), flag = x.col === LOOK;
-                return <a key={x.id} href={`#/detail/${x.id}`} className="pill" style={{ background: risk ? '#fdecea' : flag ? 'var(--look-bg)' : 'var(--bg)', color: risk ? RED : flag ? LOOK : 'var(--charcoal)', fontWeight: risk || flag ? 800 : 600, textDecoration: 'none' }}>{x.name} · {x.cat}</a>; })}
+                return <a key={x.id} href={`#/detail/${x.id}`} className="pill" style={{ background: risk ? '#fdecea' : flag ? 'var(--linen)' : 'var(--bg)', color: risk ? RED : flag ? 'var(--ink)' : 'var(--charcoal)', fontWeight: risk || flag ? 800 : 600, textDecoration: 'none' }}>{x.name} · {x.cat}</a>; })}
             </div>
           )}
         </div>
