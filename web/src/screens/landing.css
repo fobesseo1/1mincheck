@@ -51,3 +51,13 @@
   .ld .collage .c2 { display: none; }
   .ld .wrap { padding: 0 16px; }
 }
+
+/* 미니 체험 결과: 사람 그림이 차례로 채워지고, 다음 단계 버튼이 살짝 맥박친다 */
+.ld .mini-res svg { fill: #d9ddd5; }
+.ld .mini-res svg.mini-on { animation: miniOn .35s ease-out forwards; }
+@keyframes miniOn { from { fill: #d9ddd5; transform: scale(.7); } to { fill: var(--c); transform: scale(1); } }
+.ld .mini-res { animation: miniIn .35s ease-out; }
+@keyframes miniIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+.ld .mini-go { animation: miniPulse 1.8s ease-in-out 1s infinite; }
+@keyframes miniPulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(159, 232, 112, .7); } 50% { box-shadow: 0 0 0 10px rgba(159, 232, 112, 0); } }
+@media (prefers-reduced-motion: reduce) { .ld .mini-go, .ld .mini-res, .ld .mini-res svg.mini-on { animation: none; } .ld .mini-res svg.mini-on { fill: var(--c); } }

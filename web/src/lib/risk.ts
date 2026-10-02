@@ -9,13 +9,19 @@ export type Sev = 0 | 1 | 2;   // 0 낮음·보통(회색), 1 주의(옅은 빨�
 export const SEV_COLOR = ['var(--slate)', '#e0605a', '#cb272f'] as const;
 
 /** 퍼센트 → 자연 빈도. 50% 이상은 'n명 중 m명'(분모 2–5), 10–50%는 'n명 중 1명', 10% 미만은 '100명 중 n명' */
+/** 자연 빈도의 분수 (사람 그림용). 10% 미만·95% 이상은 null */
+export function fracOf(pct: number): { m: number; d: number } | null {
+  if (pct < 10 || pct >= 95) return null;
+  // 가장 가까운 간단한 분수: 50% 미만은 1/d(d≤10)와 2/5, 50% 이상은 m/d(d≤5)
+  const cands = pct < 50 ? [...Array.from({ length: 9 }, (_, k) => [1, k + 2]), [2, 5]] : Array.from({ length: 4 }, (_, k) => k + 2).flatMap((d) => Array.from({ length: d - 1 }, (_, m) => [m + 1, d]));
+  const [m, d] = cands.reduce((a, c) => (Math.abs(c[0] / c[1] - pct / 100) < Math.abs(a[0] / a[1] - pct / 100) - 0.005 ? c : a));
+  return { m, d };
+}
 export function oneIn(pct: number): string {
   if (pct < 1) return '100명 중 1명 미만';
   if (pct < 10) return `100명 중 ${Math.round(pct)}명`;
   if (pct >= 95) return '거의 모두';
-  // 가장 가까운 간단한 분수: 50% 미만은 1/d(d≤10)와 2/5, 50% 이상은 m/d(d≤5)
-  const cands = pct < 50 ? [...Array.from({ length: 9 }, (_, k) => [1, k + 2]), [2, 5]] : Array.from({ length: 4 }, (_, k) => k + 2).flatMap((d) => Array.from({ length: d - 1 }, (_, m) => [m + 1, d]));
-  const [m, d] = cands.reduce((a, c) => (Math.abs(c[0] / c[1] - pct / 100) < Math.abs(a[0] / a[1] - pct / 100) - 0.005 ? c : a));
+  const { m, d } = fracOf(pct)!;
   return `${d}명 중 ${m}명`;
 }
 const xText = (x: number) => (Math.round(x * 10) / 10).toFixed(1);

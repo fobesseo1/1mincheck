@@ -258,3 +258,12 @@ describe('매우 높은 혈압', () => {
     expect(h.big).not.toContain('지금 바로');
   });
 });
+
+describe('미니 체험 한 줄 결론', () => {
+  it('위험 2개 이상이면 빨강 결론, 하나면 조심, 없으면 괜찮음 + 사람 그림 분수', async () => {
+    const { miniResults, miniHeadline } = await import('../screens/MiniTrial.tsx');
+    expect(miniHeadline(miniResults(58, 'M', 172, 99).rows)).toMatchObject({ tone: 2, title: '3가지 중 3가지가 위험한 쪽이에요' });
+    expect(miniHeadline(miniResults(45, 'F', 160, 55).rows).tone).toBe(0);
+    expect(miniResults(58, 'M', 172, 99).rows[0].frac).toEqual({ m: 1, d: 4 });   // 4명 중 1명 → 사람 4명 중 1명 채움
+  });
+});
