@@ -15,13 +15,11 @@
 .ld .btn.sm { height: 44px; padding: 0 20px; font-size: 15px; }
 .ld .gbtn { display: inline-flex; align-self: flex-start; align-items: center; height: 48px; padding: 0 20px; border-radius: 12px; background: var(--line); color: var(--obsidian); font-size: 15px; font-weight: 700; text-decoration: none; }
 .ld .dots { background-image: radial-gradient(rgba(22, 51, 0, .07) 1.5px, transparent 1.5px); background-size: 18px 18px; }
-.ld .hero { display: grid; grid-template-columns: 1fr 1fr; gap: 56px; align-items: center; padding: 72px 0 88px; }
+.ld .hero { display: grid; grid-template-columns: 1fr 1fr; gap: 56px; align-items: center; padding-top: 72px; padding-bottom: 88px; }   /* 위아래만 (.wrap 좌우 여백 유지) */
 .ld .hero h1 { margin: 0; font-size: clamp(40px, 5.2vw, 64px); line-height: 1.1; font-weight: 800; letter-spacing: -0.045em; color: var(--obsidian); }
 .ld .hero h1 b { color: var(--ink); font-weight: 900; }
 .ld .hero p { font-size: 18px; line-height: 1.65; max-width: 540px; }
 .ld .hero-left, .ld .hero-rest { display: flex; flex-direction: column; gap: 22px; }
-/* 구분선은 1032px 이하에서만 */
-.ld .sep, .ld .sep-wrap { display: none; }
 .ld .collage { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; }
 .ld .panel { border-radius: 32px; background-color: var(--bg); padding: 80px 40px; }
 .ld h2 { margin: 0; font-size: clamp(30px, 3.4vw, 44px); line-height: 1.2; font-weight: 800; letter-spacing: -0.04em; color: var(--obsidian); }
@@ -42,8 +40,8 @@
 @media (max-width: 1032px) {
   .ld nav { display: none; }
   .ld .hero, .ld .zig, .ld .faq { grid-template-columns: 1fr; gap: 36px; }
-  /* 모바일·태블릿 첫 화면: 제목 → 미니 → 설명·버튼. 상단 바와 제목, 제목과 미니 사이 40px */
-  .ld .hero { padding: 40px 0 64px; gap: 40px; }
+  /* 모바일·태블릿 첫 화면: 제목 → 미니 → 설명·버튼. 상단 바–제목, 제목–미니 40px(유지) */
+  .ld .hero { padding-top: 40px; padding-bottom: 36px; gap: 40px; }
   .ld .hero-left { display: contents; }
   .ld .hero-title { order: 0; }
   .ld .hero-mini { order: 1; }
@@ -51,15 +49,12 @@
   .ld .zig .vis { order: -1; padding: 24px; }
   .ld .steps { grid-template-columns: 1fr; }
   .ld .ev { grid-template-columns: 1fr; }
-  .ld .panel, .ld .band { padding: 64px 20px; border-radius: 24px; }
+  /* 위아래 여백은 PC 대비 약 55%로 (섹션 76→42, 블록 사이 80→44, 색 패널 안쪽 64→36) */
+  .ld .panel, .ld .band { padding: 36px 20px; border-radius: 24px; }
   .ld .fcols { grid-template-columns: 1fr 1fr; }
-  .ld .sec { padding-top: 76px; padding-bottom: 76px; }
-  /* '내 건강을 이렇게 보여드려요'부터 블록·섹션 사이 구분선: 4px, 양 끝 둥글게, 연한 회색. 선 위아래 여백 40px로 같게 */
-  .ld .sep { display: block; height: 4px; margin: 0; border: 0; border-radius: 2px; background: var(--fog); }
-  .ld .sep-wrap { display: block; }
-  .ld #features { gap: 40px !important; padding-bottom: 40px; }
-  .ld .blk { margin-top: 40px; margin-bottom: 40px; }
-  .ld #evidence, .ld #faq { padding-top: 40px; padding-bottom: 40px; }
+  .ld .sec { padding-top: 42px; padding-bottom: 42px; }
+  .ld #features { gap: 44px !important; }
+  .ld footer { margin-top: 52px; }
 }
 @media (max-width: 520px) {
   .ld .collage { grid-template-columns: 1fr; }
