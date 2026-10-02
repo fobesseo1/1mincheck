@@ -215,12 +215,13 @@ describe('입력 변환', () => {
 });
 
 describe('랜딩 미니 체험', () => {
-  it('같은 성별·나이대·BMI 사람들의 실제 비율 (모르는 답을 없음으로 가정하지 않음)', async () => {
+  it('같은 성별·나이대·BMI 사람들의 실제 비율(진단받은 사람 포함), 또래의 몇 배가 메인', async () => {
     const { miniResults, miniError } = await import('../screens/MiniTrial.tsx');
     const r = miniResults(56, 'M', 172, 88);   // BMI 29.7 → 50대 남성 BMI 25–30
     expect(r.rows.map((p) => p.id)).toEqual(['dm', 'htn', 'nafld']);
     expect(r.bmiLabel).toBe('BMI 25–30');
-    expect(r.rows[0].pct!).toBeGreaterThan(7);              // 50대 남성 전체(약 7%)보다 높아야
+    expect(r.rows[0].pct!).toBeGreaterThan(20);             // 진단받은 사람 포함: 50대 남성 전체(약 21%) 이상
+    expect(r.rows.find((p) => p.id === 'nafld')!.big).toMatch(/또래의 \d\.\d배/);   // 또래의 몇 배가 메인
     expect(miniResults(56, 'M', 172, 60).rows[0].pct!).toBeLessThan(r.rows[0].pct!);
     expect(miniError('45', '170', '70', null)).toBeTruthy(); expect(miniError('18', '170', '70', 'M')).toBeTruthy(); expect(miniError('45', '170', '70', 'M')).toBeNull();
   });
