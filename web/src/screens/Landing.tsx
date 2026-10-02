@@ -3,7 +3,25 @@ import type React from 'react';
 import { samples, defaultSampleId } from '../../../src/sampleData.ts';
 import { viewResults, viewDetail, viewRecord, whatIfRows, applyScenario } from '../lib/view.ts';
 import { People, Icon } from '../ui.tsx';
-import { MiniTrial } from './MiniTrial.tsx';
+import { MiniTrial, loadMini, MINI_CTA } from './MiniTrial.tsx';
+import { useEffect, useState } from 'react';
+import { useStore } from '../ui.tsx';
+
+/** 미니 체험 결과(탭 세션)를 구독: 없으면 null */
+function useMini() {
+  const [m, setM] = useState(loadMini);
+  useEffect(() => { const on = () => setM(loadMini()); window.addEventListener('mini-change', on); return () => window.removeEventListener('mini-change', on); }, []);
+  return m;
+}
+/** '체크 시작' 버튼. 미니 결과가 있으면 그 단계의 색·문구로, 누르면 미니에 넣은 4개 값을 가지고 이어서.
+ *  kind: nav(상단)·main(첫 화면·아래 띠)은 색까지, text(중간 섹션)는 문구만 바꾼다(빨강이 여러 개면 무뎌지므로). */
+function StartBtn({ kind, base, label, style }: { kind: 'nav' | 'main' | 'text'; base: string; label: string; style?: React.CSSProperties }) {
+  const m = useMini(), { setDraft } = useStore();
+  const text = m ? MINI_CTA[m.tone][kind === 'nav' ? 'nav' : 'main'] : label;
+  const cls = m && kind !== 'text' ? `${base.replace(/\b(lime|dark)\b/, '')} tone-${m.tone}` : base;
+  const go = (e: React.MouseEvent) => { if (!m) return; e.preventDefault(); setDraft((d) => ({ ...d, age: m.age, sex: m.sex, height: m.h, weight: m.w })); location.hash = '#/info'; };
+  return <a className={cls} href="#/start" onClick={go} style={m && kind !== 'text' ? undefined : style}>{text}</a>;
+}
 
 // 랜딩의 예시 숫자: src/sampleData.ts 기본 예시를 engine 으로 계산
 const S = samples.find((s) => s.id === defaultSampleId)!;
@@ -32,7 +50,7 @@ export function Landing() {
       <header><div className="wrap">
         <a className="logo" href="#/"><i /><b>1분체크</b></a>
         <nav><a href="#how">작동 방식</a><a href="#features">기능</a><a href="#items">12가지 항목</a><a href="#evidence">근거</a><a href="#faq">자주 묻는 질문</a></nav>
-        <a className="btn lime sm" href="#/start">지금 체크하기</a>
+        <StartBtn kind="nav" base="btn lime sm" label="지금 체크하기" />
       </div></header>
 
       <section className="dots"><div className="wrap hero">
@@ -40,7 +58,7 @@ export function Landing() {
           <span className="pill" style={{ alignSelf: 'flex-start', background: 'var(--linen)', color: 'var(--ink)' }}>만 19세 이상 · 설치·가입 없이</span>
           <h1>1분이면 보는<br /><b>내 몸의 확률</b></h1>
           <p style={{ margin: 0 }}>질문 몇 개에 답하면 나이·성별이 같은 한국인 통계와 비교해 12가지 건강 항목을 ‘100명 중 몇 명’으로 보여드려요. 무엇을 바꾸면 얼마나 줄어드는지까지요.</p>
-          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}><a className="btn lime" href="#/start">1분 체크 시작하기</a><a className="btn line" href="#how">어떻게 계산하나요?</a></div>
+          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}><StartBtn kind="main" base="btn lime" label="1분 체크 시작하기" /><a className="btn line" href="#how">어떻게 계산하나요?</a></div>
           <div style={{ display: 'flex', gap: 22, flexWrap: 'wrap', fontSize: 15, fontWeight: 600, color: 'var(--ink)' }}>
             {['서버 저장 없음', '국민건강영양조사 공표 통계·원시자료', '한국인 검증 설문 도구'].map((t) => <span key={t} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>{Icon.check}{t}</span>)}
           </div>
@@ -63,7 +81,7 @@ export function Landing() {
             </Card>
           ))}
         </div>
-        <a className="btn lime" href="#/start">1분 체크 시작하기</a>
+        <StartBtn kind="text" base="btn lime" label="1분 체크 시작하기" />
       </div></section>
 
       <section id="features" className="wrap sec" style={{ display: 'flex', flexDirection: 'column', gap: 80 }}>
@@ -107,7 +125,7 @@ export function Landing() {
         <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 10, maxWidth: 980, margin: '28px auto' }}>
           {ITEMS.map(([n, t]) => <span key={n} style={{ display: 'inline-flex', alignItems: 'center', gap: 8, height: 44, padding: '0 18px', borderRadius: 9999, background: 'var(--spruce)', fontSize: 15, fontWeight: 600, color: '#fff' }}>{n}<span style={{ fontSize: 12, color: 'var(--lime)' }}>{t}</span></span>)}
         </div>
-        <a className="btn" href="#/start" style={{ background: '#fff', color: 'var(--ink)' }}>지금 확인하기</a>
+        <StartBtn kind="text" base="btn" label="지금 확인하기" style={{ background: '#fff', color: 'var(--ink)' }} />
       </div></section>
 
       <section id="evidence" className="wrap sec"><div className="ev">
@@ -136,7 +154,7 @@ export function Landing() {
       <section className="wrap"><div className="band" style={{ backgroundColor: 'var(--lime)', backgroundImage: 'radial-gradient(rgba(22,51,0,.12) 1.5px, transparent 1.5px)' }}>
         <h2 style={{ fontSize: 'clamp(38px, 5vw, 56px)', fontWeight: 900, color: 'var(--ink)' }}>1분, 지금 체크해요</h2>
         <p style={{ fontSize: 18, color: 'var(--ink)' }}>가입 없이, 기기 안에서 바로 계산해요.</p>
-        <a className="btn dark" href="#/start">시작하기</a>
+        <StartBtn kind="main" base="btn dark" label="시작하기" />
       </div></section>
 
       <footer><div className="wrap">

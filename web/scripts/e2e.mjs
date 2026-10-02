@@ -43,7 +43,9 @@ try {
   ok(!(await text()).includes('내 BMI'), '미니: 누르기 전에는 결과 없음');
   await click('결과 보기'); const tm = await text();
   ok(tm.includes('50대 남성 · BMI 25–30') && tm.includes('4명 중 1명') && tm.includes('또래도 이만큼 많아요 · 50대 남성 평균 5명 중 1명') && tm.includes('1분 더 입력하고 정확한 위험 확인하기'), '미니: 56세 남성 BMI 29.7 → 당뇨 4명 중 1명(또래도 많음) — 절대·또래 중 더 경고가 메인');
+  ok(await p.evaluate(() => { const a = document.querySelector('.ld header a.btn'); return a.textContent === '내 위험 확인하기' && a.className.includes('tone-2'); }), '미니 결과 위험 → 상단 버튼도 빨강·"내 위험 확인하기"');
   await type('.mini input[aria-label="몸무게"]', '70'); ok(!(await text()).includes('내 BMI'), '미니: 값을 고치면 결과를 지우고 다시 누르게');
+  ok(await p.evaluate(() => document.querySelector('.ld header a.btn').textContent === '지금 체크하기'), '미니 결과를 지우면 버튼도 원래대로');
   await click('1분 체크 시작하기');
   console.log('온보딩'); ok((await route()) === '#/start', '#/start'); await shot('start');
   await click('시작하기'); await shot('intro');

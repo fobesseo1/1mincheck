@@ -43,6 +43,19 @@ export function miniResults(age: number, sex: 'M' | 'F', heightCm: number, weigh
   };
 }
 
+// 미니 결과는 탭을 닫기 전까지만 이 기기 세션에 둔다(서버 전송 없음). 랜딩의 다른 '체크 시작' 버튼들이 같은 색·문구를 쓴다.
+export const MINI_KEY = '1mincheck.mini';
+export type MiniSaved = { tone: 0 | 1 | 2; age: string; sex: 'M' | 'F'; h: string; w: string };
+export function loadMini(): MiniSaved | null { try { const s = sessionStorage.getItem(MINI_KEY); return s ? JSON.parse(s) : null; } catch { return null; } }
+function saveMini(v: MiniSaved | null) { try { if (v) sessionStorage.setItem(MINI_KEY, JSON.stringify(v)); else sessionStorage.removeItem(MINI_KEY); } catch { /* 저장소 없음 */ } window.dispatchEvent(new Event('mini-change')); }
+/** 단계별 버튼 문구: nav = 상단 메뉴, main = 첫 화면·아래 띠 */
+export const MINI_CTA = {
+  none: { nav: '지금 체크하기', main: '1분 체크 시작하기' },
+  2: { nav: '내 위험 확인하기', main: '1분 더 입력하고 정확한 위험 확인하기' },
+  1: { nav: '더 정확히 보기', main: '1분 더 입력하고 더 정확한 결과 보기' },
+  0: { nav: '습관 확인하기', main: '1분 더 입력하고 내 건강 습관 확인하기' },
+} as const;
+
 /** 미니 결과 한 줄 결론: 세 항목을 종합해 '그래서 어떤가'를 먼저 말한다 */
 export function miniHeadline(rows: { name: string; sev: number }[]) {
   const hi = rows.filter((r) => r.sev === 2), mid = rows.filter((r) => r.sev >= 1);
@@ -67,12 +80,18 @@ function People({ m, d, col }: { m: number; d: number; col: string }) {
 
 export function MiniTrial() {
   const { setDraft } = useStore();
-  const [age, setAge] = useState(''), [sex, setSex] = useState<'M' | 'F' | null>(null), [h, setH] = useState(''), [w, setW] = useState('');
-  const [res, setRes] = useState<ReturnType<typeof miniResults> | null>(null), [tried, setTried] = useState(false);
+  const saved = loadMini();   // 새로고침해도 탭을 닫기 전까지는 결과를 다시 보여준다
+  const [age, setAge] = useState(saved?.age ?? ''), [sex, setSex] = useState<'M' | 'F' | null>(saved?.sex ?? null), [h, setH] = useState(saved?.h ?? ''), [w, setW] = useState(saved?.w ?? '');
+  const [res, setRes0] = useState<ReturnType<typeof miniResults> | null>(() => (saved ? miniResults(Number(saved.age), saved.sex, Number(saved.h), Number(saved.w)) : null)), [tried, setTried] = useState(false);
+  const setRes = (r: ReturnType<typeof miniResults> | null) => { setRes0(r); if (!r) saveMini(null); };
   const err = miniError(age, h, w, sex);
   // 값을 고치면 결과를 지우고 다시 누르게 한다 (입력할 때마다 숫자가 바뀌지 않게)
   const edit = (set: (s: string) => void) => (s: string) => { set(s.replace(/[^0-9.]/g, '')); setRes(null); };
-  const show = () => { setTried(true); if (!err && sex) setRes(miniResults(Number(age), sex, Number(h), Number(w))); };
+  const show = () => {
+    setTried(true); if (err || !sex) return;
+    const r = miniResults(Number(age), sex, Number(h), Number(w));
+    setRes(r); saveMini({ tone: miniHeadline(r.rows).tone as 0 | 1 | 2, age, sex, h, w });
+  };
   const go = () => { setDraft((d) => ({ ...d, age, sex, height: h, weight: w })); location.hash = '#/info'; };
   const field = (label: string, v: string, set: (s: string) => void, unit: string, ph: string) => (
     <label style={{ display: 'flex', flexDirection: 'column', gap: 4, flex: 1, minWidth: 0 }}>
@@ -120,7 +139,7 @@ export function MiniTrial() {
             ))}
             {/* 버튼도 결론 단계를 따른다: 위험 = 빨강(빠른 맥박·화살표), 조심 = 빨강 테두리, 괜찮음 = 라임(느린 빛) */}
             <button type="button" className={`btn mini-go mini-go-${hd.tone}`} onClick={go} style={{ width: '100%', marginTop: 6, fontSize: 16, height: 'auto', minHeight: 54, padding: '12px 20px', lineHeight: 1.35, textAlign: 'center' }}>
-              {hd.tone === 2 ? '1분 더 입력하고 정확한 위험 확인하기' : hd.tone === 1 ? '1분 더 입력하고 더 정확한 결과 보기' : '1분 더 입력하고 내 건강 습관 확인하기'} <span className="mini-arrow" aria-hidden>→</span>
+              {MINI_CTA[hd.tone as 0 | 1 | 2].main} <span className="mini-arrow" aria-hidden>→</span>
             </button>
             <span style={{ fontSize: 12, textAlign: 'center', color: 'var(--slate)' }}>허리·혈압·흡연·가족력 등 약 10문항 · 서버 저장 없음</span>
             <details style={{ fontSize: 12, color: 'var(--slate)' }}>
