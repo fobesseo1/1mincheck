@@ -93,7 +93,7 @@ export function Results() {
     if (saveRecords(next)) { setRecords(next); toast('이 기기에 기록을 저장했어요'); } else toast('이 브라우저에서는 저장할 수 없어요');
   };
   const share = async () => {
-    const text = '1분체크 · 1분이면 보는 내 몸의 확률 — 또래와 비교해 보세요.';
+    const text = '간단한 내 몸 정보로 1분 만에 건강을 가늠해 봤어요.';
     try { if (navigator.share) await navigator.share({ title: '1분체크', text, url: location.href.split('#')[0] }); else { await navigator.clipboard.writeText(location.href.split('#')[0]); toast('앱 주소를 복사했어요'); } } catch { /* 취소 */ }
   };
   const missingMods = [...new Set([...r.prob, ...r.score].filter((x) => x.status === 'needs_input').map((x) => MODULE_OF[x.id as ItemId]).filter(Boolean))] as (keyof typeof MOD_ROUTE)[];

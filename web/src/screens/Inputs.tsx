@@ -29,7 +29,7 @@ export function Start() {
         <span style={{ width: 22, height: 22, borderRadius: 7, background: 'var(--ink)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><i style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--lime)' }} /></span>
         <b style={{ fontSize: 17, fontWeight: 800, letterSpacing: '-0.03em', color: 'var(--ink)' }}>1분체크</b>
       </a>
-      <h1 className="h1" style={{ fontSize: 36, margin: 0 }}>1분이면 보는<b>내 몸의 확률</b></h1>
+      <h1 className="h1" style={{ fontSize: 36, margin: 0 }}>지금 내 건강,<b>괜찮을까요?</b></h1>
       <div className="grow" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <div className="card" style={{ width: 300, padding: '26px 24px 22px', borderRadius: 32, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(10, 14px)', gap: 8 }} aria-hidden="true">{dots.map((on, k) => <i key={k} style={{ width: 14, height: 14, borderRadius: '50%', background: on ? 'var(--ink)' : '#e3e6e0' }} />)}</div>
