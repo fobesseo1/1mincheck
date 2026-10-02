@@ -118,7 +118,10 @@ export function MiniTrial() {
                 </div>
               </div>
             ))}
-            <button type="button" className="btn lime mini-go" onClick={go} style={{ border: 0, width: '100%', marginTop: 6, fontSize: 17 }}>1분 더 하고 내 진짜 결과 보기 →</button>
+            {/* 버튼도 결론 단계를 따른다: 위험 = 빨강(빠른 맥박·화살표), 조심 = 빨강 테두리, 괜찮음 = 라임(느린 빛) */}
+            <button type="button" className={`btn mini-go mini-go-${hd.tone}`} onClick={go} style={{ width: '100%', marginTop: 6, fontSize: 16, height: 'auto', minHeight: 54, padding: '12px 20px', lineHeight: 1.35, textAlign: 'center' }}>
+              {hd.tone === 2 ? '1분 더 입력하고 정확한 위험 확인하기' : hd.tone === 1 ? '1분 더 입력하고 더 정확한 결과 보기' : '1분 더 입력하고 내 건강 습관 확인하기'} <span className="mini-arrow" aria-hidden>→</span>
+            </button>
             <span style={{ fontSize: 12, textAlign: 'center', color: 'var(--slate)' }}>허리·혈압·흡연·가족력 등 약 10문항 · 서버 저장 없음</span>
             <details style={{ fontSize: 12, color: 'var(--slate)' }}>
               <summary style={{ cursor: 'pointer', fontWeight: 700 }}>어떻게 계산했나요?</summary>

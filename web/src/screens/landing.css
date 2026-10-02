@@ -58,6 +58,15 @@
 @keyframes miniOn { from { fill: #d9ddd5; transform: scale(.7); } to { fill: var(--c); transform: scale(1); } }
 .ld .mini-res { animation: miniIn .35s ease-out; }
 @keyframes miniIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
-.ld .mini-go { animation: miniPulse 1.8s ease-in-out 1s infinite; }
-@keyframes miniPulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(159, 232, 112, .7); } 50% { box-shadow: 0 0 0 10px rgba(159, 232, 112, 0); } }
-@media (prefers-reduced-motion: reduce) { .ld .mini-go, .ld .mini-res, .ld .mini-res svg.mini-on { animation: none; } .ld .mini-res svg.mini-on { fill: var(--c); } }
+/* 다음 단계 버튼: 결론 단계와 같은 색·속도 */
+.ld .mini-go { border: 0; }
+.ld .mini-go-2 { background: #cb272f; color: #fff; animation: pulseRed 1.2s ease-out 1s infinite; }
+.ld .mini-go-1 { background: #fff; color: #cb272f; box-shadow: inset 0 0 0 2px #cb272f; animation: pulseSoft 1.8s ease-out 1s infinite; }
+.ld .mini-go-0 { background: var(--lime); color: var(--ink); animation: pulseLime 2.4s ease-in-out 1s infinite; }
+@keyframes pulseRed { 0% { box-shadow: 0 0 0 0 rgba(203, 39, 47, .55); } 100% { box-shadow: 0 0 0 14px rgba(203, 39, 47, 0); } }
+@keyframes pulseSoft { 0% { box-shadow: inset 0 0 0 2px #cb272f, 0 0 0 0 rgba(203, 39, 47, .3); } 100% { box-shadow: inset 0 0 0 2px #cb272f, 0 0 0 10px rgba(203, 39, 47, 0); } }
+@keyframes pulseLime { 0%, 100% { box-shadow: 0 0 0 0 rgba(159, 232, 112, .6); } 50% { box-shadow: 0 0 0 10px rgba(159, 232, 112, 0); } }
+.ld .mini-arrow { display: inline-block; }
+.ld .mini-go-2 .mini-arrow { animation: nudge 1.2s ease-in-out 1s infinite; }
+@keyframes nudge { 0%, 100% { transform: none; } 50% { transform: translateX(4px); } }
+@media (prefers-reduced-motion: reduce) { .ld .mini-go, .ld .mini-arrow, .ld .mini-res, .ld .mini-res svg.mini-on { animation: none !important; } .ld .mini-res svg.mini-on { fill: var(--c); } }
