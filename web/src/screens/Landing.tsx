@@ -19,7 +19,8 @@ function StartBtn({ kind, base, label, style }: { kind: 'nav' | 'main' | 'text' 
   const m = useMini(), { setDraft } = useStore();
   const toned = m?.tone != null;
   const set = !m ? null : toned ? MINI_CTA[m.tone!] : MINI_CTA.partial;
-  const text = set ? set[kind === 'nav' || kind === 'link' ? 'nav' : 'main'] : label;
+  // 기능 소개의 작은 버튼(gbtn)은 짧게 '이어서 체크하기'
+  const text = !set ? label : base.includes('gbtn') ? MINI_CTA.partial.main : set[kind === 'nav' || kind === 'link' ? 'nav' : 'main'];
   const cls = toned && (kind === 'nav' || kind === 'main') ? `${base.replace(/\b(lime|dark)\b/, '')} tone-${m!.tone}` : base;
   // 미니에 한 칸이라도 넣었으면 시작·소개 화면을 건너뛰고 넣은 값을 채운 채 기본정보로
   const go = (e: React.MouseEvent) => { if (!m) return; e.preventDefault(); setDraft((d) => ({ ...d, ...miniDraft(m) })); location.hash = '#/info'; };
@@ -90,7 +91,7 @@ export function Landing() {
       <section id="features" className="wrap sec" style={{ display: 'flex', flexDirection: 'column', gap: 80 }}>
         <h2 style={{ textAlign: 'center' }}>주요 기능 살펴보기</h2>
         <div className="zig">
-          <div className="txt"><h3>퍼센트 대신, 100명 중 몇 명</h3><p>‘{D.r.value?.toFixed(1)}%’보다 ‘100명 중 약 {D.n}명’이 더 잘 와닿아요. 사람 아이콘 100개 위에 내 몫과, 관리하면 빠지는 몫을 함께 그려요.</p><a className="gbtn" href="#/start">내 결과 보기</a></div>
+          <div className="txt"><h3>퍼센트 대신, 100명 중 몇 명</h3><p>‘{D.r.value?.toFixed(1)}%’보다 ‘100명 중 약 {D.n}명’이 더 잘 와닿아요. 사람 아이콘 100개 위에 내 몫과, 관리하면 빠지는 몫을 함께 그려요.</p><StartBtn kind="text" base="gbtn" label="내 결과 보기" /></div>
           <div className="vis" style={{ background: 'var(--linen)' }}><Card style={{ width: '100%', maxWidth: 420, padding: 28, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
             <span style={{ fontSize: 14, fontWeight: 600 }}>나와 같은 조건인 사람 100명 중</span><b style={{ fontSize: 84, lineHeight: 0.95, fontWeight: 900, letterSpacing: '-0.06em', color: 'var(--obsidian)' }}>{D.n}<small style={{ fontSize: 22 }}>명</small></b><People cells={D.people} />
           </Card></div>
@@ -109,7 +110,7 @@ export function Landing() {
           <div className="txt"><h3>같은 나이·성별과 나란히</h3><p>연령대별 한국인 유병률 위에 내 값을 찍어 보여드려요. 낮음·비슷·높음을 한눈에 보고, 비교값의 뜻이 다를 땐 그 차이도 함께 적어둬요.</p><a className="gbtn" href="#evidence">통계 출처 보기</a></div>
         </div>
         <div className="zig">
-          <div className="txt"><h3>빨간 경고 대신, 줄어드는 만큼</h3><p>체중·허리·흡연·음주·운동을 바꾸면 영향을 받는 항목이 바로 다시 계산돼요. 겁주지 않고, 무엇을 하면 얼마나 좋아지는지를 차분하게 보여드려요.</p><a className="gbtn" href="#/start">바꿔보기 체험하기</a></div>
+          <div className="txt"><h3>빨간 경고 대신, 줄어드는 만큼</h3><p>체중·허리·흡연·음주·운동을 바꾸면 영향을 받는 항목이 바로 다시 계산돼요. 겁주지 않고, 무엇을 하면 얼마나 좋아지는지를 차분하게 보여드려요.</p><StartBtn kind="text" base="gbtn" label="바꿔보기 체험하기" /></div>
           <div className="vis" style={{ background: 'var(--ink)' }}><Card style={{ width: '100%', maxWidth: 420, padding: 24, display: 'flex', flexDirection: 'column', gap: 8 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: 6 }}><b style={{ color: 'var(--obsidian)' }}>{R.scenarioText}</b><span className="tag" style={{ background: 'var(--lime)', color: 'var(--ink)' }}>{W.down}개 항목 ↓</span></div>
             {WI.map((w) => <div key={w.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', height: 52, padding: '0 16px', borderRadius: 14, background: 'var(--bg)' }}><b style={{ color: 'var(--obsidian)' }}>{w.name}</b><span style={{ color: 'var(--slate)' }}>{w.b} → <b style={{ fontSize: 18, color: 'var(--obsidian)' }}>{w.a}</b></span></div>)}
