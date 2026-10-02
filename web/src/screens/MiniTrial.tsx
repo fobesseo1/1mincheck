@@ -33,7 +33,9 @@ export function miniResults(age: number, sex: 'M' | 'F', heightCm: number, weigh
     bmi: Math.round(bmi * 10) / 10, group, bmiLabel: BMI_LABEL[bi],
     rows: ITEMS.map((it) => {
       const c = row[it.id][bi];
-      return { ...it, pct: c ? c.pct : null, scope: c?.scope ?? '', text: c == null ? '–' : c.pct < 1 ? '1% 미만' : `약 ${Math.round(c.pct)}%` };
+      const all = (row as unknown as Record<string, Cell>)[it.id + '_all'];
+      const fmt = (v: number) => (v < 1 ? '1% 미만' : `${Math.round(v)}%`);
+      return { ...it, pct: c ? c.pct : null, scope: c?.scope ?? '', text: c == null ? '–' : fmt(c.pct), approx: !!c && c.pct >= 1, avg: all ? `${group} 평균 ${fmt(all.pct)}` : '' };
     }),
   };
 }
@@ -79,7 +81,10 @@ export function MiniTrial() {
                 <b style={{ fontSize: 15, color: 'var(--obsidian)' }}>{p.name}</b>
                 <span style={{ fontSize: 12, color: 'var(--slate)' }}>{p.who}</span>
               </div>
-              <b style={{ flexShrink: 0, fontSize: 22, fontWeight: 900, letterSpacing: '-0.04em', color: 'var(--ink)' }}>{p.text}</b>
+              <span style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 2 }}>
+                <b style={{ fontSize: 24, fontWeight: 900, letterSpacing: '-0.04em', color: 'var(--ink)', whiteSpace: 'nowrap' }}>{p.approx && <small style={{ fontSize: 12, fontWeight: 700, marginRight: 3, color: 'var(--slate)' }}>약</small>}{p.text}</b>
+                {p.avg && <span style={{ fontSize: 11, color: 'var(--slate)', whiteSpace: 'nowrap' }}>{p.avg}</span>}
+              </span>
             </div>
           ))}
           <p className="help" style={{ margin: 0, fontSize: 12, lineHeight: 1.5 }}>국민건강영양조사(2022–2024) 원시자료에서 나와 성별·나이대·BMI가 같은 사람들의 값이에요. 당뇨·고혈압은 실제 검사 결과 비율, 지방간은 점수표 평균이에요. 나에게 맞춘 값이 아니고 진단도 아니에요. 허리·혈압·흡연·가족력을 넣으면 나에게 맞게 계산해요.</p>
