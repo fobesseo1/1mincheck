@@ -52,6 +52,8 @@ const FAQ = [
   ['앱을 설치해야 하나요?', '설치 없이 웹에서 바로 이용할 수 있어요. 휴대폰 홈 화면에 추가하면 다음에 더 편하게 열 수 있어요.'],
 ];
 
+/** 1032px 이하에서만 보이는 섹션 구분선 */
+const Sep = () => <div className="wrap sep-wrap" aria-hidden><hr className="sep" /></div>;
 const Card = ({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) => <div className="card" style={{ borderRadius: 24, boxShadow: '0 6px 20px rgba(0,0,0,.06)', ...style }}>{children}</div>;
 
 export function Landing() {
@@ -111,6 +113,7 @@ export function Landing() {
             <span className="cap" style={{ alignSelf: 'flex-start' }}>예시</span><span style={{ fontSize: 14, fontWeight: 600 }}>나와 비슷한 조건의 사람 100명 중</span><b style={{ fontSize: 84, lineHeight: 0.95, fontWeight: 900, letterSpacing: '-0.06em', color: 'var(--obsidian)' }}>{D.n}<small style={{ fontSize: 22 }}>명</small></b><People cells={D.people} />
           </Card></div>
         </div>
+        <hr className="sep" aria-hidden />
         <div className="zig">
           <div className="vis" style={{ background: 'var(--bg)' }}><Card style={{ width: '100%', maxWidth: 420, padding: 24, display: 'flex', flexDirection: 'column', gap: 12 }}>
             <div style={{ display: 'flex', justifyContent: 'space-between' }}><b style={{ color: 'var(--obsidian)' }}>나이대별 비교</b><span className="cap">{D.group} · 당뇨가 있는 사람의 비율</span></div>
@@ -124,6 +127,7 @@ export function Landing() {
           </Card></div>
           <div className="txt"><h3>또래와 비교하면 어떨까요?</h3><p>같은 나이·성별의 사람들과 비교해, 내 추정 결과가 낮은 편인지 높은 편인지 보여드려요.</p><a className="gbtn" href="#evidence">통계 출처 보기</a></div>
         </div>
+        <hr className="sep" aria-hidden />
         <div className="zig">
           <div className="txt"><h3>생활습관을 바꾸면 어떻게 달라질까요?</h3><p>체중이나 생활습관을 바꿔 입력하고, 건강 추정 결과가 어떻게 달라지는지 비교해 보세요.</p><StartBtn kind="text" base="gbtn" label="내 결과에서 바꿔보기" to="#/whatif" /></div>
           <div className="vis" style={{ background: 'var(--ink)' }}><Card style={{ width: '100%', maxWidth: 420, padding: 24, display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -131,6 +135,7 @@ export function Landing() {
             {WI.map((w) => <div key={w.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', height: 52, padding: '0 16px', borderRadius: 14, background: 'var(--bg)' }}><b style={{ color: 'var(--obsidian)' }}>{w.name}</b><span style={{ color: 'var(--slate)' }}>{w.b} → <b style={{ fontSize: 18, color: 'var(--obsidian)' }}>{w.a}</b></span></div>)}
           </Card></div>
         </div>
+        {REC && <hr className="sep" aria-hidden />}
         {REC && <div className="zig">
           <div className="vis" style={{ background: '#e3edf3' }}><Card style={{ width: '100%', maxWidth: 420, padding: '8px 24px' }}>
             <span className="cap" style={{ display: 'block', padding: '12px 0 4px' }}>아래는 생활습관을 바꿔 입력한 예시예요.</span>
@@ -140,7 +145,8 @@ export function Landing() {
         </div>}
       </section>
 
-      <section id="items" className="wrap"><div className="band">
+      <Sep />
+      <section id="items" className="wrap blk"><div className="band">
         <h2 style={{ color: '#fff' }}>기본 건강부터 <span style={{ color: 'var(--lime)' }}>수면·마음까지</span></h2>
         <p style={{ margin: '12px auto 0', maxWidth: 560, fontSize: 16, color: 'rgba(255,255,255,.82)' }}>기본 정보로 건강을 가늠하고, 궁금한 분야는 추가 질문으로 살펴보세요.</p>
         <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: 10, maxWidth: 980, margin: '28px auto' }}>
@@ -149,6 +155,7 @@ export function Landing() {
         <StartBtn kind="text" base="btn" label="1분 건강 체크하기" style={{ background: '#fff', color: 'var(--ink)' }} />
       </div></section>
 
+      <Sep />
       <section id="evidence" className="wrap sec"><div className="ev">
         <div style={{ padding: 28, borderRadius: 20, border: '1px solid var(--line2)', display: 'flex', flexDirection: 'column', gap: 10, justifyContent: 'center' }}>
           <span className="cap">통계와 연구</span><b style={{ fontSize: 26, lineHeight: 1.25, color: 'var(--obsidian)' }}>간단한 체크에도,<br />근거는 꼼꼼하게</b><span style={{ fontSize: 14 }}>국가 건강통계와 연구를 바탕으로 계산해요. 항목별 출처와 계산 방법도 확인할 수 있어요.</span>
@@ -157,12 +164,14 @@ export function Landing() {
           <span className="pill" style={{ alignSelf: 'flex-start', background: 'var(--linen)', color: 'var(--ink)' }}>{k}</span><b style={{ fontSize: 18, color: 'var(--obsidian)' }}>{t}</b><span style={{ fontSize: 12, lineHeight: 1.5, color: 'var(--slate)' }}>{d}</span><span style={{ marginTop: 'auto', fontSize: 13, fontWeight: 700 }}>원문 보기 →</span></a>)}
       </div></section>
 
-      <section className="wrap"><div className="panel" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 36, background: 'var(--linen)' }}>
+      <Sep />
+      <section className="wrap blk"><div className="panel" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 36, background: 'var(--linen)' }}>
         {[['입력한 정보는 내 기기 안에서', '입력한 건강정보는 서버나 방문 분석 도구로 보내지 않아요.'], ['결과 저장은 원할 때만', '‘기록 저장’을 누르면 이 기기에 결과를 보관할 수 있고, 언제든 삭제할 수 있어요.'], ['건강을 가늠하는 참고 정보예요', '추정 결과는 실제 건강 상태와 다를 수 있어요. 질환 여부는 검사와 진료로 확인해 주세요.']].map(([t, d]) => (
           <div key={t} style={{ display: 'flex', flexDirection: 'column', gap: 10 }}><b style={{ fontSize: 21, color: 'var(--obsidian)' }}>{t}</b><span style={{ fontSize: 16, lineHeight: 1.6 }}>{d}</span></div>
         ))}
       </div></section>
 
+      <Sep />
       <section id="faq" className="wrap sec"><div className="faq">
         <h2>자주 묻는 질문</h2>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -172,7 +181,8 @@ export function Landing() {
         </div>
       </div></section>
 
-      <section className="wrap"><div className="band" style={{ backgroundColor: 'var(--lime)', backgroundImage: 'radial-gradient(rgba(22,51,0,.12) 1.5px, transparent 1.5px)' }}>
+      <Sep />
+      <section className="wrap blk"><div className="band" style={{ backgroundColor: 'var(--lime)', backgroundImage: 'radial-gradient(rgba(22,51,0,.12) 1.5px, transparent 1.5px)' }}>
         <h2 style={{ fontSize: 'clamp(38px, 5vw, 56px)', fontWeight: 900, color: 'var(--ink)' }}>지금 내 건강, 1분만 살펴보세요</h2>
         <p style={{ fontSize: 18, color: 'var(--ink)' }}>간단한 내 몸 정보로 시작해 보세요.</p>
         <StartBtn kind="main" base="btn dark" label="1분 건강 체크하기" />
