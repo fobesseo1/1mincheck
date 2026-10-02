@@ -1,4 +1,4 @@
-import { useState, type CSSProperties } from 'react';
+import { useEffect, useState, type CSSProperties } from 'react';
 import MINI from '../../../engine/src/mini_rates.json';
 import { useStore } from '../ui.tsx';
 import { riskView, fracOf, SEV_COLOR } from '../lib/risk.ts';
@@ -45,12 +45,16 @@ export function miniResults(age: number, sex: 'M' | 'F', heightCm: number, weigh
 
 // 미니 결과는 탭을 닫기 전까지만 이 기기 세션에 둔다(서버 전송 없음). 랜딩의 다른 '체크 시작' 버튼들이 같은 색·문구를 쓴다.
 export const MINI_KEY = '1mincheck.mini';
-export type MiniSaved = { tone: 0 | 1 | 2; age: string; sex: 'M' | 'F'; h: string; w: string };
+/** 한 칸이라도 넣으면 저장(일부 입력). 결과까지 봤으면 tone·title 이 있다 */
+export type MiniSaved = { tone?: 0 | 1 | 2; title?: string; age: string; sex: 'M' | 'F' | null; h: string; w: string };
 export function loadMini(): MiniSaved | null { try { const s = sessionStorage.getItem(MINI_KEY); return s ? JSON.parse(s) : null; } catch { return null; } }
 function saveMini(v: MiniSaved | null) { try { if (v) sessionStorage.setItem(MINI_KEY, JSON.stringify(v)); else sessionStorage.removeItem(MINI_KEY); } catch { /* 저장소 없음 */ } window.dispatchEvent(new Event('mini-change')); }
 /** 단계별 버튼 문구: nav = 상단 메뉴, main = 첫 화면·아래 띠 */
+/** 미니에서 넣은 값(빈 칸 제외)을 기본정보 초안에 채운다 */
+export const miniDraft = (m: MiniSaved) => ({ ...(m.age ? { age: m.age } : {}), ...(m.sex ? { sex: m.sex } : {}), ...(m.h ? { height: m.h } : {}), ...(m.w ? { weight: m.w } : {}) });
 export const MINI_CTA = {
   none: { nav: '지금 체크하기', main: '1분 체크 시작하기' },
+  partial: { nav: '이어서 체크하기', main: '이어서 체크하기' },
   2: { nav: '내 위험 확인하기', main: '1분 더 입력하고 정확한 위험 확인하기' },
   1: { nav: '더 정확히 보기', main: '1분 더 입력하고 더 정확한 결과 보기' },
   0: { nav: '습관 확인하기', main: '1분 더 입력하고 내 건강 습관 확인하기' },
@@ -82,15 +86,18 @@ export function MiniTrial() {
   const { setDraft } = useStore();
   const saved = loadMini();   // 새로고침해도 탭을 닫기 전까지는 결과를 다시 보여준다
   const [age, setAge] = useState(saved?.age ?? ''), [sex, setSex] = useState<'M' | 'F' | null>(saved?.sex ?? null), [h, setH] = useState(saved?.h ?? ''), [w, setW] = useState(saved?.w ?? '');
-  const [res, setRes0] = useState<ReturnType<typeof miniResults> | null>(() => (saved ? miniResults(Number(saved.age), saved.sex, Number(saved.h), Number(saved.w)) : null)), [tried, setTried] = useState(false);
-  const setRes = (r: ReturnType<typeof miniResults> | null) => { setRes0(r); if (!r) saveMini(null); };
+  const [res, setRes] = useState<ReturnType<typeof miniResults> | null>(() => (saved?.tone != null && saved.sex ? miniResults(Number(saved.age), saved.sex, Number(saved.h), Number(saved.w)) : null)), [tried, setTried] = useState(false);
+  // 한 칸이라도 넣으면 이 탭 세션에 저장 → 랜딩의 다른 버튼이 '이어서'로 바뀌고 값을 가지고 간다
+  useEffect(() => {
+    const hd = res ? miniHeadline(res.rows) : null;
+    saveMini(age || sex || h || w ? { tone: hd ? (hd.tone as 0 | 1 | 2) : undefined, title: hd?.title, age, sex, h, w } : null);
+  }, [age, sex, h, w, res]);
   const err = miniError(age, h, w, sex);
   // 값을 고치면 결과를 지우고 다시 누르게 한다 (입력할 때마다 숫자가 바뀌지 않게)
   const edit = (set: (s: string) => void) => (s: string) => { set(s.replace(/[^0-9.]/g, '')); setRes(null); };
   const show = () => {
     setTried(true); if (err || !sex) return;
-    const r = miniResults(Number(age), sex, Number(h), Number(w));
-    setRes(r); saveMini({ tone: miniHeadline(r.rows).tone as 0 | 1 | 2, age, sex, h, w });
+    setRes(miniResults(Number(age), sex, Number(h), Number(w)));
   };
   const go = () => { setDraft((d) => ({ ...d, age, sex, height: h, weight: w })); location.hash = '#/info'; };
   const field = (label: string, v: string, set: (s: string) => void, unit: string, ph: string) => (

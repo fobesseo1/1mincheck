@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { LABS, parseLab, bpOf } from '../lib/labs.ts';
 import type { LabKey } from '../../../engine/src/extras.ts';
 import { LabField } from './Checkup.tsx';
+import { loadMini } from './MiniTrial.tsx';
 import { type Draft, type DrinkKey, basicError, lifeError, sleepError, mindError, gerdError, dietError, menoShown, phq2Sum, emptyDraft, ALC_FREQ, DRINKS, ALC_LABEL, alcCalc } from '../state.ts';
 
 // ── 흐름: 기본정보 → 생활 → 관심 분야 → (고른 모듈만) → 결과 ──
@@ -76,8 +77,31 @@ function NumField({ label, unit, value, onChange, big, id }: { label: string; un
     </label>
   );
 }
+/** 미니 체험에서 이어 온 경우 맨 위 안내: 미니에서 본 결론 색 그대로 이어서 */
+function MiniBridge() {
+  const m = loadMini();
+  if (!m) return null;
+  const t = m.tone;
+  const st = t === 2 ? { background: '#cb272f', color: '#fff' } : t === 1 ? { background: '#fdecea', color: '#cb272f' } : t === 0 ? { background: 'var(--lime)', color: 'var(--ink)' } : { background: 'var(--linen)', color: 'var(--ink)' };
+  const title = t != null ? `체형만 봤을 때: ${m.title}` : '미니 체험에서 넣은 값을 가져왔어요';
+  const sub = t === 0 ? '허리·습관까지 넣으면 더 정확해요. 넣은 값은 채워 뒀어요.' : t != null ? '허리·혈압·습관을 넣으면 내 위험이 정확해져요. 넣은 값은 채워 뒀어요.' : '나머지만 채우면 돼요.';
+  return (
+    <div role="note" style={{ ...st, padding: '12px 14px', borderRadius: 14, display: 'flex', flexDirection: 'column', gap: 2 }}>
+      <b style={{ fontSize: 15, lineHeight: 1.4 }}>{title}</b>
+      <span style={{ fontSize: 13, lineHeight: 1.5, color: t === 1 ? 'var(--charcoal)' : undefined, opacity: t === 2 ? 0.92 : 1 }}>{sub}</span>
+    </div>
+  );
+}
+
 export function Info() {
   const { draft: d, setDraft } = useStore();
+  // 미니에서 이어 왔으면 처음 비어 있는 칸으로 바로 (보통 허리둘레)
+  useEffect(() => {
+    if (!loadMini()) return;
+    const first = [['age', d.age], ['h', d.height], ['w', d.weight], ['wa', d.waist]].find(([, v]) => !v)?.[0];
+    const el = first ? (document.getElementById(first) as HTMLInputElement | null) : null;
+    if (el) { el.focus({ preventScroll: true }); el.scrollIntoView({ block: 'center', behavior: 'smooth' }); }
+  }, []);   // eslint-disable-line react-hooks/exhaustive-deps
   const set = (p: Partial<Draft>) => setDraft((x) => ({ ...x, ...p }));
   const err = basicError(d);
   const h = Number(d.height), w = Number(d.weight), bmi = h >= 120 && w >= 30 ? w / (h / 100) ** 2 : null;
@@ -85,6 +109,7 @@ export function Info() {
   return (
     <div className="page fade">
       <Head s="info" title="기본정보" />
+      <MiniBridge />
       <H1 a="몸에 대한 숫자부터" b="알려주세요" />
       <Choice q="성별" value={d.sex} onChange={(v) => set({ sex: v })} options={[{ v: 'M' as const, t: '남성' }, { v: 'F' as const, t: '여성' }]} />
       <div className="grid2">

@@ -3,7 +3,7 @@ import type React from 'react';
 import { samples, defaultSampleId } from '../../../src/sampleData.ts';
 import { viewResults, viewDetail, viewRecord, whatIfRows, applyScenario } from '../lib/view.ts';
 import { People, Icon } from '../ui.tsx';
-import { MiniTrial, loadMini, MINI_CTA } from './MiniTrial.tsx';
+import { MiniTrial, loadMini, miniDraft, MINI_CTA } from './MiniTrial.tsx';
 import { useEffect, useState } from 'react';
 import { useStore } from '../ui.tsx';
 
@@ -15,12 +15,15 @@ function useMini() {
 }
 /** '체크 시작' 버튼. 미니 결과가 있으면 그 단계의 색·문구로, 누르면 미니에 넣은 4개 값을 가지고 이어서.
  *  kind: nav(상단)·main(첫 화면·아래 띠)은 색까지, text(중간 섹션)는 문구만 바꾼다(빨강이 여러 개면 무뎌지므로). */
-function StartBtn({ kind, base, label, style }: { kind: 'nav' | 'main' | 'text'; base: string; label: string; style?: React.CSSProperties }) {
+function StartBtn({ kind, base, label, style }: { kind: 'nav' | 'main' | 'text' | 'link'; base: string; label: string; style?: React.CSSProperties }) {
   const m = useMini(), { setDraft } = useStore();
-  const text = m ? MINI_CTA[m.tone][kind === 'nav' ? 'nav' : 'main'] : label;
-  const cls = m && kind !== 'text' ? `${base.replace(/\b(lime|dark)\b/, '')} tone-${m.tone}` : base;
-  const go = (e: React.MouseEvent) => { if (!m) return; e.preventDefault(); setDraft((d) => ({ ...d, age: m.age, sex: m.sex, height: m.h, weight: m.w })); location.hash = '#/info'; };
-  return <a className={cls} href="#/start" onClick={go} style={m && kind !== 'text' ? undefined : style}>{text}</a>;
+  const toned = m?.tone != null;
+  const set = !m ? null : toned ? MINI_CTA[m.tone!] : MINI_CTA.partial;
+  const text = set ? set[kind === 'nav' || kind === 'link' ? 'nav' : 'main'] : label;
+  const cls = toned && (kind === 'nav' || kind === 'main') ? `${base.replace(/\b(lime|dark)\b/, '')} tone-${m!.tone}` : base;
+  // 미니에 한 칸이라도 넣었으면 시작·소개 화면을 건너뛰고 넣은 값을 채운 채 기본정보로
+  const go = (e: React.MouseEvent) => { if (!m) return; e.preventDefault(); setDraft((d) => ({ ...d, ...miniDraft(m) })); location.hash = '#/info'; };
+  return <a className={cls || undefined} href="#/start" onClick={go} style={toned && kind !== 'text' && kind !== 'link' ? undefined : style}>{text}</a>;
 }
 
 // 랜딩의 예시 숫자: src/sampleData.ts 기본 예시를 engine 으로 계산
@@ -160,7 +163,7 @@ export function Landing() {
       <footer><div className="wrap">
         <div className="fcols">
           <div><a className="logo" href="#/"><i /><b>1분체크</b></a><p style={{ fontSize: 14, fontWeight: 600, color: 'var(--obsidian)' }}>1분이면 보는 내 몸의 확률</p></div>
-          <div><span className="cap">서비스</span><a href="#/start">체크 시작</a><a href="#/record">기록 비교</a><a href="#items">12가지 항목</a></div>
+          <div><span className="cap">서비스</span><StartBtn kind="link" base="" label="체크 시작" /><a href="#/record">기록 비교</a><a href="#items">12가지 항목</a></div>
           <div><span className="cap">근거</span><a href="#evidence">통계·논문</a><a href="#faq">자주 묻는 질문</a></div>
           <div><span className="cap">도움</span><a href="tel:109">자살예방상담 109</a><a href="https://www.kdca.go.kr" target="_blank" rel="noreferrer">질병관리청</a></div>
         </div>
