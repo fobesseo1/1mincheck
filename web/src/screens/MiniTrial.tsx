@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import MINI from '../../../engine/src/mini_rates.json';
 import { useStore } from '../ui.tsx';
+import { riskView, SEV_COLOR } from '../lib/risk.ts';
 
 // 랜딩 미니 체험: 성별·나이·키·몸무게만 받아 '결과 보기'를 누르면 보여준다.
 // 모르는 답을 '없음'으로 가정하지 않고, 같은 성별·나이대·BMI 구간 사람들의 실제 비율(국민건강영양조사 2022–2024, 진단받은 사람 포함)을 쓴다.
-// 크게는 '또래(같은 성별·나이대 전체)의 몇 배', 작게는 100명 중 몇 명.
+// 크게는 '4명 중 1명'(절대)과 '또래의 몇 배' 중 더 경고가 되는 쪽, 작게는 나머지와 또래 평균.
 type Cell = { pct: number; n: number; scope: string } | null;
 const AGES = [19, 30, 40, 50, 60, 70];
 const AGE_LABEL = ['20대', '30대', '40대', '50대', '60대', '70세 이상'];
@@ -35,12 +36,9 @@ export function miniResults(age: number, sex: 'M' | 'F', heightCm: number, weigh
     rows: ITEMS.map((it) => {
       const c = row[it.id][bi];
       const all = (row as unknown as Record<string, Cell>)[it.id + '_all'];
-      const n = (v: number) => (v < 1 ? '1명 미만' : `약 ${Math.round(v)}명`);
-      const x = c && all && all.pct > 0 ? c.pct / all.pct : null;
-      // 결과 화면과 같은 구분: 0.8 미만 낮음, 1.25 미만 비슷, 2 미만 높음, 2 이상 매우 높음
-      const level = x == null ? 'na' : x < 0.8 ? 'low' : x < 1.25 ? 'same' : x < 2 ? 'high' : 'very';
-      const big = x == null ? '–' : level === 'low' ? '또래보다 낮아요' : level === 'same' ? '또래와 비슷해요' : `또래의 ${(Math.round(x * 10) / 10).toFixed(1)}배`;
-      return { ...it, pct: c ? c.pct : null, scope: c?.scope ?? '', level, big, small: c && all ? `100명 중 ${n(c.pct)} · ${group} 평균 ${n(all.pct)}` : '' };
+      // 절대 비율과 또래 비교 중 더 경고가 되는 쪽을 크게 (lib/risk.ts)
+      const v = c && all ? riskView(c.pct, all.pct, group) : null;
+      return { ...it, pct: c ? c.pct : null, scope: c?.scope ?? '', sev: v?.sev ?? 0, big: v?.main ?? '–', small: v?.sub ?? '' };
     }),
   };
 }
@@ -79,7 +77,7 @@ export function MiniTrial() {
       {!res && tried && err && <div role="alert" style={{ fontSize: 14, textAlign: 'center', color: 'var(--look)', fontWeight: 600 }}>{err}</div>}
       {res && (
         <div role="status" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <span style={{ fontSize: 13, color: 'var(--charcoal)' }}><b style={{ color: 'var(--obsidian)' }}>{res.group} · {res.bmiLabel}</b> (내 BMI {res.bmi})인 사람들을 같은 {res.group} 전체와 비교했어요</span>
+          <span style={{ fontSize: 13, color: 'var(--charcoal)' }}><b style={{ color: 'var(--obsidian)' }}>{res.group} · {res.bmiLabel}</b> (내 BMI {res.bmi})인 사람들은</span>
           {res.rows.map((p) => (
             <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, padding: '12px 14px', borderRadius: 14, background: 'var(--bg)' }}>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>
@@ -87,7 +85,7 @@ export function MiniTrial() {
                 <span style={{ fontSize: 12, color: 'var(--slate)' }}>{p.who}</span>
               </div>
               <span style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 2 }}>
-                <b style={{ fontSize: p.level === 'high' || p.level === 'very' ? 22 : 15, fontWeight: 900, letterSpacing: '-0.03em', whiteSpace: 'nowrap', color: p.level === 'very' ? '#a8231a' : p.level === 'high' ? 'var(--look)' : 'var(--ink)' }}>{p.big}</b>
+                <b style={{ fontSize: p.sev ? 22 : 15, fontWeight: 900, letterSpacing: '-0.03em', whiteSpace: 'nowrap', color: SEV_COLOR[p.sev] }}>{p.big}</b>
                 {p.small && <span style={{ fontSize: 11, color: 'var(--slate)', whiteSpace: 'nowrap' }}>{p.small}</span>}
               </span>
             </div>

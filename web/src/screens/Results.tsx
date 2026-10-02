@@ -11,6 +11,7 @@ const RED = '#a8231a';
 import { labCount } from '../lib/labs.ts';
 import { MODULE_OF, DISCLAIMER, MEANING, type ItemId } from '../lib/content.ts';
 import { verdict, type Verdict } from '../lib/verdict.ts';
+import { riskView, SEV_COLOR } from '../lib/risk.ts';
 
 const f1 = (x: number) => (Math.round(x * 10) / 10).toFixed(1);
 
@@ -123,17 +124,17 @@ export function Results() {
             <b style={{ fontSize: 15, color: 'var(--obsidian)' }}>지금 이 상태일 가능성</b><span style={{ fontSize: 11, color: 'var(--slate)' }}>앞으로가 아니라 지금</span>
           </div>
           {r.prob.map((c) => {
-            // 숫자 %보다 '또래의 몇 배'를 크게: 22.5%는 낮아 보이지만 또래의 3배면 높은 것
-            const x = c.cmp?.x ?? 0, hi = !!c.cmp?.high, very = hi && x >= 2;
-            const big = c.cmp ? (hi ? `또래의 ${xfmt(x)}배` : c.cmp.label === '낮음' ? '또래보다 낮아요' : '또래와 비슷해요')
-              : c.status === 'managed' ? '관리 중' : c.status === 'criteria' ? '기준 이상' : c.status === 'excluded' ? '검사 필요' : c.pct !== '–' ? `${c.pct}%` : '';
-            const col = very || c.status === 'criteria' || c.status === 'excluded' ? RED : hi ? LOOK : c.status === 'managed' ? INK : 'var(--charcoal)';
-            const small = c.cmp ? `지금 ${c.pct}% · 또래 평균 ${c.peerTxt}%` : c.status === 'managed' ? '진단받아 관리 중' : c.status === 'criteria' ? '검진 수치가 기준 이상' : c.status === 'excluded' ? '술 때문에 점수로 판단하지 않음' : c.note.split('.')[0];
+            // 절대 비율('4명 중 1명')과 또래 비교('또래의 3.1배') 중 더 경고가 되는 쪽을 크게 (lib/risk.ts)
+            const rv = c.cmp ? riskView(c.cmp.me, c.cmp.peer, r.group) : null;
+            const big = rv ? rv.main : c.status === 'managed' ? '관리 중' : c.status === 'criteria' ? '기준 이상' : c.status === 'excluded' ? '검사 필요' : c.pct !== '–' ? `${c.pct}%` : '';
+            const strongOn = (rv?.sev ?? 0) > 0 || c.status === 'criteria';
+            const col = rv ? (rv.sev ? SEV_COLOR[rv.sev] : 'var(--charcoal)') : c.status === 'criteria' || c.status === 'excluded' ? RED : c.status === 'managed' ? INK : 'var(--charcoal)';
+            const small = rv ? `${rv.sub} · 지금 ${c.pct}%` : c.status === 'managed' ? '진단받아 관리 중' : c.status === 'criteria' ? '검진 수치가 기준 이상' : c.status === 'excluded' ? '술 때문에 점수로 판단하지 않음' : c.note.split('.')[0];
             return (
               <a key={c.id} href={`#/detail/${c.id}`} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, padding: '11px 0', borderTop: '1px solid var(--line)', textDecoration: 'none', color: 'inherit' }}>
                 <span style={{ minWidth: 0 }}><b style={{ fontSize: 15, color: 'var(--obsidian)' }}>{c.title}</b>
                   <span style={{ display: 'block', fontSize: 12, color: 'var(--slate)' }}>{small}</span></span>
-                <b style={{ flexShrink: 0, fontSize: hi || c.status === 'criteria' ? 20 : 14, fontWeight: hi ? 900 : 700, letterSpacing: '-0.03em', color: col, textAlign: 'right' }}>{big}</b>
+                <b style={{ flexShrink: 0, fontSize: strongOn ? 20 : 14, fontWeight: strongOn ? 900 : 700, letterSpacing: '-0.03em', color: col, textAlign: 'right', whiteSpace: 'nowrap' }}>{big}</b>
               </a>
             );
           })}

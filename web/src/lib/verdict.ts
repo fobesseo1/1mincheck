@@ -8,6 +8,7 @@ import type { AppInput } from '../state.ts';
 import type { Scenario } from './view.ts';
 import { viewResults, labOf, severeBp, xfmt } from './view.ts';
 import { SEVERE_HTN_SYMPTOM, ACTION, type ItemId } from './content.ts';
+import { oneIn } from './risk.ts';
 
 export type Tier = 1 | 2 | 5 | 3 | 4;
 export interface Verdict {
@@ -88,10 +89,12 @@ export function verdict(inp: AppInput, r: R, sc: Scenario): Verdict {
   const CMP_NAME: Partial<Record<ItemId, [string, string, string, string]>> = {
     dm: ['혈당', '당뇨', '혈당 검사(공복혈당·당화혈색소)를 받으세요', '혈당 검사'], htn: ['혈압', '고혈압', '혈압을 재고 내과 진료를 받으세요', '혈압 측정'],
     chol: ['콜레스테롤', '고콜레스테롤', '콜레스테롤 혈액검사를 받으세요', '콜레스테롤 검사'], nafld: ['간', '지방간', '간 수치 검사와 복부 초음파로 확인하세요', '간 수치·복부 초음파'], osteo: ['뼈', '골다공증', '골밀도 검사를 받으세요', '골밀도 검사'] };
-  r.prob.filter((p) => p.cmp && p.cmp.x >= 2 && CMP_NAME[p.id as ItemId]).sort((a, b) => b.cmp!.x - a.cmp!.x).forEach((p) => {
+  // 개인(5명 중 1명 이상)이든 집단(또래의 2배 이상)이든 더 경고가 되는 쪽으로: 당뇨·고혈압·콜레스테롤은 20% 이상이면 또래와 비슷해도 확인
+  const absHigh = (p: (typeof r.prob)[number]) => ['dm', 'htn', 'chol'].includes(p.id) && p.cmp!.me >= 20;
+  r.prob.filter((p) => p.cmp && (p.cmp.x >= 2 || absHigh(p)) && CMP_NAME[p.id as ItemId]).sort((a, b) => b.cmp!.x - a.cmp!.x).forEach((p) => {
     const [name, dis, t, short] = CMP_NAME[p.id as ItemId]!;
     if (cs.some((c) => c.name === name)) return;
-    cs.push({ name, why: `${dis} 가능성이 또래의 ${xfmt(p.cmp!.x)}배예요`, t, d: `지금 ${p.pct}% · 같은 또래 평균 ${p.peerTxt}%`, href: `#/detail/${p.id}`, short, body: true });
+    cs.push({ name, why: p.cmp!.x >= 2 ? `${dis} 가능성이 또래의 ${xfmt(p.cmp!.x)}배예요` : `${dis} 가능성이 ${oneIn(p.cmp!.me)}꼴이에요`, t, d: `지금 ${p.pct}% · 같은 또래 평균 ${p.peerTxt}%`, href: `#/detail/${p.id}`, short, body: true });
   });
   if (strong('dep')) cs.push({ name: '마음', why: '우울 점수가 상담을 권하는 수준이에요', t: '정신건강복지센터나 병원에서 상담을 받으세요', d: '많이 힘들면 109(24시간)로 전화하세요.', href: '#/detail/dep' });
   if (strong('gad')) cs.push({ name: '불안', why: '불안 점수가 확인이 필요한 수준이에요', t: '불안이 2주 넘게 이어지면 상담을 받으세요', href: '#/detail/gad' });

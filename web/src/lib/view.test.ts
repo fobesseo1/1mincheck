@@ -221,7 +221,9 @@ describe('랜딩 미니 체험', () => {
     expect(r.rows.map((p) => p.id)).toEqual(['dm', 'htn', 'nafld']);
     expect(r.bmiLabel).toBe('BMI 25–30');
     expect(r.rows[0].pct!).toBeGreaterThan(20);             // 진단받은 사람 포함: 50대 남성 전체(약 21%) 이상
-    expect(r.rows.find((p) => p.id === 'nafld')!.big).toMatch(/또래의 \d\.\d배/);   // 또래의 몇 배가 메인
+    // 절대·또래 중 더 경고가 되는 쪽이 메인: 당뇨 25%(또래 21%와 비슷) → '4명 중 1명', 서브에 '또래도 이만큼 많아요'
+    expect(r.rows[0].big).toBe('4명 중 1명'); expect(r.rows[0].small).toContain('또래도 이만큼 많아요');
+    expect(miniResults(35, 'M', 175, 110).rows[0].big).toMatch(/또래의 \d\.\d배/);   // 30대 고도비만 당뇨: 또래의 4.5배가 더 경고
     expect(miniResults(56, 'M', 172, 60).rows[0].pct!).toBeLessThan(r.rows[0].pct!);
     expect(miniError('45', '170', '70', null)).toBeTruthy(); expect(miniError('18', '170', '70', 'M')).toBeTruthy(); expect(miniError('45', '170', '70', 'M')).toBeNull();
   });

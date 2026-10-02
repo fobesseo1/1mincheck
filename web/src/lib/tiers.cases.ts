@@ -95,7 +95,8 @@ export const CASES: Case[] = [
   { id: 'h5', who: '복부비만만 (여 허리 88, BMI 23)', inp: mk(good, { weightKg: 59, waistCm: 88 }), tier: 3, must: ['허리'], not: NO_CMP_ONLY },
   { id: 'h6', who: '공복혈당 110 (공복혈당장애)', inp: mk(man, { age: 50 }, { glu: 110 }), tier: 3, must: ['혈당'] },
   { id: 'h7', who: '혈압 132/84 (전단계)', inp: mk(man, { age: 44 }, { sbp: 132, dbp: 84 }), tier: 3, must: ['혈압'] },
-  { id: 'h8', who: '비만 + 흡연 + 운동 안 함 (가장 큰 것 1–2개만)', inp: mk(man, { age: 52, weightKg: 90, waistCm: 98, smoke: 'current', exercise: false }), tier: 3, must: ['담배'], not: NO_CMP_ONLY },
+  // 고혈압 가능성이 5명 중 1명 이상이면(절대 20%↑) 또래와 비슷해도 혈압 확인이 먼저, 금연은 함께 (2026-10-02 '둘 중 더 경고' 규칙)
+  { id: 'h8', who: '비만 + 흡연 + 운동 안 함 (고혈압 5명 중 1명 이상)', inp: mk(man, { age: 52, weightKg: 90, waistCm: 98, smoke: 'current', exercise: false }), tier: 2, must: ['혈압', '담배'], not: NO_CMP_ONLY },
   { id: 'h9', who: '주 1–4회 음주 + 운동 안 함', inp: mk(man, { age: 40, alcohol: 'd1_4', exercise: false }), tier: 3, must: ['운동'] },
 
   // 정상 체중 + 공복혈당장애 → ③, 체중 대신 혈당 확인·생활습관
