@@ -1,7 +1,7 @@
 import type { ReactNode, CSSProperties } from 'react';
 import { useStore, Nav, Icon, People, Gauge, Crisis } from '../ui.tsx';
 import { suggestScenario } from '../state.ts';
-import { viewDetail, f1, pctText, statusText, flagOf, severeBp, INK, LOOK, type ViewResult } from '../lib/view.ts';
+import { viewDetail, f1, pctText, statusText, flagOf, severeBp, labOf, INK, LOOK, type ViewResult } from '../lib/view.ts';
 import { DevNote } from './DevNote.tsx';
 import { NAMES, TITLE, TOOL, BADGE, WHAT, WHY, HOW, NEXT, NEXT_SPECIAL, SRC, KNHANES, MODULE_OF, MEANING, DISCLAIMER, type ItemId } from '../lib/content.ts';
 import { useInput, NeedInput } from './Results.tsx';
@@ -130,7 +130,7 @@ export function Detail({ id }: { id: ItemId }) {
 
       {card(<>
         <b style={{ fontSize: 15, color: 'var(--obsidian)' }}>다음에 할 일</b>
-        {(NEXT_SPECIAL[id === 'htn' && r.status === 'criteria' && severeBp(inp) ? 'htn:severe' : `${id}:${r.status}`] ?? NEXT[id]).map((t, k) => (
+        {(NEXT_SPECIAL[id === 'htn' && r.status === 'criteria' && severeBp(inp) ? 'htn:severe' : id === 'dm' && (labOf(inp).glu ?? 0) >= 250 ? 'dm:veryhigh' : `${id}:${r.status}`] ?? NEXT[id]).map((t, k) => (
           <div key={t.t} style={{ display: 'flex', gap: 14, padding: '12px 0', borderTop: '1px solid var(--line)' }}>
             <span style={{ width: 30, height: 30, flexShrink: 0, borderRadius: 10, background: 'var(--linen)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 800, color: INK }}>{k + 1}</span>
             <div><b style={{ fontSize: 15, color: 'var(--obsidian)' }}>{t.t}</b><div style={{ fontSize: 13, lineHeight: 1.5, marginTop: 3 }}>{t.d}</div></div>

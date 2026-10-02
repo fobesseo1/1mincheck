@@ -35,13 +35,21 @@ const NO_CMP_ONLY = ['또래보다 높은 항목이 없어요'];
 
 export const CASES: Case[] = [
   // ── ① 지금 바로 병원 ──
-  { id: 'u1', who: '혈압 190/125', inp: mk(good, {}, { sbp: 190, dbp: 125 }), tier: 1, must: ['지금 바로 병원'], not: ['119', '응급실'] },
+  { id: 'u1', who: '혈압 190/125', inp: mk(good, {}, { sbp: 190, dbp: 125 }), tier: 1, must: ['지금 바로 병원'], not: ['119', '응급'] },
   { id: 'u2', who: '혈압 180/95 (경계)', inp: mk(good, {}, { sbp: 180, dbp: 95 }), tier: 1, must: ['지금 바로 병원'] },
   { id: 'u3', who: '혈압 150/120 (이완기 경계)', inp: mk(man, { age: 55 }, { sbp: 150, dbp: 120 }), tier: 1, must: ['지금 바로 병원'] },
   { id: 'u4', who: '혈압 200/110 + 당뇨 진단', inp: mk(man, { age: 62, dx: { htn: false, dm: true, chol: false } }, { sbp: 200, dbp: 110 }), tier: 1, must: ['지금 바로 병원'] },
 
   // ── ② 병원 확인 ──
-  { id: 'c1', who: '혈압 179/119 (응급 바로 아래)', inp: mk(good, {}, { sbp: 179, dbp: 119 }), tier: 2, must: ['혈압', '진료'], not: ['지금 바로'] },
+  // 혈당이 매우 높음: 250 이상 오늘 진료, 300 이상 지금 바로 (진단 여부 관계없이, 최근 값/예전 검진 값 둘 다 안내)
+  { id: 'g1', who: '당뇨 진단 + 공복혈당 400', inp: mk(good, { age: 60, meno: true, dx: { htn: false, dm: true, chol: false } }, { glu: 400 }), tier: 1, must: ['혈당이 매우 높아요 · 지금 바로 병원', '예전 검진 값'], not: ['응급', '119'] },
+  { id: 'g2', who: '공복혈당 300 (경계, 진단 없음)', inp: mk(man, { age: 50 }, { glu: 300 }), tier: 1, must: ['지금 바로 병원 가세요'] },
+  { id: 'g3', who: '공복혈당 299', inp: mk(man, { age: 50 }, { glu: 299 }), tier: 1, must: ['오늘 진료를 받으세요', '300 이상이면'] },
+  { id: 'g4', who: '당뇨 진단 + 공복혈당 250 (경계)', inp: mk(man, { age: 62, dx: { htn: false, dm: true, chol: false } }, { glu: 250 }), tier: 1, must: ['오늘 진료'] },
+  { id: 'g5', who: '당뇨 진단 + 공복혈당 249 → 관리 중', inp: mk(man, { age: 62, dx: { htn: false, dm: true, chol: false } }, { glu: 249 }), tier: 5, must: ['목표'] },
+
+
+  { id: 'c1', who: '혈압 179/119 (지금 바로 단계 바로 아래)', inp: mk(good, {}, { sbp: 179, dbp: 119 }), tier: 2, must: ['혈압', '진료'], not: ['지금 바로'] },
   { id: 'c2', who: '혈압 140/85 (기준 경계)', inp: mk(man, { age: 50 }, { sbp: 140, dbp: 85 }), tier: 2, must: ['혈압', '진료'] },
   { id: 'c3', who: '혈압 160/100 + 공복혈당 150', inp: mk(man, { age: 52 }, { sbp: 160, dbp: 100, glu: 150 }), tier: 2, must: ['혈압', '혈당'] },
   { id: 'c4', who: '공복혈당 126 (경계)', inp: mk(good, { age: 50 }, { glu: 126 }), tier: 2, must: ['혈당'] },
@@ -52,6 +60,16 @@ export const CASES: Case[] = [
   { id: 'c9', who: '우울 PHQ-9 15점', inp: mk(good, { mind: { phq: [2, 2, 2, 2, 2, 2, 2, 1, 0], gad: [1, 1] } }), tier: 2, must: ['상담'] },
   { id: 'c10', who: '혈압 145/92 + 흡연 (병원이 먼저)', inp: mk(man, { age: 51, smoke: 'current' }, { sbp: 145, dbp: 92 }), tier: 2, must: ['혈압', '담배'] },
   { id: 'c11', who: '검진 수치 없이 "잰 혈압 140/90 이상"이라고 답함', inp: mk(good, { age: 56, meno: true, bp: 'high' }), tier: 2, must: ['혈압', '진료'] },
+
+  // 중성지방·HDL: 500 이상은 진료(췌장염 위험), 200–499·HDL 40 미만은 생활습관 + 다음 진료 때 지질검사. 어느 경우든 '정상' 칭찬 금지
+  { id: 't1', who: '좋은 습관 + 중성지방 600', inp: mk(good, {}, { tg: 600 }), tier: 2, must: ['중성지방', '췌장염'], not: ['잘 관리', '정상 범위'] },
+  { id: 't2', who: '좋은 습관 + 중성지방 500 (경계)', inp: mk(good, {}, { tg: 500 }), tier: 2, must: ['중성지방'] },
+  { id: 't3', who: '좋은 습관 + 중성지방 499', inp: mk(good, {}, { tg: 499 }), tier: 3, must: ['중성지방', '지질검사'], not: ['정상 범위'] },
+  { id: 't4', who: '좋은 습관 + HDL 25', inp: mk(good, {}, { hdl: 25 }), tier: 3, must: ['HDL', '지질검사'], not: ['정상 범위'] },
+  { id: 't5', who: '좋은 습관 + HDL 40·중성지방 149 (정상 경계)', inp: mk(good, {}, { hdl: 40, tg: 149 }), tier: 4, must: ['잘', '정상 범위'] },
+  { id: 't6', who: '좋은 습관 + 총콜레스테롤 220 (경계) → 정상 칭찬 안 함', inp: mk(good, {}, { tc: 220 }), tier: 4, must: ['잘'], not: ['정상 범위'] },
+  // 몸 검사가 여러 개면 내과 한 번으로 묶고, 금연은 살린다
+  { id: 's1', who: '흡연 + 혈압 150/95 + 공복혈당 140', inp: mk(man, { age: 52, smoke: 'current' }, { sbp: 150, dbp: 95, glu: 140 }), tier: 2, must: ['내과에서 한 번에', '혈압', '혈당', '담배'] },
 
   // 기존 진단 + 새 이상 수치 → 새 이상이 먼저(②), 기존 질환은 관리 이어가기를 함께
   { id: 'x1', who: '당뇨 진단 + 검진 혈압 150/95', inp: mk(man, { age: 60, dx: { htn: false, dm: true, chol: false } }, { sbp: 150, dbp: 95 }), tier: 2, must: ['혈압', '당뇨', '관리'] },
