@@ -37,7 +37,7 @@ try {
   await p.goto(BASE, { waitUntil: 'networkidle0' });
   await p.evaluate(() => { sessionStorage.clear(); localStorage.clear(); });
   console.log('랜딩'); await shot('landing');
-  ok((await text()).includes('지금 내 건강,') && !(await text()).includes('가입 없이'), '랜딩 헤드라인 (가입 문구 없음)');
+  ok((await text()).includes('내 몸이 궁금할 때') && !(await text()).includes('가입 없이'), '랜딩 헤드라인 (가입 문구 없음)');
   // 미니 체험: 입력 중에는 결과가 안 바뀌고, '결과 보기'를 눌러야 나온다
   await click('남성'); await type('.mini input[aria-label="만 나이"]', '56'); await type('.mini input[aria-label="키"]', '172'); await type('.mini input[aria-label="몸무게"]', '88');
   ok(!(await text()).includes('내 BMI'), '미니: 누르기 전에는 결과 없음');
@@ -45,6 +45,7 @@ try {
   ok(tm.includes('50대 남성 · BMI 25–30') && tm.includes('4명 중 1명') && tm.includes('또래도 이만큼 많아요 · 50대 남성 평균 5명 중 1명') && tm.includes('1분 더 입력하고 정확한 위험 확인하기'), '미니: 56세 남성 BMI 29.7 → 당뇨 4명 중 1명(또래도 많음) — 절대·또래 중 더 경고가 메인');
   ok(await p.evaluate(() => { const a = document.querySelector('.ld header a.btn'); return a.textContent === '내 위험 확인하기' && a.className.includes('tone-2'); }), '미니 결과 위험 → 상단 버튼도 빨강·"내 위험 확인하기"');
   await type('.mini input[aria-label="몸무게"]', '70'); ok(!(await text()).includes('내 BMI'), '미니: 값을 고치면 결과를 지우고 다시 누르게');
+  await new Promise((r) => setTimeout(r, 200));   // 값 저장 → 버튼 갱신을 기다림
   ok(await p.evaluate(() => document.querySelector('.ld header a.btn').textContent === '이어서 체크하기'), '결과는 지워져도 값이 있으면 버튼은 "이어서 체크하기"');
   // 이어서: 시작·소개를 건너뛰고 넣은 값이 채워진 기본정보로, 위에 이어짐 안내
   await click('이어서 체크하기'); await new Promise((r) => setTimeout(r, 300));

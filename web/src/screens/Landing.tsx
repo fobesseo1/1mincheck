@@ -65,7 +65,7 @@ export function Landing() {
 
       <section className="dots"><div className="wrap hero">
         <div style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
-          <h1>지금 내 건강,<br /><b>괜찮을까요?</b></h1>
+          <h1>내 몸이 궁금할 때<br /><b>딱 1분.</b></h1>
           <p style={{ margin: 0, fontSize: 'clamp(19px, 2vw, 22px)', fontWeight: 700, color: 'var(--obsidian)' }}>간단한 내 몸 정보로 1분 만에 가늠해 보세요.</p>
           <p style={{ margin: '-10px 0 0', fontSize: 15, color: 'var(--slate)' }}>나이·체형·생활습관을 바탕으로, 현재 건강 상태를 추정해 드려요.</p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
