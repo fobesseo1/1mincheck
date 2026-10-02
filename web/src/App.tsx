@@ -13,6 +13,7 @@ import type { ItemId } from './lib/content.ts';
 import { stressSamples } from './lib/stress.ts';
 import { isDev } from './lib/dev.ts';
 import { Dev } from './screens/Dev.tsx';
+import { loadMini, miniDraft } from './screens/MiniTrial.tsx';
 
 const APP: Record<string, () => JSX.Element> = {
   '/start': Start, '/intro': Intro, '/info': Info, '/life': Life, '/modules': Modules,
@@ -27,6 +28,16 @@ export function App() {
   const setDraft = useCallback((f: (d: Draft) => Draft) => setD((d) => { const n = f(d); saveDraft(n); return n; }), []);
   const reset = useCallback(() => setDraft(() => emptyDraft()), [setDraft]);
   const toast = useCallback((m: string) => { setMsg(m); setTimeout(() => setMsg(''), 2200); }, []);
+
+  // 미니 체험에 한 칸이라도 넣었으면, 어디서든 '체크 시작'(시작 화면)으로 가려 할 때 처음부터가 아니라 기본정보로 이어서.
+  // 넣은 값은 비어 있는 칸만 채운다(이미 고친 값은 그대로). 뒤로 가기가 시작 화면에 걸리지 않게 replace
+  useEffect(() => {
+    if (route !== '/start') return;
+    const m = loadMini(); if (!m) return;
+    const fill = miniDraft(m) as Partial<Draft>;
+    setDraft((d) => ({ ...d, ...Object.fromEntries(Object.entries(fill).filter(([k]) => !d[k as keyof Draft])) }));
+    location.replace(location.href.split('#')[0] + '#/info');
+  }, [route, setDraft]);
 
   // 랜딩 안의 섹션 이동(#how 등)
   useEffect(() => { if (!route.startsWith('/')) document.getElementById(route)?.scrollIntoView({ behavior: 'smooth' }); }, [route]);

@@ -21,7 +21,7 @@ function StartBtn({ kind, base, label, style }: { kind: 'nav' | 'main' | 'text' 
   const set = !m ? null : toned ? MINI_CTA[m.tone!] : MINI_CTA.partial;
   // 기능 소개의 작은 버튼(gbtn)은 짧게 '이어서 체크하기'
   const text = !set ? label : base.includes('gbtn') ? MINI_CTA.partial.main : set[kind === 'nav' || kind === 'link' ? 'nav' : 'main'];
-  const cls = toned && (kind === 'nav' || kind === 'main') ? `${base.replace(/\b(lime|dark)\b/, '')} tone-${m!.tone}` : base;
+  const cls = toned && (kind === 'nav' || kind === 'main') ? `${base.replace(/\b(lime|dark)\b/, '')} tone-${m!.tone}` : m && base.includes('gbtn') ? `${base} cont` : base;
   // 미니에 한 칸이라도 넣었으면 시작·소개 화면을 건너뛰고 넣은 값을 채운 채 기본정보로
   const go = (e: React.MouseEvent) => { if (!m) return; e.preventDefault(); setDraft((d) => ({ ...d, ...miniDraft(m) })); location.hash = '#/info'; };
   return <a className={cls || undefined} href="#/start" onClick={go} style={toned && kind !== 'text' && kind !== 'link' ? undefined : style}>{text}</a>;

@@ -77,3 +77,6 @@
 .ld .btn.tone-0 { background: var(--lime); color: var(--ink); }
 .ld .btn.tone-2, .ld .btn.tone-1, .ld .btn.tone-0 { height: auto; min-height: 52px; padding: 12px 24px; line-height: 1.35; text-align: center; }
 .ld .btn.sm.tone-2, .ld .btn.sm.tone-1, .ld .btn.sm.tone-0 { min-height: 44px; padding: 8px 18px; }
+
+/* 기능 소개의 작은 버튼도 '이어서 체크하기'가 되면 상단처럼 라임 */
+.ld .gbtn.cont { background: var(--lime); color: var(--ink); }
