@@ -49,14 +49,15 @@ const Chips = ({ items }: { items: { id: ItemId; name: string }[] }) => (
 
 
 /**
- * 단계별 색 (디자인: 숲색 Forest Ink + 라임, 회색 Fog, 빨강 Alarm Red는 띠·글씨에만).
- * 위험할수록 어둡게(병원 확인 = 숲색 반전 카드 + 라임 제목), 급하면 빨강 띠, 건강하면 밝게(라임).
+ * 단계별 색: 위험은 빨강(Alarm Red), 관리·습관은 차분한 회색·연초록, 건강은 라임.
+ * 숲색(진한 초록)은 '잘 관리되고 있다'로 읽혀 위험 표시에 쓰지 않는다.
+ *  ① 지금 바로·오늘 확인 = 빨강 꽉 찬 카드, ② 병원 확인 = 흰 카드 + 빨강 띠·제목
  */
 type Tone = { bg: string; fg: string; sub: string; tagBg: string; tagFg: string; numBg: string; numFg: string; top?: string };
 const TONE: Record<Verdict['tier'], Tone> = {
-  1: { bg: '#fff', fg: RED, sub: 'var(--charcoal)', tagBg: RED, tagFg: '#fff', numBg: RED, numFg: '#fff', top: `6px solid ${RED}` },
-  2: { bg: 'var(--ink)', fg: 'var(--lime)', sub: 'rgba(255,255,255,.82)', tagBg: 'var(--lime)', tagFg: 'var(--ink)', numBg: 'var(--ink)', numFg: 'var(--lime)' },
-  5: { bg: 'var(--fog)', fg: 'var(--ink)', sub: 'var(--charcoal)', tagBg: 'var(--ink)', tagFg: '#fff', numBg: 'var(--ink)', numFg: '#fff' },
+  1: { bg: RED, fg: '#fff', sub: 'rgba(255,255,255,.88)', tagBg: '#fff', tagFg: RED, numBg: RED, numFg: '#fff' },
+  2: { bg: '#fff', fg: RED, sub: 'var(--charcoal)', tagBg: RED, tagFg: '#fff', numBg: RED, numFg: '#fff', top: `6px solid ${RED}` },
+  5: { bg: 'var(--fog)', fg: 'var(--obsidian)', sub: 'var(--charcoal)', tagBg: 'var(--charcoal)', tagFg: '#fff', numBg: 'var(--charcoal)', numFg: '#fff' },
   3: { bg: 'var(--linen)', fg: 'var(--ink)', sub: 'var(--charcoal)', tagBg: 'var(--ink)', tagFg: 'var(--lime)', numBg: 'var(--ink)', numFg: 'var(--lime)' },
   4: { bg: 'var(--lime)', fg: 'var(--ink)', sub: 'var(--ink)', tagBg: 'var(--ink)', tagFg: 'var(--lime)', numBg: 'var(--ink)', numFg: 'var(--lime)' },
 };
@@ -73,7 +74,7 @@ function VerdictCard({ v }: { v: Verdict }) {
             <span style={{ width: 26, height: 26, flexShrink: 0, borderRadius: 9, background: t.numBg, color: t.numFg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 800 }}>{k + 1}</span>
             <span><b style={{ fontSize: 16, color: 'var(--obsidian)' }}>{a.t}</b>{a.d && <span style={{ display: 'block', fontSize: 13, lineHeight: 1.5, marginTop: 2, color: 'var(--charcoal)' }}>{a.d}</span>}</span>
           </>);
-          const st = { display: 'flex', gap: 12, padding: '12px 12px', borderRadius: 14, background: '#fff', textDecoration: 'none', color: 'inherit', border: v.tier === 2 ? 0 : '1px solid var(--line2)' } as const;
+          const st = { display: 'flex', gap: 12, padding: '12px 12px', borderRadius: 14, background: '#fff', textDecoration: 'none', color: 'inherit', border: v.tier === 1 ? 0 : '1px solid var(--line2)' } as const;
           return <li key={a.t}>{a.href ? <a href={a.href} style={st}>{body}</a> : <div style={st}>{body}</div>}</li>;
         })}
       </ol>
