@@ -61,16 +61,16 @@ describe('결과 화면 (엔진 값 → 실측 보정, 묶음·비교 검사)', 
     expect(r.hero!.id).toBe('dm');
     expect(r.others.map((f) => f.short)).toContain('간');
   });
-  it('극단 예시: 먼저 확인할 것 8개, 진단 3개, 낮음 최대', async () => {
+  it('극단 예시: 먼저 확인할 것 7개(허리 70cm라 당뇨는 BMI·허리 보정 후 또래와 비슷), 진단 3개, 낮음 최대', async () => {
     const { stressSamples: X } = await import('./stress.ts');
     const v = X.map((s) => viewResults(s.input, suggestScenario(s.input)));
-    expect(v[0].first.length).toBe(8);
+    expect(v[0].first.length).toBe(7);
     expect(v[1].diagnosed.length).toBe(3);
     expect(v[2].first.length).toBe(0);
     expect(v[2].hero).toBe(null);
     // 우울 배수가 더 커도 상단 대표는 신체 항목, 마음·수면·소화는 그 뒤
     expect(v.map((r) => r.hero?.id ?? '-')).toEqual(['htn', 'nafld', '-', 'dm']);
-    expect(v[0].others.map((f) => f.short)).toEqual(['당뇨', '간', '수면무호흡', '불면', '우울', '불안', '위식도역류']);
+    expect(v[0].others.map((f) => f.short)).toEqual(['간', '수면무호흡', '불면', '우울', '불안', '위식도역류']);
     console.log(v.map((r) => [r.first.length, r.improved.length, r.low.length, r.same.length, r.watch.length, r.diagnosed.length].join('/')));
   });
 });

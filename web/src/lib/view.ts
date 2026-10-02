@@ -1,22 +1,26 @@
 // 화면에 보여줄 값 만들기. 확률·점수 계산은 engine 의 runAll()·whatIf() 결과를 쓰고,
-// 당뇨·고혈압·콜레스테롤·골다공증 확률은 실측 보정(engine/src/calibrate.ts, 국민건강영양조사 2022–2024)을 거친다.
+// 당뇨·고혈압·콜레스테롤·골다공증 확률은 실측 보정(engine/src/calibrate.ts, 국민건강영양조사 2022–2024)을 거치고,
+// 당뇨·고혈압·콜레스테롤은 BMI·허리 연속 보정(engine/src/numeric.ts)을 더한다.
 // 또래 평균은 같은 성별·연령대에서 '진단받지 않은 사람'의 실측 비율이다. 엔진 식은 그대로.
 import { runAll as engineRunAll, whatIf as engineWhatIf, ratioLabel, type Input, type Result } from '../../../engine/src/engine.ts';
 import { drinkOf, type AppInput } from '../state.ts';
 import type { Lab } from '../../../engine/src/extras.ts';
 import { calibrate, peerOf, CAL_IDS, type CalId } from '../../../engine/src/calibrate.ts';
 import { rankOf } from '../../../engine/src/percentile.ts';
+import { adjustNumeric, isNum } from '../../../engine/src/numeric.ts';
 import GM from '../../../engine/src/glucose_model.json';
 
 /** 보정 전 엔진 값(개발자 모드에서 함께 보여준다) */
 export type ViewResult = Result & { raw?: number; rawPeer?: number | null };
 const isCal = (id: string): id is CalId => (CAL_IDS as string[]).includes(id);
+/** 보정 v1 + BMI·허리 연속 보정(engine/src/numeric.ts: 커질수록 위험이 내려가지 않게, 끝 구간은 경계 값 유지) */
+const calN = (id: CalId, pct: number, i: Input) => { const c = calibrate(id, pct, i.sex, i.age); return isNum(id) ? adjustNumeric(id, c, i) : c; };
 function cal(r: Result, i: Input): ViewResult {
   if (!isCal(r.id) || r.status !== 'ok') return r;
   if (r.flags?.includes('GLU_MODEL')) return { ...r, peer: peerOf(r.id, i.sex, i.age) ?? r.peer };   // 이미 혈당 반영 모형으로 계산함
   const peer = peerOf(r.id, i.sex, i.age);
-  return { ...r, raw: r.value ?? undefined, rawPeer: r.peer, value: r.value == null ? null : calibrate(r.id, r.value, i.sex, i.age),
-    range: r.range ? [calibrate(r.id, r.range[0], i.sex, i.age), calibrate(r.id, r.range[1], i.sex, i.age)] : undefined, peer: peer ?? r.peer };
+  return { ...r, raw: r.value ?? undefined, rawPeer: r.peer, value: r.value == null ? null : calN(r.id, r.value, i),
+    range: r.range ? [calN(r.id, r.range[0], i), calN(r.id, r.range[1], i)] : undefined, peer: peer ?? r.peer };
 }
 
 // ── 적용 범위 맞추기 (엔진 숫자는 그대로, 원 연구 대상이 아니면 보여주지 않는다) ──
@@ -76,7 +80,7 @@ export const whatIf = (b: Input, a: Input) => engineWhatIf(b, a).map((w) => {
   if (w.id === 'nafld') return { ...w, before: nafldOverAlcohol(b) ? null : w.before, after: nafldOverAlcohol(a) ? null : w.after };
   // 검진 혈당·혈압을 넣었으면 모형 확률 대신 측정 결과를 쓰므로, 체중·허리를 바꿔도 같은 값이라 비교에서 뺀다
   if ((w.id === 'dm' && labOf(b).glu != null) || (w.id === 'htn' && labOf(b).sbp != null)) return { ...w, before: null, after: null };
-  if (isCal(w.id)) return { ...w, before: w.before == null ? null : calibrate(w.id, w.before, b.sex, b.age), after: w.after == null ? null : calibrate(w.id, w.after, a.sex, a.age) };
+  if (isCal(w.id)) return { ...w, before: w.before == null ? null : calN(w.id, w.before, b), after: w.after == null ? null : calN(w.id, w.after, a) };
   return w;
 });
 import { NAMES, TITLE, BADGE, PROB_IDS, MEANING, PEER_NOTE, ACTION, MANAGED, EXCLUDED_NAFLD, EXCLUDED_NAFLD_STUDY, CRITERIA_HTN, SEVERE_HTN, SEVERE_HTN_SYMPTOM, type ItemId } from './content.ts';
