@@ -16,7 +16,7 @@
    "25–29.9",
    "≥30"
   ],
-  "rule": "칸 n<50이면 BMI 25 이상 합침(scope bmi25+), 그래도 부족하면 성별·나이대 전체(scope age). dm·htn = 진단받지 않은 사람의 실측 비율, nafld = 같은 칸 사람들 실제 답으로 계산한 앱 확률 평균"
+  "rule": "칸 n<50이면 BMI 25 이상 합침(scope bmi25+), 그래도 부족하면 성별·나이대 전체(scope age). BMI가 올라가는데 비율이 내려가면 아래 구간 값으로 올림(+monotone). dm·htn = 진단받지 않은 사람의 실측 비율, nafld = 같은 칸 사람들 실제 답으로 계산한 앱 확률 평균"
  },
  "table": {
   "M19": {
@@ -286,9 +286,9 @@
      "scope": "bmi"
     },
     {
-     "pct": 9.6,
+     "pct": 10,
      "n": 61,
-     "scope": "bmi"
+     "scope": "bmi+monotone"
     }
    ],
    "dm_all": {
@@ -442,9 +442,9 @@
      "scope": "bmi"
     },
     {
-     "pct": 4.7,
+     "pct": 6.7,
      "n": 244,
-     "scope": "bmi"
+     "scope": "bmi+monotone"
     },
     {
      "pct": 8,
@@ -469,9 +469,9 @@
      "scope": "bmi"
     },
     {
-     "pct": 15.8,
+     "pct": 18,
      "n": 150,
-     "scope": "bmi"
+     "scope": "bmi+monotone"
     },
     {
      "pct": 26,
@@ -479,9 +479,9 @@
      "scope": "bmi"
     },
     {
-     "pct": 25.2,
+     "pct": 26,
      "n": 113,
-     "scope": "bmi25+"
+     "scope": "bmi25++monotone"
     }
    ],
    "htn_all": {
@@ -552,9 +552,9 @@
      "scope": "bmi"
     },
     {
-     "pct": 0,
+     "pct": 0.8,
      "n": 118,
-     "scope": "bmi"
+     "scope": "bmi+monotone"
     },
     {
      "pct": 0.9,
@@ -608,9 +608,9 @@
      "scope": "bmi"
     },
     {
-     "pct": 0,
+     "pct": 0.1,
      "n": 149,
-     "scope": "bmi"
+     "scope": "bmi+monotone"
     },
     {
      "pct": 3.8,
@@ -691,9 +691,9 @@
      "scope": "bmi"
     },
     {
-     "pct": 0.2,
+     "pct": 0.3,
      "n": 239,
-     "scope": "bmi"
+     "scope": "bmi+monotone"
     },
     {
      "pct": 3.7,
@@ -972,14 +972,14 @@
      "scope": "bmi"
     },
     {
-     "pct": 19.9,
+     "pct": 24,
      "n": 152,
-     "scope": "bmi"
+     "scope": "bmi+monotone"
     },
     {
-     "pct": 20,
+     "pct": 24,
      "n": 165,
-     "scope": "bmi25+"
+     "scope": "bmi25++monotone"
     }
    ],
    "htn_all": {

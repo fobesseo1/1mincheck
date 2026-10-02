@@ -31,18 +31,21 @@ for (const sex of ['M', 'F'] as const) for (const [a0, a1] of AGES) {
   const row: Record<string, unknown> = {};
   for (const id of ['dm', 'htn', 'nafld'] as const) {
     const all = rate(base, id);
-    row[id] = BMIS.map(([b0, b1], k) => {
+    const cells: Cell[] = BMIS.map(([b0, b1], k) => {
       let c = rate(base.filter((p) => bmi(p) >= b0 && bmi(p) < b1), id);
       if (c) return { ...c, scope: 'bmi' };
       if (k >= 2) { c = rate(base.filter((p) => bmi(p) >= 25), id); if (c) return { ...c, scope: 'bmi25+' }; }
       return all ? { ...all, scope: 'age' } : null;
     });
+    // 의학 상식: BMI 구간이 올라가면 비율이 내려가지 않는다. 표본이 적어 내려간 칸은 바로 아래 구간 값으로 올린다(scope +monotone)
+    for (let k = 1; k < cells.length; k++) { const a = cells[k - 1], b = cells[k]; if (a && b && b.pct < a.pct) cells[k] = { ...b, pct: a.pct, scope: b.scope + '+monotone' }; }
+    row[id] = cells;
     row[id + '_all'] = all;
   }
   out[key] = row;
 }
 const meta = { source: '국민건강영양조사 제9기(2022–2024) 원시자료, 질병관리청 — 집계만', generated: new Date().toISOString().slice(0, 10),
   ages: AGES.map(([a, b]) => (b > 150 ? `${a}+` : `${a}–${b}`)), bmi: ['<23', '23–24.9', '25–29.9', '≥30'],
-  rule: '칸 n<50이면 BMI 25 이상 합침(scope bmi25+), 그래도 부족하면 성별·나이대 전체(scope age). dm·htn = 진단받지 않은 사람의 실측 비율, nafld = 같은 칸 사람들 실제 답으로 계산한 앱 확률 평균' };
+  rule: '칸 n<50이면 BMI 25 이상 합침(scope bmi25+), 그래도 부족하면 성별·나이대 전체(scope age). BMI가 올라가는데 비율이 내려가면 아래 구간 값으로 올림(+monotone). dm·htn = 진단받지 않은 사람의 실측 비율, nafld = 같은 칸 사람들 실제 답으로 계산한 앱 확률 평균' };
 writeFileSync(new URL('../engine/src/mini_rates.json', import.meta.url), JSON.stringify({ meta, table: out }, null, 1));
-for (const [k, v] of Object.entries(out)) console.log(k, ['dm', 'htn', 'nafld'].map((id) => id + ' ' + (v as any)[id].map((c: any) => c ? `${c.pct}${c.scope === 'bmi' ? '' : '*'}` : '–').join('/')).join(' | '));
+for (const [k, v] of Object.entries(out)) console.log(k, ['dm', 'htn', 'nafld'].map((id) => id + ' ' + (v as any)[id].map((c: any) => c ? `${c.pct}${c.scope === 'bmi' ? '' : c.scope.includes('monotone') ? '^' : '*'}` : '–').join('/')).join(' | '));
