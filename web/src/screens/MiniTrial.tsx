@@ -53,7 +53,7 @@ function saveMini(v: MiniSaved | null) { try { if (v) sessionStorage.setItem(MIN
 /** 미니에서 넣은 값(빈 칸 제외)을 기본정보 초안에 채운다 */
 export const miniDraft = (m: MiniSaved) => ({ ...(m.age ? { age: m.age } : {}), ...(m.sex ? { sex: m.sex } : {}), ...(m.h ? { height: m.h } : {}), ...(m.w ? { weight: m.w } : {}) });
 export const MINI_CTA = {
-  none: { nav: '지금 체크하기', main: '1분 체크 시작하기' },
+  none: { nav: '1분 건강 체크하기', main: '1분 건강 체크하기' },
   partial: { nav: '이어서 체크하기', main: '이어서 체크하기' },
   2: { nav: '내 위험 확인하기', main: '1분 더 입력하고 정확한 위험 확인하기' },
   1: { nav: '더 정확히 보기', main: '1분 더 입력하고 더 정확한 결과 보기' },
@@ -112,16 +112,16 @@ export function MiniTrial() {
   );
   return (
     <div className="card mini" style={{ borderRadius: 24, boxShadow: '0 6px 20px rgba(0,0,0,.06)', padding: 24, display: 'flex', flexDirection: 'column', gap: 16 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
-        <b style={{ fontSize: 18, color: 'var(--obsidian)' }}>10초 미니 체험</b>
-        <span className="cap">4개만 넣어 보세요</span>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+        <b style={{ fontSize: 18, color: 'var(--obsidian)' }}>내 건강, 간단히 먼저 보기</b>
+        <span className="cap">성별·나이·키·몸무게만 입력해 보세요</span>
       </div>
       <div style={{ display: 'flex', gap: 8 }}>
         {(['F', 'M'] as const).map((s) => <button key={s} type="button" onClick={() => { setSex(s); setRes(null); }} aria-pressed={sex === s}
           style={{ flex: 1, height: 44, borderRadius: 12, border: `2px solid ${sex === s ? 'var(--ink)' : 'var(--line)'}`, background: sex === s ? 'var(--lime)' : '#fff', color: 'var(--ink)', fontSize: 15, fontWeight: 700 }}>{s === 'F' ? '여성' : '남성'}</button>)}
       </div>
       <div style={{ display: 'flex', gap: 8 }}>{field('만 나이', age, setAge, '세', '45')}{field('키', h, setH, 'cm', '165')}{field('몸무게', w, setW, 'kg', '65')}</div>
-      {!res && <button type="button" className="btn dark" onClick={show} style={{ border: 0, width: '100%' }}>결과 보기</button>}
+      {!res && <button type="button" className="btn dark" onClick={show} style={{ border: 0, width: '100%' }}>간단 결과 보기</button>}
       {!res && tried && err && <div role="alert" style={{ fontSize: 14, textAlign: 'center', color: 'var(--look)', fontWeight: 600 }}>{err}</div>}
       {res && (() => {
         const hd = miniHeadline(res.rows);
@@ -131,7 +131,7 @@ export function MiniTrial() {
               <b style={{ display: 'block', fontSize: 19, lineHeight: 1.35, fontWeight: 900, letterSpacing: '-0.03em' }}>{hd.title}</b>
               <span style={{ display: 'block', marginTop: 4, fontSize: 13, lineHeight: 1.5, color: hd.tone === 1 ? 'var(--charcoal)' : undefined }}>{hd.sub}</span>
             </div>
-            <span style={{ fontSize: 12, color: 'var(--slate)' }}>{res.group} · {res.bmiLabel} (내 BMI {res.bmi})인 사람들은</span>
+            <span style={{ fontSize: 12, color: 'var(--slate)' }}>기본 정보로 보는 간단한 추정 결과예요. {res.group} · {res.bmiLabel} (내 BMI {res.bmi})인 사람들은</span>
             {res.rows.map((p) => (
               <div key={p.id} style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: '12px 14px', borderRadius: 14, background: 'var(--bg)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 10 }}>

@@ -37,11 +37,11 @@ try {
   await p.goto(BASE, { waitUntil: 'networkidle0' });
   await p.evaluate(() => { sessionStorage.clear(); localStorage.clear(); });
   console.log('랜딩'); await shot('landing');
-  ok((await text()).includes('1분이면 보는'), '랜딩 헤드라인');
+  ok((await text()).includes('지금 내 건강,') && !(await text()).includes('가입 없이'), '랜딩 헤드라인 (가입 문구 없음)');
   // 미니 체험: 입력 중에는 결과가 안 바뀌고, '결과 보기'를 눌러야 나온다
   await click('남성'); await type('.mini input[aria-label="만 나이"]', '56'); await type('.mini input[aria-label="키"]', '172'); await type('.mini input[aria-label="몸무게"]', '88');
   ok(!(await text()).includes('내 BMI'), '미니: 누르기 전에는 결과 없음');
-  await click('결과 보기'); const tm = await text();
+  await click('간단 결과 보기'); const tm = await text();
   ok(tm.includes('50대 남성 · BMI 25–30') && tm.includes('4명 중 1명') && tm.includes('또래도 이만큼 많아요 · 50대 남성 평균 5명 중 1명') && tm.includes('1분 더 입력하고 정확한 위험 확인하기'), '미니: 56세 남성 BMI 29.7 → 당뇨 4명 중 1명(또래도 많음) — 절대·또래 중 더 경고가 메인');
   ok(await p.evaluate(() => { const a = document.querySelector('.ld header a.btn'); return a.textContent === '내 위험 확인하기' && a.className.includes('tone-2'); }), '미니 결과 위험 → 상단 버튼도 빨강·"내 위험 확인하기"');
   await type('.mini input[aria-label="몸무게"]', '70'); ok(!(await text()).includes('내 BMI'), '미니: 값을 고치면 결과를 지우고 다시 누르게');
@@ -51,8 +51,8 @@ try {
   ok((await route()) === '#/info' && (await text()).includes('미니 체험에서 넣은 값을 가져왔어요') && (await p.evaluate(() => document.getElementById('age').value)) === '56', '이어서: 기본정보로 바로, 나이 56 채워짐, 이어짐 안내');
   // 처음 온 사람 흐름(A)을 확인하기 위해 세션을 비우고 다시
   await p.evaluate(() => { sessionStorage.clear(); location.hash = ''; }); await p.reload({ waitUntil: 'networkidle0' });
-  ok(await p.evaluate(() => document.querySelector('.ld header a.btn').textContent === '지금 체크하기'), '미니에 아무것도 안 넣으면 버튼은 처음 그대로');
-  await click('1분 체크 시작하기');
+  ok(await p.evaluate(() => document.querySelector('.ld header a.btn').textContent === '1분 건강 체크하기'), '미니에 아무것도 안 넣으면 버튼은 처음 그대로');
+  await click('1분 건강 체크하기');
   console.log('온보딩'); ok((await route()) === '#/start', '#/start'); await shot('start');
   await click('시작하기'); await shot('intro');
   await click('좋아요, 시작할게요');
