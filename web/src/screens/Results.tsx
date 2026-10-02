@@ -8,6 +8,7 @@ import { DevNote } from './DevNote.tsx';
 import { viewResults, labOf, INK, LOOK } from '../lib/view.ts';
 import { labCount } from '../lib/labs.ts';
 import { MODULE_OF, DISCLAIMER, MEANING, type ItemId } from '../lib/content.ts';
+import { verdict, type Verdict } from '../lib/verdict.ts';
 
 const f1 = (x: number) => (Math.round(x * 10) / 10).toFixed(1);
 
@@ -43,6 +44,37 @@ const Chips = ({ items }: { items: { id: ItemId; name: string }[] }) => (
   </div>
 );
 
+
+/** 단계별 색: ① 지금 바로 ② 병원 확인 ⑤ 관리 중 ③ 습관 바꾸기 ④ 잘하고 있어요 */
+const TONE: Record<Verdict['tier'], { bg: string; fg: string; tagBg: string; tagFg: string }> = {
+  1: { bg: '#fdecea', fg: '#a8231a', tagBg: '#a8231a', tagFg: '#fff' },
+  2: { bg: 'var(--look-bg)', fg: LOOK, tagBg: LOOK, tagFg: '#fff' },
+  5: { bg: '#fff', fg: 'var(--obsidian)', tagBg: 'var(--ink)', tagFg: 'var(--lime)' },
+  3: { bg: '#fff', fg: 'var(--obsidian)', tagBg: 'var(--linen)', tagFg: 'var(--ink)' },
+  4: { bg: 'var(--linen)', fg: 'var(--ink)', tagBg: 'var(--ink)', tagFg: 'var(--lime)' },
+};
+function VerdictCard({ v }: { v: Verdict }) {
+  const t = TONE[v.tier];
+  return (
+    <section className="card" aria-label="지금 내 상태" style={{ padding: '20px 18px', display: 'flex', flexDirection: 'column', gap: 12, background: t.bg, boxShadow: 'var(--card-shadow)' }}>
+      <span className="tag" style={{ alignSelf: 'flex-start', background: t.tagBg, color: t.tagFg }}>{v.tag}</span>
+      <h2 style={{ margin: 0, fontSize: 26, lineHeight: 1.3, fontWeight: 900, letterSpacing: '-0.03em', color: t.fg }}>{v.title}</h2>
+      <p style={{ margin: 0, fontSize: 14, lineHeight: 1.55, color: 'var(--charcoal)' }}>{v.sub}</p>
+      <ol style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {v.actions.map((a, k) => {
+          const body = (<>
+            <span style={{ width: 26, height: 26, flexShrink: 0, borderRadius: 9, background: t.tagBg, color: t.tagFg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 800 }}>{k + 1}</span>
+            <span><b style={{ fontSize: 16, color: 'var(--obsidian)' }}>{a.t}</b>{a.d && <span style={{ display: 'block', fontSize: 13, lineHeight: 1.5, marginTop: 2 }}>{a.d}</span>}</span>
+          </>);
+          const st = { display: 'flex', gap: 12, padding: '12px 12px', borderRadius: 14, background: '#fff', textDecoration: 'none', color: 'inherit', border: '1px solid var(--line2)' } as const;
+          return <li key={a.t}>{a.href ? <a href={a.href} style={st}>{body}</a> : <div style={st}>{body}</div>}</li>;
+        })}
+      </ol>
+      {v.also && <span style={{ fontSize: 13, color: 'var(--charcoal)' }}>{v.also}</span>}
+    </section>
+  );
+}
+
 export function Results() {
   const { records, setRecords, toast, setDraft } = useStore();
   const inp = useInput();
@@ -72,6 +104,7 @@ export function Results() {
       {f.action && <span style={{ fontSize: 13, lineHeight: 1.5 }}>→ {f.action}</span>}
     </a>
   );
+  const v = verdict(inp, r, sc);
   const h = r.hero, heroTop = h?.c ? Math.max(h.c.me, h.c.peer) * 1.1 : 1;
   return (
     <div className="app">
@@ -79,6 +112,41 @@ export function Results() {
         <Nav title="내 결과" sub={`${today()} · ${r.who}`} right={<button className="circle" aria-label="공유" onClick={share}>{Icon.share}</button>} />
         <button type="button" onClick={save} className="pill" style={{ alignSelf: 'center', marginTop: -8, height: 34, padding: '0 14px', border: 0, background: '#fff', boxShadow: 'var(--card-shadow)', gap: 6, color: 'var(--ink)' }}>{Icon.save} 이 기기에 기록 저장</button>
         {r.crisis && <Crisis />}
+
+        <VerdictCard v={v} />
+
+        {/* 요약: 확률은 그대로, 한 줄씩 */}
+        <div className="card" style={{ padding: '6px 18px' }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 8, padding: '10px 0 4px' }}>
+            <b style={{ fontSize: 15, color: 'var(--obsidian)' }}>지금 이 상태일 가능성</b><span style={{ fontSize: 11, color: 'var(--slate)' }}>앞으로가 아니라 지금</span>
+          </div>
+          {r.prob.map((c) => (
+            <a key={c.id} href={`#/detail/${c.id}`} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, padding: '11px 0', borderTop: '1px solid var(--line)', textDecoration: 'none', color: 'inherit' }}>
+              <span style={{ minWidth: 0 }}><b style={{ fontSize: 15, color: 'var(--obsidian)' }}>{c.title}</b>
+                <span style={{ display: 'block', fontSize: 12, color: c.cmp ? c.cmp.col : c.tone === 'look' ? LOOK : 'var(--slate)' }}>{c.cmp ? c.cmp.headline : c.status === 'managed' ? '진단받아 관리 중' : c.status === 'criteria' ? '검진 수치가 기준 이상' : c.status === 'excluded' ? '점수로 판단하지 않음' : c.note.split('.')[0]}</span></span>
+              <b style={{ flexShrink: 0, fontSize: 18, fontWeight: 900, color: 'var(--obsidian)' }}>{c.pct !== '–' ? `${c.pct}%` : ''}</b>
+            </a>
+          ))}
+          {r.score.some((x) => x.status === 'ok' && x.v !== '–') && (
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, padding: '10px 0 12px', borderTop: '1px solid var(--line)' }}>
+              {r.score.filter((x) => x.status === 'ok' && x.v !== '–').map((x) => <a key={x.id} href={`#/detail/${x.id}`} className="pill" style={{ background: 'var(--bg)', color: x.col, textDecoration: 'none' }}>{x.name} · {x.cat}</a>)}
+            </div>
+          )}
+        </div>
+
+        {/* 검진 수치 넣기 (선택) */}
+        <a href="#/checkup" className="card" style={{ padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 12, textDecoration: 'none', color: 'inherit' }}>
+          <span className="grow"><b style={{ fontSize: 14, color: 'var(--obsidian)' }}>{nLab ? `검진 수치 ${nLab}개 반영됨` : '건강검진 결과지가 있나요?'}</b>
+            <span style={{ display: 'block', fontSize: 12, lineHeight: 1.5 }}>{nLab ? '수치를 고치거나 더 넣을 수 있어요' : '혈압·혈당·콜레스테롤을 넣으면 판정이 더 정확해져요'}</span></span>
+          <span style={{ fontSize: 13, fontWeight: 700, color: INK, whiteSpace: 'nowrap' }}>{nLab ? '고치기' : '넣기'} →</span>
+        </a>
+
+        <details className="more">
+          <summary className="card" style={{ padding: '16px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, cursor: 'pointer', listStyle: 'none' }}>
+            <span><b style={{ fontSize: 15, color: 'var(--obsidian)' }}>자세히 보기</b><span style={{ display: 'block', fontSize: 12, color: 'var(--slate)' }}>또래 비교 · 관리 효과 · 생활·검진 체크 · 점수 · 근거</span></span>
+            <span style={{ color: INK }}>{Icon.down}</span>
+          </summary>
+          <div className="more-body" style={{ marginTop: 14 }}>
 
         {/* 상단: 가장 먼저 확인할 것을 크게 */}
         <div className="card" style={{ padding: '18px 18px 6px', display: 'flex', flexDirection: 'column' }}>
@@ -162,16 +230,6 @@ export function Results() {
             </div>
           </div>
         </div>
-
-        {/* 검진 수치 넣기 (선택) */}
-        <a href="#/checkup" className="card" style={{ padding: '16px 18px', display: 'flex', alignItems: 'center', gap: 14, textDecoration: 'none', color: 'inherit' }}>
-          <span style={{ width: 44, height: 44, flexShrink: 0, borderRadius: 14, background: 'var(--linen)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: INK }}><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden><rect x="5" y="4" width="14" height="17" rx="2" /><path d="M9 4h6v3H9zM9 12h6M9 16h4" /></svg></span>
-          <span className="grow">
-            <b style={{ fontSize: 15, color: 'var(--obsidian)' }}>{nLab ? `검진 수치 ${nLab}개 반영됨` : '건강검진 결과지가 있나요?'}</b>
-            <span style={{ display: 'block', fontSize: 13, lineHeight: 1.5 }}>{nLab ? '수치를 고치거나 더 넣을 수 있어요' : '콜레스테롤·콩팥 수치를 넣으면 대사증후군·콩팥이 추정 대신 실제 값으로 나와요'}</span>
-          </span>
-          <span style={{ fontSize: 13, fontWeight: 700, color: INK, whiteSpace: 'nowrap' }}>{nLab ? '고치기' : '넣기'} →</span>
-        </a>
 
         {/* 그 밖의 항목 */}
         <div className="card" style={{ padding: '16px 18px 6px' }}>
@@ -281,6 +339,9 @@ export function Results() {
             </a>
           ))}
         </div>
+
+          </div>
+        </details>
 
         {missingMods.length > 0 && (
           <div className="closed" style={{ flexDirection: 'column' }}>

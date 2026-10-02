@@ -100,9 +100,15 @@ try {
   await click('결과 보기');
 
   console.log('결과 (예시 A와 같아야 함)'); ok((await route()) === '#/result', '#/result');
+  const t0 = await text();
+  // 첫 화면: 상태 한 줄 + 할 일 (docs/action-tiers.md). 예시 A는 비흡연·운동·정상 체형 → ④ 잘하고 있어요
+  ok(t0.slice(0, 400).includes('잘 관리하고 계세요') && t0.includes('담배를 피우지 않고'), '맨 위: 칭찬 + 지금처럼 유지');
+  ok(t0.includes('지금 이 상태일 가능성') && /1\.4\s*%/.test(t0), '확률 요약은 판정 아래에 그대로');
+  ok(!t0.includes('그 밖의 항목'), '긴 비교는 접혀 있다');
+  await p.evaluate(() => { document.querySelector('details.more').open = true; });
   const t = await text();
   // 실측 보정 후 예시 A(49세 여성): 당뇨 1.4% vs 진단받지 않은 또래 실측 1.5% → 또래와 비슷, 먼저 확인할 것 없음
-  ok(t.slice(0, 600).includes('먼저 확인할 것 없음') && t.slice(0, 600).includes('또래보다 높은 항목이 없어요'), '맨 위: 또래보다 높은 항목 없음 (보정 후)');
+  ok(t.includes('먼저 확인할 것 없음') && t.includes('또래보다 높은 항목이 없어요'), '자세히 보기: 또래보다 높은 항목 없음 (보정 후)');
   ok(t.includes('그 밖의 항목') && t.includes('또래와 비슷') && t.includes('또래보다 낮음'), '그 밖의 항목 묶음');
   ok(t.includes('이미 당뇨일 확률') && t.includes('또래와 비슷해요') && /1\.4\s*%/.test(t), '이미 당뇨일 확률: 보정 1.4% · 또래와 비슷');
   ok(t.includes('40대 여성 중 진단받지 않은 사람'), '또래 = 진단받지 않은 사람의 실측 비율');
@@ -138,6 +144,9 @@ try {
   console.log('고혈압 진단 + 과음이면 숨기지 않고 맨 앞에'); await p.evaluate(() => { location.hash = '/life'; }); await new Promise((r) => setTimeout(r, 300));
   await click('고혈압', '진단받은'); await click('거의 매일', '술은'); await click('소주 늘리기'); await click('소주 늘리기');
   await p.evaluate(() => { location.hash = '/result'; }); await new Promise((r) => setTimeout(r, 400));
+  const th0 = await text();
+  ok(th0.slice(0, 400).includes('간 확인이 필요해요') && th0.includes('고혈압은 지금처럼 관리를 이어가세요'), '맨 위: 과음 → 간 확인, 고혈압은 관리 이어가기');
+  await p.evaluate(() => { document.querySelector('details.more').open = true; });
   const th = await text();
   ok(th.includes('이미 진단받은 질환') && th.includes('관리 중이에요'), '고혈압 진단이 맨 위에 나온다');
   ok(th.includes('함께 확인할 것') && th.indexOf('간 수치 검사') < th.indexOf('관리하면 줄어드는 것'), '과음이면 간 검사 안내가 상단 카드에 나온다');
@@ -161,6 +170,8 @@ try {
   await click('건강검진 결과지가 있으면'); ok((await route()) === '#/checkup', '#/checkup 화면');
   await type('#lab-tc', '250'); await type('#lab-egfr', '55'); await click('1+', '요단백'); await shot('checkup');
   await click('결과에 반영하기'); await new Promise((r) => setTimeout(r, 400));
+  ok((await text()).slice(0, 400).includes('혈압·콜레스테롤 확인이 필요해요'), '맨 위: 혈압·콜레스테롤 병원 확인');
+  await p.evaluate(() => { document.querySelector('details.more').open = true; });
   const tl = await text();
   ok(tl.includes('검진 총콜레스테롤 250mg/dL') && tl.includes('eGFR 55 · 요단백 1+'), '검진 수치가 결과에 반영 (콜레스테롤 250, eGFR 55·요단백 1+)');
   ok(tl.includes('한 번의 검사로는 만성콩팥병이라고 하지 않아요'), '콩팥: 단일 검사로 확진하지 않는 문구');
@@ -171,6 +182,7 @@ try {
 
   console.log('개발자 모드 (?dev=1616)');
   await p.goto(BASE.replace(/\/?$/, '/') + '?dev=1616#/result', { waitUntil: 'networkidle0' }); await new Promise((r) => setTimeout(r, 400));
+  await p.evaluate(() => { document.querySelector('details.more').open = true; });
   const tdv = await text();
   ok(tdv.includes('개발자 모드') && tdv.includes('DEV · 엔진'), '개발자 모드: 엔진값 → 보정값 표시');
   await p.evaluate(() => { location.hash = '/dev'; }); await new Promise((r) => setTimeout(r, 300));

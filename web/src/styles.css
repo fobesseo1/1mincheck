@@ -97,3 +97,8 @@ details summary::-webkit-details-marker { display: none; }
 .fade { animation: fade .28s ease-out; }
 @keyframes fade { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) { .fade { animation: none; } .progress i { transition: none; } }
+/* 결과: 자세히 보기 (접힘) */
+.more > summary::-webkit-details-marker { display: none; }
+.more > summary > span:last-child { transition: transform .2s; }
+.more[open] > summary > span:last-child { transform: rotate(180deg); }
+.more-body { display: flex; flex-direction: column; gap: 14px !important; }
