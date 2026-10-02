@@ -19,6 +19,7 @@
 .ld .hero h1 { margin: 0; font-size: clamp(40px, 5.2vw, 64px); line-height: 1.1; font-weight: 800; letter-spacing: -0.045em; color: var(--obsidian); }
 .ld .hero h1 b { color: var(--ink); font-weight: 900; }
 .ld .hero p { font-size: 18px; line-height: 1.65; max-width: 540px; }
+.ld .promo { display: block; width: 100%; aspect-ratio: 16 / 9; border-radius: 24px; background: #fff; box-shadow: 0 24px 60px rgba(22, 51, 0, .14); object-fit: cover; }
 .ld .hero-left, .ld .hero-rest { display: flex; flex-direction: column; gap: 22px; }
 .ld .collage { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; }
 .ld .panel { border-radius: 32px; background-color: var(--bg); padding: 80px 40px; }

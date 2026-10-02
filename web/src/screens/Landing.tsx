@@ -4,7 +4,7 @@ import { samples, defaultSampleId } from '../../../src/sampleData.ts';
 import { viewResults, viewDetail, viewRecord, whatIfRows, applyScenario } from '../lib/view.ts';
 import { People, Icon } from '../ui.tsx';
 import { MiniTrial, loadMini, miniDraft, MINI_CTA } from './MiniTrial.tsx';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useStore } from '../ui.tsx';
 import { toInput } from '../state.ts';
 
@@ -52,6 +52,25 @@ const FAQ = [
   ['앱을 설치해야 하나요?', '설치 없이 웹에서 바로 이용할 수 있어요. 휴대폰 홈 화면에 추가하면 다음에 더 편하게 열 수 있어요.'],
 ];
 
+/** '이용 방법' 위 20초 사용 장면 영상: 소리 없이, 화면에 보일 때만 재생. 움직임 줄이기 설정이면 자동 재생하지 않음 */
+function PromoVideo() {
+  const ref = useRef<HTMLVideoElement>(null);
+  const reduce = typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  useEffect(() => {
+    const v = ref.current; if (!v || reduce || typeof IntersectionObserver === 'undefined') return;
+    const io = new IntersectionObserver(([e]) => { if (e.isIntersecting) v.play().catch(() => {}); else v.pause(); }, { threshold: 0.4 });
+    io.observe(v); return () => io.disconnect();
+  }, [reduce]);
+  const base = import.meta.env.BASE_URL;
+  return (
+    <figure style={{ margin: 0, width: '100%', maxWidth: 960, display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <video ref={ref} className="promo" src={`${base}video/promo-20s.mp4`} poster={`${base}video/promo-poster.jpg`} muted loop playsInline preload="none" controls={reduce}
+        aria-label="1분체크를 쓰는 장면 20초 영상(소리 없음): 몸 정보 입력, 결과 카드, 판정 카드" />
+      <figcaption style={{ fontSize: 13, color: 'var(--slate)', textAlign: 'center' }}>20초로 보는 1분체크 · 화면 속 숫자는 예시예요</figcaption>
+    </figure>
+  );
+}
+
 const Card = ({ children, style }: { children: React.ReactNode; style?: React.CSSProperties }) => <div className="card" style={{ borderRadius: 24, boxShadow: '0 6px 20px rgba(0,0,0,.06)', ...style }}>{children}</div>;
 
 export function Landing() {
@@ -84,6 +103,7 @@ export function Landing() {
 
       <section id="how" className="wrap"><div className="panel dots" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 44 }}>
         <h2 style={{ textAlign: 'center' }}>내 건강을 가늠하는 데 필요한 시간, 1분</h2>
+        <PromoVideo />
         <div className="steps" style={{ width: '100%' }}>
           {[['간단한 내 몸 정보를 입력해요', '나이·키·몸무게와 평소 생활에 답해 주세요. 허리둘레를 몰라도 시작할 수 있어요.', 'var(--linen)'],
             ['궁금한 분야는 더 살펴봐요', '수면·마음·소화·식생활은 원하는 분야만 추가로 확인해 보세요.', '#e3edf3'],
