@@ -7,7 +7,7 @@ import { drinkOf, type AppInput } from '../state.ts';
 import type { Lab } from '../../../engine/src/extras.ts';
 import { calibrate, peerOf, CAL_IDS, type CalId } from '../../../engine/src/calibrate.ts';
 import { rankOf } from '../../../engine/src/percentile.ts';
-import { adjustNumeric, isNum } from '../../../engine/src/numeric.ts';
+import { adjustNumeric, adjustGluAge, isNum } from '../../../engine/src/numeric.ts';
 import GM from '../../../engine/src/glucose_model.json';
 
 /** 보정 전 엔진 값(개발자 모드에서 함께 보여준다) */
@@ -51,7 +51,7 @@ function fit(R: Result[], i: Input): Result[] {
       // 공복혈당 126 미만: 앱 확률(혈당 미반영)과 연속 공복혈당을 함께 넣은 규제 회귀로 '현재 당뇨 가능성'을 다시 추정
       // (engine/src/glucose_model.json, 국민건강영양조사 2022–2024. 당화혈색소로만 당뇨인 경우가 있어 0이 되지 않는다)
       if (r.value == null) return r;
-      const papp = calibrate('dm', r.value, i.sex, i.age), p = glucoseProb(papp, L.glu);
+      const papp = calibrate('dm', r.value, i.sex, i.age), p = adjustGluAge(glucoseProb(papp, L.glu), i.sex, i.age);   // + 나이 항(고령에서 낮게 나오던 것)
       return { ...r, value: p, range: undefined, flags: [...(r.flags ?? []), 'GLU_MODEL', L.glu >= 100 ? 'GLU_PRE' : 'GLU_OK'], raw: r.value, rawPeer: r.peer } as ViewResult;
     }
     // 혈압 숫자를 넣었고 고혈압 기준(140/90) 미만이면, '고혈압일 확률' 대신 측정값으로 지금 상태를 보여준다
