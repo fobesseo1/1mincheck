@@ -38,6 +38,12 @@ try {
   await p.evaluate(() => { sessionStorage.clear(); localStorage.clear(); });
   console.log('랜딩'); await shot('landing');
   ok((await text()).includes('1분이면 보는'), '랜딩 헤드라인');
+  // 미니 체험: 입력 중에는 결과가 안 바뀌고, '결과 보기'를 눌러야 나온다
+  await click('남성'); await type('.mini input[aria-label="만 나이"]', '56'); await type('.mini input[aria-label="키"]', '172'); await type('.mini input[aria-label="몸무게"]', '88');
+  ok(!(await text()).includes('내 BMI'), '미니: 누르기 전에는 결과 없음');
+  await click('결과 보기'); const tm = await text();
+  ok(tm.includes('50대 남성 · BMI 25–30') && /당뇨[\s\S]*약 10%/.test(tm), '미니: 56세 남성 BMI 29.7 → 같은 사람들의 실제 비율(당뇨 약 10%)');
+  await type('.mini input[aria-label="몸무게"]', '70'); ok(!(await text()).includes('내 BMI'), '미니: 값을 고치면 결과를 지우고 다시 누르게');
   await click('1분 체크 시작하기');
   console.log('온보딩'); ok((await route()) === '#/start', '#/start'); await shot('start');
   await click('시작하기'); await shot('intro');

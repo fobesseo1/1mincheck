@@ -1,0 +1,1019 @@
+{
+ "meta": {
+  "source": "국민건강영양조사 제9기(2022–2024) 원시자료, 질병관리청 — 집계만",
+  "generated": "2026-10-02",
+  "ages": [
+   "19–29",
+   "30–39",
+   "40–49",
+   "50–59",
+   "60–69",
+   "70+"
+  ],
+  "bmi": [
+   "<23",
+   "23–24.9",
+   "25–29.9",
+   "≥30"
+  ],
+  "rule": "칸 n<50이면 BMI 25 이상 합침(scope bmi25+), 그래도 부족하면 성별·나이대 전체(scope age). dm·htn = 진단받지 않은 사람의 실측 비율, nafld = 같은 칸 사람들 실제 답으로 계산한 앱 확률 평균"
+ },
+ "table": {
+  "M19": {
+   "dm": [
+    {
+     "pct": 0,
+     "n": 296,
+     "scope": "bmi"
+    },
+    {
+     "pct": 0,
+     "n": 156,
+     "scope": "bmi"
+    },
+    {
+     "pct": 0.4,
+     "n": 215,
+     "scope": "bmi"
+    },
+    {
+     "pct": 8.2,
+     "n": 94,
+     "scope": "bmi"
+    }
+   ],
+   "dm_all": {
+    "pct": 1.1,
+    "n": 761,
+    "scope": ""
+   },
+   "htn": [
+    {
+     "pct": 1.7,
+     "n": 306,
+     "scope": "bmi"
+    },
+    {
+     "pct": 3.2,
+     "n": 162,
+     "scope": "bmi"
+    },
+    {
+     "pct": 4.9,
+     "n": 219,
+     "scope": "bmi"
+    },
+    {
+     "pct": 5.5,
+     "n": 98,
+     "scope": "bmi"
+    }
+   ],
+   "htn_all": {
+    "pct": 3.4,
+    "n": 785,
+    "scope": ""
+   },
+   "nafld": [
+    {
+     "pct": 6.3,
+     "n": 277,
+     "scope": "bmi"
+    },
+    {
+     "pct": 12.7,
+     "n": 141,
+     "scope": "bmi"
+    },
+    {
+     "pct": 30.2,
+     "n": 195,
+     "scope": "bmi"
+    },
+    {
+     "pct": 51.6,
+     "n": 95,
+     "scope": "bmi"
+    }
+   ],
+   "nafld_all": {
+    "pct": 20.7,
+    "n": 708,
+    "scope": ""
+   }
+  },
+  "M30": {
+   "dm": [
+    {
+     "pct": 0,
+     "n": 217,
+     "scope": "bmi"
+    },
+    {
+     "pct": 0,
+     "n": 178,
+     "scope": "bmi"
+    },
+    {
+     "pct": 1.4,
+     "n": 290,
+     "scope": "bmi"
+    },
+    {
+     "pct": 8.9,
+     "n": 95,
+     "scope": "bmi"
+    }
+   ],
+   "dm_all": {
+    "pct": 1.7,
+    "n": 780,
+    "scope": ""
+   },
+   "htn": [
+    {
+     "pct": 4,
+     "n": 222,
+     "scope": "bmi"
+    },
+    {
+     "pct": 4.5,
+     "n": 179,
+     "scope": "bmi"
+    },
+    {
+     "pct": 9.5,
+     "n": 283,
+     "scope": "bmi"
+    },
+    {
+     "pct": 11,
+     "n": 87,
+     "scope": "bmi"
+    }
+   ],
+   "htn_all": {
+    "pct": 7,
+    "n": 771,
+    "scope": ""
+   },
+   "nafld": [
+    {
+     "pct": 11.2,
+     "n": 185,
+     "scope": "bmi"
+    },
+    {
+     "pct": 24.4,
+     "n": 164,
+     "scope": "bmi"
+    },
+    {
+     "pct": 44.8,
+     "n": 260,
+     "scope": "bmi"
+    },
+    {
+     "pct": 65,
+     "n": 89,
+     "scope": "bmi"
+    }
+   ],
+   "nafld_all": {
+    "pct": 34.4,
+    "n": 698,
+    "scope": ""
+   }
+  },
+  "M40": {
+   "dm": [
+    {
+     "pct": 0.3,
+     "n": 215,
+     "scope": "bmi"
+    },
+    {
+     "pct": 1.6,
+     "n": 220,
+     "scope": "bmi"
+    },
+    {
+     "pct": 4.7,
+     "n": 387,
+     "scope": "bmi"
+    },
+    {
+     "pct": 11.7,
+     "n": 101,
+     "scope": "bmi"
+    }
+   ],
+   "dm_all": {
+    "pct": 3.7,
+    "n": 923,
+    "scope": ""
+   },
+   "htn": [
+    {
+     "pct": 5.4,
+     "n": 213,
+     "scope": "bmi"
+    },
+    {
+     "pct": 14.7,
+     "n": 212,
+     "scope": "bmi"
+    },
+    {
+     "pct": 17.6,
+     "n": 366,
+     "scope": "bmi"
+    },
+    {
+     "pct": 18.3,
+     "n": 80,
+     "scope": "bmi"
+    }
+   ],
+   "htn_all": {
+    "pct": 14,
+    "n": 871,
+    "scope": ""
+   },
+   "nafld": [
+    {
+     "pct": 18.3,
+     "n": 171,
+     "scope": "bmi"
+    },
+    {
+     "pct": 39,
+     "n": 182,
+     "scope": "bmi"
+    },
+    {
+     "pct": 63.4,
+     "n": 334,
+     "scope": "bmi"
+    },
+    {
+     "pct": 77.6,
+     "n": 101,
+     "scope": "bmi"
+    }
+   ],
+   "nafld_all": {
+    "pct": 49.6,
+    "n": 788,
+    "scope": ""
+   }
+  },
+  "M50": {
+   "dm": [
+    {
+     "pct": 4.4,
+     "n": 246,
+     "scope": "bmi"
+    },
+    {
+     "pct": 4.9,
+     "n": 245,
+     "scope": "bmi"
+    },
+    {
+     "pct": 10,
+     "n": 380,
+     "scope": "bmi"
+    },
+    {
+     "pct": 9.6,
+     "n": 61,
+     "scope": "bmi"
+    }
+   ],
+   "dm_all": {
+    "pct": 7.2,
+    "n": 932,
+    "scope": ""
+   },
+   "htn": [
+    {
+     "pct": 7.2,
+     "n": 244,
+     "scope": "bmi"
+    },
+    {
+     "pct": 12.5,
+     "n": 225,
+     "scope": "bmi"
+    },
+    {
+     "pct": 20,
+     "n": 296,
+     "scope": "bmi"
+    },
+    {
+     "pct": 20.7,
+     "n": 324,
+     "scope": "bmi25+"
+    }
+   ],
+   "htn_all": {
+    "pct": 14.5,
+    "n": 793,
+    "scope": ""
+   },
+   "nafld": [
+    {
+     "pct": 23.1,
+     "n": 237,
+     "scope": "bmi"
+    },
+    {
+     "pct": 43.4,
+     "n": 236,
+     "scope": "bmi"
+    },
+    {
+     "pct": 64.9,
+     "n": 384,
+     "scope": "bmi"
+    },
+    {
+     "pct": 79,
+     "n": 61,
+     "scope": "bmi"
+    }
+   ],
+   "nafld_all": {
+    "pct": 50.2,
+    "n": 918,
+    "scope": ""
+   }
+  },
+  "M60": {
+   "dm": [
+    {
+     "pct": 4.2,
+     "n": 361,
+     "scope": "bmi"
+    },
+    {
+     "pct": 8.4,
+     "n": 296,
+     "scope": "bmi"
+    },
+    {
+     "pct": 9.3,
+     "n": 340,
+     "scope": "bmi"
+    },
+    {
+     "pct": 10.3,
+     "n": 365,
+     "scope": "bmi25+"
+    }
+   ],
+   "dm_all": {
+    "pct": 7.6,
+    "n": 1022,
+    "scope": ""
+   },
+   "htn": [
+    {
+     "pct": 12.6,
+     "n": 324,
+     "scope": "bmi"
+    },
+    {
+     "pct": 19.6,
+     "n": 211,
+     "scope": "bmi"
+    },
+    {
+     "pct": 19.6,
+     "n": 204,
+     "scope": "bmi"
+    },
+    {
+     "pct": 20.3,
+     "n": 215,
+     "scope": "bmi25+"
+    }
+   ],
+   "htn_all": {
+    "pct": 16.7,
+    "n": 750,
+    "scope": ""
+   },
+   "nafld": [
+    {
+     "pct": 26.3,
+     "n": 406,
+     "scope": "bmi"
+    },
+    {
+     "pct": 47.3,
+     "n": 345,
+     "scope": "bmi"
+    },
+    {
+     "pct": 69.8,
+     "n": 404,
+     "scope": "bmi"
+    },
+    {
+     "pct": 70.8,
+     "n": 439,
+     "scope": "bmi25+"
+    }
+   ],
+   "nafld_all": {
+    "pct": 48.8,
+    "n": 1190,
+    "scope": ""
+   }
+  },
+  "M70": {
+   "dm": [
+    {
+     "pct": 6.7,
+     "n": 353,
+     "scope": "bmi"
+    },
+    {
+     "pct": 4.7,
+     "n": 244,
+     "scope": "bmi"
+    },
+    {
+     "pct": 8,
+     "n": 232,
+     "scope": "bmi"
+    },
+    {
+     "pct": 8.8,
+     "n": 248,
+     "scope": "bmi25+"
+    }
+   ],
+   "dm_all": {
+    "pct": 6.7,
+    "n": 845,
+    "scope": ""
+   },
+   "htn": [
+    {
+     "pct": 18,
+     "n": 267,
+     "scope": "bmi"
+    },
+    {
+     "pct": 15.8,
+     "n": 150,
+     "scope": "bmi"
+    },
+    {
+     "pct": 26,
+     "n": 109,
+     "scope": "bmi"
+    },
+    {
+     "pct": 25.2,
+     "n": 113,
+     "scope": "bmi25+"
+    }
+   ],
+   "htn_all": {
+    "pct": 18.9,
+    "n": 530,
+    "scope": ""
+   },
+   "nafld": [
+    {
+     "pct": 26.6,
+     "n": 412,
+     "scope": "bmi"
+    },
+    {
+     "pct": 47.9,
+     "n": 295,
+     "scope": "bmi"
+    },
+    {
+     "pct": 68.9,
+     "n": 306,
+     "scope": "bmi"
+    },
+    {
+     "pct": 70,
+     "n": 332,
+     "scope": "bmi25+"
+    }
+   ],
+   "nafld_all": {
+    "pct": 46.1,
+    "n": 1039,
+    "scope": ""
+   }
+  },
+  "F19": {
+   "dm": [
+    {
+     "pct": 0,
+     "n": 628,
+     "scope": "bmi"
+    },
+    {
+     "pct": 0,
+     "n": 113,
+     "scope": "bmi"
+    },
+    {
+     "pct": 1.4,
+     "n": 127,
+     "scope": "bmi"
+    },
+    {
+     "pct": 1.5,
+     "n": 51,
+     "scope": "bmi"
+    }
+   ],
+   "dm_all": {
+    "pct": 0.3,
+    "n": 919,
+    "scope": ""
+   },
+   "htn": [
+    {
+     "pct": 0.8,
+     "n": 646,
+     "scope": "bmi"
+    },
+    {
+     "pct": 0,
+     "n": 118,
+     "scope": "bmi"
+    },
+    {
+     "pct": 0.9,
+     "n": 133,
+     "scope": "bmi"
+    },
+    {
+     "pct": 2.6,
+     "n": 54,
+     "scope": "bmi"
+    }
+   ],
+   "htn_all": {
+    "pct": 0.8,
+    "n": 951,
+    "scope": ""
+   },
+   "nafld": [
+    {
+     "pct": 1,
+     "n": 585,
+     "scope": "bmi"
+    },
+    {
+     "pct": 2.2,
+     "n": 108,
+     "scope": "bmi"
+    },
+    {
+     "pct": 8.9,
+     "n": 119,
+     "scope": "bmi"
+    },
+    {
+     "pct": 12.2,
+     "n": 164,
+     "scope": "bmi25+"
+    }
+   ],
+   "nafld_all": {
+    "pct": 3.3,
+    "n": 857,
+    "scope": ""
+   }
+  },
+  "F30": {
+   "dm": [
+    {
+     "pct": 0.1,
+     "n": 562,
+     "scope": "bmi"
+    },
+    {
+     "pct": 0,
+     "n": 149,
+     "scope": "bmi"
+    },
+    {
+     "pct": 3.8,
+     "n": 153,
+     "scope": "bmi"
+    },
+    {
+     "pct": 6.3,
+     "n": 70,
+     "scope": "bmi"
+    }
+   ],
+   "dm_all": {
+    "pct": 1.1,
+    "n": 934,
+    "scope": ""
+   },
+   "htn": [
+    {
+     "pct": 1.3,
+     "n": 584,
+     "scope": "bmi"
+    },
+    {
+     "pct": 2.1,
+     "n": 152,
+     "scope": "bmi"
+    },
+    {
+     "pct": 4.6,
+     "n": 161,
+     "scope": "bmi"
+    },
+    {
+     "pct": 9.1,
+     "n": 71,
+     "scope": "bmi"
+    }
+   ],
+   "htn_all": {
+    "pct": 2.5,
+    "n": 968,
+    "scope": ""
+   },
+   "nafld": [
+    {
+     "pct": 1.3,
+     "n": 530,
+     "scope": "bmi"
+    },
+    {
+     "pct": 6.4,
+     "n": 140,
+     "scope": "bmi"
+    },
+    {
+     "pct": 19.2,
+     "n": 153,
+     "scope": "bmi"
+    },
+    {
+     "pct": 29,
+     "n": 67,
+     "scope": "bmi"
+    }
+   ],
+   "nafld_all": {
+    "pct": 7.1,
+    "n": 890,
+    "scope": ""
+   }
+  },
+  "F40": {
+   "dm": [
+    {
+     "pct": 0.3,
+     "n": 791,
+     "scope": "bmi"
+    },
+    {
+     "pct": 0.2,
+     "n": 239,
+     "scope": "bmi"
+    },
+    {
+     "pct": 3.7,
+     "n": 254,
+     "scope": "bmi"
+    },
+    {
+     "pct": 9.8,
+     "n": 89,
+     "scope": "bmi"
+    }
+   ],
+   "dm_all": {
+    "pct": 1.5,
+    "n": 1373,
+    "scope": ""
+   },
+   "htn": [
+    {
+     "pct": 3.5,
+     "n": 788,
+     "scope": "bmi"
+    },
+    {
+     "pct": 3.7,
+     "n": 244,
+     "scope": "bmi"
+    },
+    {
+     "pct": 7.3,
+     "n": 237,
+     "scope": "bmi"
+    },
+    {
+     "pct": 17.1,
+     "n": 70,
+     "scope": "bmi"
+    }
+   ],
+   "htn_all": {
+    "pct": 4.9,
+    "n": 1339,
+    "scope": ""
+   },
+   "nafld": [
+    {
+     "pct": 1.8,
+     "n": 720,
+     "scope": "bmi"
+    },
+    {
+     "pct": 11.9,
+     "n": 234,
+     "scope": "bmi"
+    },
+    {
+     "pct": 29.5,
+     "n": 243,
+     "scope": "bmi"
+    },
+    {
+     "pct": 46.3,
+     "n": 83,
+     "scope": "bmi"
+    }
+   ],
+   "nafld_all": {
+    "pct": 11.9,
+    "n": 1280,
+    "scope": ""
+   }
+  },
+  "F50": {
+   "dm": [
+    {
+     "pct": 1.7,
+     "n": 743,
+     "scope": "bmi"
+    },
+    {
+     "pct": 2.2,
+     "n": 334,
+     "scope": "bmi"
+    },
+    {
+     "pct": 5.4,
+     "n": 328,
+     "scope": "bmi"
+    },
+    {
+     "pct": 13.6,
+     "n": 76,
+     "scope": "bmi"
+    }
+   ],
+   "dm_all": {
+    "pct": 3.2,
+    "n": 1481,
+    "scope": ""
+   },
+   "htn": [
+    {
+     "pct": 6.5,
+     "n": 717,
+     "scope": "bmi"
+    },
+    {
+     "pct": 7.7,
+     "n": 293,
+     "scope": "bmi"
+    },
+    {
+     "pct": 11.3,
+     "n": 275,
+     "scope": "bmi"
+    },
+    {
+     "pct": 15.9,
+     "n": 58,
+     "scope": "bmi"
+    }
+   ],
+   "htn_all": {
+    "pct": 8.1,
+    "n": 1343,
+    "scope": ""
+   },
+   "nafld": [
+    {
+     "pct": 5.6,
+     "n": 697,
+     "scope": "bmi"
+    },
+    {
+     "pct": 22.9,
+     "n": 328,
+     "scope": "bmi"
+    },
+    {
+     "pct": 42.4,
+     "n": 332,
+     "scope": "bmi"
+    },
+    {
+     "pct": 56.1,
+     "n": 84,
+     "scope": "bmi"
+    }
+   ],
+   "nafld_all": {
+    "pct": 20.7,
+    "n": 1441,
+    "scope": ""
+   }
+  },
+  "F60": {
+   "dm": [
+    {
+     "pct": 2.1,
+     "n": 640,
+     "scope": "bmi"
+    },
+    {
+     "pct": 2.7,
+     "n": 375,
+     "scope": "bmi"
+    },
+    {
+     "pct": 5.3,
+     "n": 435,
+     "scope": "bmi"
+    },
+    {
+     "pct": 6.4,
+     "n": 73,
+     "scope": "bmi"
+    }
+   ],
+   "dm_all": {
+    "pct": 3.4,
+    "n": 1523,
+    "scope": ""
+   },
+   "htn": [
+    {
+     "pct": 8,
+     "n": 559,
+     "scope": "bmi"
+    },
+    {
+     "pct": 11.8,
+     "n": 290,
+     "scope": "bmi"
+    },
+    {
+     "pct": 20,
+     "n": 297,
+     "scope": "bmi"
+    },
+    {
+     "pct": 21,
+     "n": 335,
+     "scope": "bmi25+"
+    }
+   ],
+   "htn_all": {
+    "pct": 12.5,
+    "n": 1184,
+    "scope": ""
+   },
+   "nafld": [
+    {
+     "pct": 9.1,
+     "n": 634,
+     "scope": "bmi"
+    },
+    {
+     "pct": 31.9,
+     "n": 393,
+     "scope": "bmi"
+    },
+    {
+     "pct": 49.9,
+     "n": 466,
+     "scope": "bmi"
+    },
+    {
+     "pct": 60.7,
+     "n": 88,
+     "scope": "bmi"
+    }
+   ],
+   "nafld_all": {
+    "pct": 29.8,
+    "n": 1581,
+    "scope": ""
+   }
+  },
+  "F70": {
+   "dm": [
+    {
+     "pct": 2.6,
+     "n": 414,
+     "scope": "bmi"
+    },
+    {
+     "pct": 2.8,
+     "n": 259,
+     "scope": "bmi"
+    },
+    {
+     "pct": 7.3,
+     "n": 374,
+     "scope": "bmi"
+    },
+    {
+     "pct": 7.8,
+     "n": 420,
+     "scope": "bmi25+"
+    }
+   ],
+   "dm_all": {
+    "pct": 4.7,
+    "n": 1093,
+    "scope": ""
+   },
+   "htn": [
+    {
+     "pct": 19.2,
+     "n": 311,
+     "scope": "bmi"
+    },
+    {
+     "pct": 24,
+     "n": 134,
+     "scope": "bmi"
+    },
+    {
+     "pct": 19.9,
+     "n": 152,
+     "scope": "bmi"
+    },
+    {
+     "pct": 20,
+     "n": 165,
+     "scope": "bmi25+"
+    }
+   ],
+   "htn_all": {
+    "pct": 20.5,
+    "n": 610,
+    "scope": ""
+   },
+   "nafld": [
+    {
+     "pct": 13.6,
+     "n": 483,
+     "scope": "bmi"
+    },
+    {
+     "pct": 36.5,
+     "n": 310,
+     "scope": "bmi"
+    },
+    {
+     "pct": 54,
+     "n": 418,
+     "scope": "bmi"
+    },
+    {
+     "pct": 63,
+     "n": 57,
+     "scope": "bmi"
+    }
+   ],
+   "nafld_all": {
+    "pct": 34.6,
+    "n": 1268,
+    "scope": ""
+   }
+  }
+ }
+}

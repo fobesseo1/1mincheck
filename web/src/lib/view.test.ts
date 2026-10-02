@@ -215,12 +215,14 @@ describe('입력 변환', () => {
 });
 
 describe('랜딩 미니 체험', () => {
-  it('나이·성별·키·몸무게만으로 고혈압·당뇨·지방간 3개, 허리 모름이면 범위', async () => {
+  it('같은 성별·나이대·BMI 사람들의 실제 비율 (모르는 답을 없음으로 가정하지 않음)', async () => {
     const { miniResults, miniError } = await import('../screens/MiniTrial.tsx');
-    const r = miniResults(45, 'M', 172, 85);
-    expect(r.map((p) => p.id)).toEqual(['htn', 'dm', 'nafld']);
-    expect(r[1].pct).toContain('–'); expect(r[2].pct).toContain('–');
-    expect(miniError('18', '170', '70')).toBeTruthy(); expect(miniError('45', '170', '70')).toBeNull();
+    const r = miniResults(56, 'M', 172, 88);   // BMI 29.7 → 50대 남성 BMI 25–30
+    expect(r.rows.map((p) => p.id)).toEqual(['dm', 'htn', 'nafld']);
+    expect(r.bmiLabel).toBe('BMI 25–30');
+    expect(r.rows[0].pct!).toBeGreaterThan(7);              // 50대 남성 전체(약 7%)보다 높아야
+    expect(miniResults(56, 'M', 172, 60).rows[0].pct!).toBeLessThan(r.rows[0].pct!);
+    expect(miniError('45', '170', '70', null)).toBeTruthy(); expect(miniError('18', '170', '70', 'M')).toBeTruthy(); expect(miniError('45', '170', '70', 'M')).toBeNull();
   });
 });
 
