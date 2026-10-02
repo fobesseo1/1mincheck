@@ -5,7 +5,9 @@ import { toInput, suggestScenario, saveRecords, today, drinkOf } from '../state.
 import { runExtras } from '../../../engine/src/extras.ts';
 import { ExtraCards } from './Extras.tsx';
 import { DevNote } from './DevNote.tsx';
-import { viewResults, labOf, INK, LOOK } from '../lib/view.ts';
+import { viewResults, labOf, xfmt, INK, LOOK } from '../lib/view.ts';
+/** 또래의 2배 이상·기준 이상 같은 강한 위험 신호 색 */
+const RED = '#a8231a';
 import { labCount } from '../lib/labs.ts';
 import { MODULE_OF, DISCLAIMER, MEANING, type ItemId } from '../lib/content.ts';
 import { verdict, type Verdict } from '../lib/verdict.ts';
@@ -47,7 +49,7 @@ const Chips = ({ items }: { items: { id: ItemId; name: string }[] }) => (
 
 /** 단계별 색: ① 지금 바로 ② 병원 확인 ⑤ 관리 중 ③ 습관 바꾸기 ④ 잘하고 있어요 */
 const TONE: Record<Verdict['tier'], { bg: string; fg: string; tagBg: string; tagFg: string }> = {
-  1: { bg: '#fdecea', fg: '#a8231a', tagBg: '#a8231a', tagFg: '#fff' },
+  1: { bg: '#fdecea', fg: RED, tagBg: RED, tagFg: '#fff' },
   2: { bg: 'var(--look-bg)', fg: LOOK, tagBg: LOOK, tagFg: '#fff' },
   5: { bg: '#fff', fg: 'var(--obsidian)', tagBg: 'var(--ink)', tagFg: 'var(--lime)' },
   3: { bg: '#fff', fg: 'var(--obsidian)', tagBg: 'var(--linen)', tagFg: 'var(--ink)' },
@@ -120,16 +122,25 @@ export function Results() {
           <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 8, padding: '10px 0 4px' }}>
             <b style={{ fontSize: 15, color: 'var(--obsidian)' }}>지금 이 상태일 가능성</b><span style={{ fontSize: 11, color: 'var(--slate)' }}>앞으로가 아니라 지금</span>
           </div>
-          {r.prob.map((c) => (
-            <a key={c.id} href={`#/detail/${c.id}`} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, padding: '11px 0', borderTop: '1px solid var(--line)', textDecoration: 'none', color: 'inherit' }}>
-              <span style={{ minWidth: 0 }}><b style={{ fontSize: 15, color: 'var(--obsidian)' }}>{c.title}</b>
-                <span style={{ display: 'block', fontSize: 12, color: c.cmp ? c.cmp.col : c.tone === 'look' ? LOOK : 'var(--slate)' }}>{c.cmp ? c.cmp.headline : c.status === 'managed' ? '진단받아 관리 중' : c.status === 'criteria' ? '검진 수치가 기준 이상' : c.status === 'excluded' ? '점수로 판단하지 않음' : c.note.split('.')[0]}</span></span>
-              <b style={{ flexShrink: 0, fontSize: 18, fontWeight: 900, color: 'var(--obsidian)' }}>{c.pct !== '–' ? `${c.pct}%` : ''}</b>
-            </a>
-          ))}
+          {r.prob.map((c) => {
+            // 숫자 %보다 '또래의 몇 배'를 크게: 22.5%는 낮아 보이지만 또래의 3배면 높은 것
+            const x = c.cmp?.x ?? 0, hi = !!c.cmp?.high, very = hi && x >= 2;
+            const big = c.cmp ? (hi ? `또래의 ${xfmt(x)}배` : c.cmp.label === '낮음' ? '또래보다 낮아요' : '또래와 비슷해요')
+              : c.status === 'managed' ? '관리 중' : c.status === 'criteria' ? '기준 이상' : c.status === 'excluded' ? '검사 필요' : c.pct !== '–' ? `${c.pct}%` : '';
+            const col = very || c.status === 'criteria' || c.status === 'excluded' ? RED : hi ? LOOK : c.status === 'managed' ? INK : 'var(--charcoal)';
+            const small = c.cmp ? `지금 ${c.pct}% · 또래 평균 ${c.peerTxt}%` : c.status === 'managed' ? '진단받아 관리 중' : c.status === 'criteria' ? '검진 수치가 기준 이상' : c.status === 'excluded' ? '술 때문에 점수로 판단하지 않음' : c.note.split('.')[0];
+            return (
+              <a key={c.id} href={`#/detail/${c.id}`} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, padding: '11px 0', borderTop: '1px solid var(--line)', textDecoration: 'none', color: 'inherit' }}>
+                <span style={{ minWidth: 0 }}><b style={{ fontSize: 15, color: 'var(--obsidian)' }}>{c.title}</b>
+                  <span style={{ display: 'block', fontSize: 12, color: 'var(--slate)' }}>{small}</span></span>
+                <b style={{ flexShrink: 0, fontSize: hi || c.status === 'criteria' ? 20 : 14, fontWeight: hi ? 900 : 700, letterSpacing: '-0.03em', color: col, textAlign: 'right' }}>{big}</b>
+              </a>
+            );
+          })}
           {r.score.some((x) => x.status === 'ok' && x.v !== '–') && (
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, padding: '10px 0 12px', borderTop: '1px solid var(--line)' }}>
-              {r.score.filter((x) => x.status === 'ok' && x.v !== '–').map((x) => <a key={x.id} href={`#/detail/${x.id}`} className="pill" style={{ background: 'var(--bg)', color: x.col, textDecoration: 'none' }}>{x.name} · {x.cat}</a>)}
+              {r.score.filter((x) => x.status === 'ok' && x.v !== '–').map((x) => { const risk = /고위험|양성|높음|중등도|심함|중증|2단계|3단계/.test(x.cat), flag = x.col === LOOK;
+                return <a key={x.id} href={`#/detail/${x.id}`} className="pill" style={{ background: risk ? '#fdecea' : flag ? 'var(--look-bg)' : 'var(--bg)', color: risk ? RED : flag ? LOOK : 'var(--charcoal)', fontWeight: risk || flag ? 800 : 600, textDecoration: 'none' }}>{x.name} · {x.cat}</a>; })}
             </div>
           )}
         </div>

@@ -1,11 +1,12 @@
 /**
  * 결과 첫 화면의 '상태 한 줄 + 할 일 1–2개' (docs/action-tiers.md).
  * 우선순위 ① 지금 바로 병원 > ② 병원 확인 > ⑤ 관리 중 > ③ 습관 바꾸기 > ④ 지금처럼 유지. 하나만 맨 위에 올린다.
+ * ② 병원 확인은 걸리는 문제를 모두 보여준다(제목·할 일 최대 3개, 넘치면 '함께 확인할 것'). 또래의 2배 이상인 확률도 ②에 넣는다.
  * 확률·또래 비교는 이 판정의 근거로 아래에 그대로 둔다(계산은 engine·view 그대로).
  */
 import type { AppInput } from '../state.ts';
 import type { Scenario } from './view.ts';
-import { viewResults, labOf, severeBp } from './view.ts';
+import { viewResults, labOf, severeBp, xfmt } from './view.ts';
 import { SEVERE_HTN_SYMPTOM, ACTION, type ItemId } from './content.ts';
 
 export type Tier = 1 | 2 | 5 | 3 | 4;
@@ -66,6 +67,15 @@ export function verdict(inp: AppInput, r: R, sc: Scenario): Verdict {
   const egfrLow = L.egfr != null && L.egfr < 60, upro = L.upro != null && L.upro >= 2;
   if (egfrLow || upro) cs.push({ name: '콩팥', why: [egfrLow && `eGFR ${L.egfr} (60 미만)`, upro && '요단백 1+ 이상'].filter(Boolean).join(' · '), t: '내과에서 콩팥 검사를 다시 받으세요', d: '한 번의 검사로는 콩팥병이라고 하지 않아요. 다시 검사해서 같은지 확인해요.' });
   if (st('nafld')?.status === 'excluded') cs.push({ name: '간', why: '술을 많이 드셔서 간 검사가 필요해요', t: '간 수치 검사를 받으세요', d: 'AST·ALT·감마지티피 혈액검사로 술 때문에 간이 상했는지 봐요. 술을 줄이는 게 먼저예요.', href: '#/detail/nafld' });
+  // 또래의 2배 이상인 확률 항목도 병원 확인 사유 (몸 → 마음 순서, 배수가 큰 것 먼저)
+  const CMP_NAME: Partial<Record<ItemId, [string, string, string]>> = {
+    dm: ['혈당', '당뇨', '혈당 검사(공복혈당·당화혈색소)를 받으세요'], htn: ['혈압', '고혈압', '혈압을 재고 내과 진료를 받으세요'],
+    chol: ['콜레스테롤', '고콜레스테롤', '콜레스테롤 혈액검사를 받으세요'], nafld: ['간', '지방간', '간 수치 검사와 복부 초음파로 확인하세요'], osteo: ['뼈', '골다공증', '골밀도 검사를 받으세요'] };
+  r.prob.filter((p) => p.cmp && p.cmp.x >= 2 && CMP_NAME[p.id as ItemId]).sort((a, b) => b.cmp!.x - a.cmp!.x).forEach((p) => {
+    const [name, dis, t] = CMP_NAME[p.id as ItemId]!;
+    if (cs.some((c) => c.name === name)) return;
+    cs.push({ name, why: `${dis} 가능성이 또래의 ${xfmt(p.cmp!.x)}배예요`, t, d: `지금 ${p.pct}% · 같은 또래 평균 ${p.peerTxt}%`, href: `#/detail/${p.id}` });
+  });
   if (strong('dep')) cs.push({ name: '마음', why: '우울 점수가 상담을 권하는 수준이에요', t: '정신건강복지센터나 병원에서 상담을 받으세요', d: '많이 힘들면 109(24시간)로 전화하세요.', href: '#/detail/dep' });
   if (strong('gad')) cs.push({ name: '불안', why: '불안 점수가 확인이 필요한 수준이에요', t: '불안이 2주 넘게 이어지면 상담을 받으세요', href: '#/detail/gad' });
   if (strong('osa')) cs.push({ name: '수면', why: '수면무호흡 가능성이 높은 점수예요', t: '수면 검사를 상담하세요', d: '수면다원검사는 건강보험이 적용돼요.', href: '#/detail/osa' });
@@ -75,10 +85,12 @@ export function verdict(inp: AppInput, r: R, sc: Scenario): Verdict {
   if (cs.length) {
     const names = [...new Set(cs.map((c) => c.name))];
     return {
-      tier: 2, tag: '병원 확인', title: `${names.slice(0, 2).join('·')} 확인이 필요해요`,
-      sub: cs.slice(0, 2).map((c) => c.why).join(' / ') + (dxNames.length ? ` · ${dxNames.join('·')}${j(dxNames[dxNames.length - 1], '은', '는')} 지금처럼 관리를 이어가세요` : ''),
+      tier: 2, tag: '병원 확인', title: `${names.slice(0, 3).join('·')} 확인이 필요해요`,
+      sub: cs.slice(0, 3).map((c) => c.why).join(' / ') + (dxNames.length ? ` · ${dxNames.join('·')}${j(dxNames[dxNames.length - 1], '은', '는')} 지금처럼 관리를 이어가세요` : ''),
       // 확인할 것이 하나면 가장 효과 큰 습관 1개를 덧붙인다 (예: 혈압 + 금연)
-      actions: [...cs.slice(0, 2).map(({ t, d, href }) => ({ t, d, href })), ...(cs.length === 1 && hs[0] && hs[0].key !== 'bp' ? [{ t: hs[0].t, d: hs[0].d, href: hs[0].href }] : [])],
+      actions: [...cs.slice(0, 3).map(({ t, d, href }) => ({ t, d, href })), ...(cs.length === 1 && hs[0] && hs[0].key !== 'bp' ? [{ t: hs[0].t, d: hs[0].d, href: hs[0].href }] : [])],
+      // 병원 확인할 것이 3개를 넘으면 나머지 이름을 빠짐없이 덧붙인다
+      also: cs.length > 3 ? `함께 확인할 것: ${[...new Set(cs.slice(3).map((c) => c.name))].join('·')}` : undefined,
     };
   }
 

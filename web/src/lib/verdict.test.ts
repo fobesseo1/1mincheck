@@ -14,7 +14,7 @@ describe('첫 화면 판정 (정답지)', () => {
       for (const m of c.must) expect(text).toContain(m);
       for (const m of c.not ?? []) expect(text).not.toContain(m);
       expect(v.actions.length).toBeGreaterThan(0);
-      expect(v.actions.length).toBeLessThanOrEqual(2);
+      expect(v.actions.length).toBeLessThanOrEqual(v.tier === 2 ? 3 : 2);   // 병원 확인은 걸린 문제를 최대 3개까지 모두
       expect(text).not.toMatch(/(^|[^\d/])119|응급실|유병률|백분위|AUC|보정/);
     });
   }

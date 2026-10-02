@@ -151,7 +151,7 @@ try {
   await click('고혈압', '진단받은'); await click('거의 매일', '술은'); await click('소주 늘리기'); await click('소주 늘리기');
   await p.evaluate(() => { location.hash = '/result'; }); await new Promise((r) => setTimeout(r, 400));
   const th0 = await text();
-  ok(th0.slice(0, 400).includes('간 확인이 필요해요') && th0.includes('고혈압은 지금처럼 관리를 이어가세요'), '맨 위: 과음 → 간 확인, 고혈압은 관리 이어가기');
+  ok(/간[^\n]*확인이 필요해요/.test(th0.slice(0, 400)) && th0.includes('고혈압은 지금처럼 관리를 이어가세요'), '맨 위: 과음 → 간 확인(다른 문제도 함께), 고혈압은 관리 이어가기');
   await p.evaluate(() => { document.querySelector('details.more').open = true; });
   const th = await text();
   ok(th.includes('이미 진단받은 질환') && th.includes('관리 중이에요'), '고혈압 진단이 맨 위에 나온다');
@@ -176,7 +176,7 @@ try {
   await click('건강검진 결과지가 있으면'); ok((await route()) === '#/checkup', '#/checkup 화면');
   await type('#lab-tc', '250'); await type('#lab-egfr', '55'); await click('1+', '요단백'); await shot('checkup');
   await click('결과에 반영하기'); await new Promise((r) => setTimeout(r, 400));
-  ok((await text()).slice(0, 400).includes('혈압·콜레스테롤 확인이 필요해요'), '맨 위: 혈압·콜레스테롤 병원 확인');
+  ok((await text()).slice(0, 400).includes('혈압·콜레스테롤·콩팥 확인이 필요해요'), '맨 위: 혈압·콜레스테롤·콩팥을 빠짐없이 병원 확인');
   await p.evaluate(() => { document.querySelector('details.more').open = true; });
   const tl = await text();
   ok(tl.includes('검진 총콜레스테롤 250mg/dL') && tl.includes('eGFR 55 · 요단백 1+'), '검진 수치가 결과에 반영 (콜레스테롤 250, eGFR 55·요단백 1+)');

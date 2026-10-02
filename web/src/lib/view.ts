@@ -109,7 +109,7 @@ export function ratioStyle(label?: string) {
   return label === '낮음' ? { bg: LOW_BG, fg: INK, col: INK } : label === '비슷' || !label ? { bg: SAME_BG, fg: INK, col: INK } : { bg: HIGH_BG, fg: LOOK, col: LOOK };
 }
 export const statusText: Record<string, string> = { managed: '진단받아 관리 중', criteria: '측정 수치가 기준 해당', measured: '검진 수치 반영', na: '대상 아님', excluded: '술 때문에 계산 안 함', needs_input: '답하면 볼 수 있어요' };
-const xfmt = (x: number) => (x < 0.1 ? x.toFixed(2) : (Math.round(x * 10) / 10).toFixed(1));
+export const xfmt = (x: number) => (x < 0.1 ? x.toFixed(2) : (Math.round(x * 10) / 10).toFixed(1));
 
 /** 또래 비교: 같은 기준의 또래 값, 몇 배인지, 낮음/비슷/높음, 한 줄 결론, 다음 행동 */
 export function cmpOf(id: ItemId, r: Result, inp: Input) {
