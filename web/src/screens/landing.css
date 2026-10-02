@@ -19,6 +19,7 @@
 .ld .hero h1 { margin: 0; font-size: clamp(40px, 5.2vw, 64px); line-height: 1.1; font-weight: 800; letter-spacing: -0.045em; color: var(--obsidian); }
 .ld .hero h1 b { color: var(--ink); font-weight: 900; }
 .ld .hero p { font-size: 18px; line-height: 1.65; max-width: 540px; }
+.ld .hero-left, .ld .hero-rest { display: flex; flex-direction: column; gap: 22px; }
 .ld .collage { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; }
 .ld .panel { border-radius: 32px; background-color: var(--bg); padding: 80px 40px; }
 .ld h2 { margin: 0; font-size: clamp(30px, 3.4vw, 44px); line-height: 1.2; font-weight: 800; letter-spacing: -0.04em; color: var(--obsidian); }
@@ -38,18 +39,23 @@
 @media (max-width: 900px) {
   .ld nav { display: none; }
   .ld .hero, .ld .zig, .ld .faq { grid-template-columns: 1fr; gap: 36px; }
-  .ld .hero { padding: 40px 0 56px; }
+  /* 모바일·태블릿 첫 화면: 제목 → 미니 → 설명·버튼. 상단 바와 제목, 제목과 미니 사이 40px */
+  .ld .hero { padding: 40px 0 64px; gap: 40px; }
+  .ld .hero-left { display: contents; }
+  .ld .hero-title { order: 0; }
+  .ld .hero-mini { order: 1; }
+  .ld .hero-rest { order: 2; }
   .ld .zig .vis { order: -1; padding: 24px; }
   .ld .steps { grid-template-columns: 1fr; }
   .ld .ev { grid-template-columns: 1fr; }
-  .ld .panel, .ld .band { padding: 56px 20px; border-radius: 24px; }
+  .ld .panel, .ld .band { padding: 64px 20px; border-radius: 24px; }
   .ld .fcols { grid-template-columns: 1fr 1fr; }
-  .ld .sec { padding: 64px 0; }
+  .ld .sec { padding: 76px 0; }
 }
 @media (max-width: 520px) {
   .ld .collage { grid-template-columns: 1fr; }
   .ld .collage .c2 { display: none; }
-  .ld .wrap { padding: 0 16px; }
+  .ld .wrap { padding-left: 16px; padding-right: 16px; }   /* 좌우만 (첫 화면 위아래 여백을 덮지 않게) */
 }
 
 /* 미니 체험 결과: 사람 그림이 차례로 채워지고, 다음 단계 버튼이 살짝 맥박친다 */
