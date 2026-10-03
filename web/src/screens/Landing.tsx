@@ -52,7 +52,20 @@ const FAQ = [
   ['앱을 설치해야 하나요?', '설치 없이 웹에서 바로 이용할 수 있어요. 휴대폰 홈 화면에 추가하면 다음에 더 편하게 열 수 있어요.'],
 ];
 
-/** '이용 방법' 위 20초 사용 장면 영상: 소리 없이, 화면에 보일 때만 재생. 움직임 줄이기 설정이면 자동 재생하지 않음 */
+/** 아래 '직접 해보세요' 미니 테스트로 내려가서 빈 칸에 커서 */
+function goTry() {
+  const t = document.getElementById('try'); if (!t) return;
+  t.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' });
+  setTimeout(() => {
+    // 부드러운 스크롤이 안 되는 환경(일부 브라우저·탭)이면 바로 이동
+    if (Math.abs(t.getBoundingClientRect().top - 84) > 60) t.scrollIntoView({ block: 'start' });
+    const ins = [...t.querySelectorAll<HTMLInputElement>('input')];
+    (ins.find((i) => !i.value) ?? ins[0])?.focus({ preventScroll: true });
+  }, 700);
+}
+const openFull = () => window.dispatchEvent(new Event('promo-full'));
+
+/** 첫 화면 20초 사용 장면 영상: 소리 없이, 화면에 보일 때만 재생. 움직임 줄이기 설정이면 자동 재생하지 않음. 누르면 미니 테스트로 */
 function PromoVideo() {
   const ref = useRef<HTMLVideoElement>(null);
   const reduce = typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -67,13 +80,18 @@ function PromoVideo() {
   // 45초 전체 영상: 버튼을 눌렀을 때만 받아서 소리와 함께 재생, 닫으면 멈춤
   const dlg = useRef<HTMLDialogElement>(null), full = useRef<HTMLVideoElement>(null);
   const open = () => { ref.current?.pause(); dlg.current?.showModal(); full.current?.play().catch(() => {}); };
+  useEffect(() => { window.addEventListener('promo-full', open); return () => window.removeEventListener('promo-full', open); }, []);   // eslint-disable-line react-hooks/exhaustive-deps
   return (
-    <figure style={{ margin: 0, width: '100%', maxWidth: 960, display: 'flex', flexDirection: 'column', gap: 10 }}>
-      <video ref={ref} className={tall ? 'promo promo-tall' : 'promo'} src={`${base}video/promo-20s${kind}.mp4`} poster={`${base}video/promo-poster${kind}.jpg`} muted loop playsInline preload="none" controls={reduce}
+    <figure className="promo-fig">
+      <video ref={ref} className={tall ? 'promo promo-tall' : 'promo'} src={`${base}video/promo-20s${kind}.mp4`} poster={`${base}video/promo-poster${kind}.jpg`} muted loop playsInline preload="auto" controls={reduce}
+        onClick={reduce ? undefined : goTry} style={{ cursor: reduce ? undefined : 'pointer' }}
         aria-label="1분체크를 쓰는 장면 20초 영상(소리 없음): 몸 정보 입력, 결과 카드, 판정 카드" />
-      <figcaption style={{ fontSize: 13, color: 'var(--slate)', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
-        20초로 보는 1분체크 · 화면 속 숫자는 예시예요
-        <button type="button" className="promo-more" onClick={open}>▶ 전체 영상 보기 <small>45초 · 소리 있음</small></button>
+      <figcaption className="promo-cap">
+        <div className="promo-acts">
+          <button type="button" className="promo-try" onClick={goTry}>나도 바로 해보기 <span aria-hidden>↓</span></button>
+          <button type="button" className="promo-more" onClick={open}>▶ 전체 영상 <small>45초 · 소리 있음</small></button>
+        </div>
+        <span>20초로 보는 1분체크 · 화면 속 숫자는 예시예요</span>
       </figcaption>
       <dialog ref={dlg} className="promo-dlg" aria-label="1분체크 전체 영상 45초" onClose={() => { full.current?.pause(); if (!reduce) ref.current?.play().catch(() => {}); }} onClick={(e) => { if (e.target === dlg.current) dlg.current?.close(); }}>
         <button type="button" className="promo-x" aria-label="닫기" onClick={() => dlg.current?.close()}>✕</button>
@@ -95,14 +113,14 @@ export function Landing() {
       </div></header>
 
       <section className="dots"><div className="wrap hero">
-        {/* PC: 왼쪽 글 · 오른쪽 미니. 모바일·태블릿: 제목 → 미니 → 설명·버튼 순서(landing.css .hero-left display: contents) */}
+        {/* PC: 왼쪽 글 · 오른쪽 영상. 모바일·태블릿: 제목 → 영상 → 설명·버튼 순서(landing.css .hero-left display: contents) */}
         <div className="hero-left">
           <h1 className="hero-title">내 몸이 궁금할 때<br /><b>딱 1분.</b></h1>
           <div className="hero-rest">
           <p style={{ margin: 0, fontSize: 'clamp(19px, 2vw, 22px)', fontWeight: 700, color: 'var(--obsidian)' }}>간단한 내 몸 정보로 1분 만에 가늠해 보세요.</p>
           <p style={{ margin: '-10px 0 0', fontSize: 15, color: 'var(--slate)' }}>나이·체형·생활습관을 바탕으로, 현재 건강 상태를 추정해 드려요.</p>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}><StartBtn kind="main" base="btn lime" label="1분 건강 체크하기" /><a className="btn line" href="#how">어떻게 알 수 있나요?</a></div>
+            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}><StartBtn kind="main" base="btn lime" label="1분 건강 체크하기" /><button type="button" className="btn line" onClick={openFull}>어떻게 알 수 있나요?</button></div>
             <span style={{ fontSize: 12, color: 'var(--slate)' }}>현재 만 19세 이상 대상</span>
           </div>
           <div style={{ display: 'flex', gap: '8px 18px', flexWrap: 'wrap', fontSize: 13, fontWeight: 500, color: 'var(--slate)' }}>
@@ -110,12 +128,19 @@ export function Landing() {
           </div>
           </div>
         </div>
-        <div className="hero-mini"><MiniTrial /></div>
+        <div className="hero-mini"><PromoVideo /></div>
+      </div></section>
+
+      <section id="try" className="wrap"><div className="try">
+        <div className="try-head">
+          <h2>직접 해보세요</h2>
+          <p>성별·나이·키·몸무게만 넣으면 10초면 돼요. 같은 체형의 한국인 평균으로 먼저 가늠해 드려요.</p>
+        </div>
+        <MiniTrial />
       </div></section>
 
       <section id="how" className="wrap"><div className="panel dots" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 44 }}>
         <h2 style={{ textAlign: 'center' }}>내 건강을 가늠하는 데 필요한 시간, 1분</h2>
-        <PromoVideo />
         <div className="steps" style={{ width: '100%' }}>
           {[['간단한 내 몸 정보를 입력해요', '나이·키·몸무게와 평소 생활에 답해 주세요. 허리둘레를 몰라도 시작할 수 있어요.', 'var(--linen)'],
             ['궁금한 분야는 더 살펴봐요', '수면·마음·소화·식생활은 원하는 분야만 추가로 확인해 보세요.', '#e3edf3'],

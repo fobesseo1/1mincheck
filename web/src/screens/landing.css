@@ -20,8 +20,18 @@
 .ld .hero h1 b { color: var(--ink); font-weight: 900; }
 .ld .hero p { font-size: 18px; line-height: 1.65; max-width: 540px; }
 .ld .promo { display: block; width: 100%; aspect-ratio: 16 / 9; border-radius: 24px; background: #fff; box-shadow: 0 24px 60px rgba(22, 51, 0, .14); object-fit: cover; }
-.ld .promo.promo-tall { aspect-ratio: 9 / 16; max-width: 420px; margin: 0 auto; }
-.ld .promo-more { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 10px 22px; border: 0; border-radius: 9999px; background: var(--ink); color: #fff; font: inherit; font-size: 15px; font-weight: 700; cursor: pointer; }
+.ld .promo.promo-tall { aspect-ratio: 9 / 16; width: auto; height: min(48vh, 560px); max-width: 100%; margin: 0 auto; }
+.ld .promo-fig { margin: 0; width: 100%; display: flex; flex-direction: column; gap: 12px; }
+.ld .promo-cap { display: flex; flex-direction: column; align-items: center; gap: 10px; font-size: 13px; color: var(--slate); text-align: center; }
+.ld .promo-acts { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
+.ld .promo-try { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 10px 22px; border: 0; border-radius: 9999px; background: var(--lime); color: var(--ink); font: inherit; font-size: 15px; font-weight: 800; cursor: pointer; }
+.ld .promo-try:focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; }
+.ld .try { display: grid; grid-template-columns: 1fr 1.1fr; gap: 48px; align-items: center; padding: 48px 56px; border-radius: 32px; background: var(--linen); }
+.ld .try-head { display: flex; flex-direction: column; gap: 12px; }
+.ld .try-head h2 { margin: 0; }
+.ld .try-head p { margin: 0; font-size: 16px; line-height: 1.65; color: var(--slate); }
+.ld #try { scroll-margin-top: 84px; padding-bottom: 76px; }
+.ld .promo-more { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; padding: 10px 22px; border: 0; border-radius: 9999px; background: #fff; color: var(--ink); box-shadow: inset 0 0 0 2px var(--line2); font: inherit; font-size: 15px; font-weight: 700; cursor: pointer; }
 .ld .promo-more small { font-size: 12px; font-weight: 500; opacity: .75; }
 .ld .promo-more:focus-visible, .ld .promo-x:focus-visible { outline: 3px solid #9fe870; outline-offset: 2px; }
 .ld .promo-dlg { width: min(1100px, calc(100vw - 32px)); max-width: none; padding: 0; border: 0; border-radius: 20px; background: #000; overflow: visible; }
@@ -49,12 +59,16 @@
 @media (max-width: 1032px) {
   .ld nav { display: none; }
   .ld .hero, .ld .zig, .ld .faq { grid-template-columns: 1fr; gap: 36px; }
-  /* 모바일·태블릿 첫 화면: 제목 → 미니 → 설명·버튼. 상단 바–제목, 제목–미니 40px(유지) */
+  /* 모바일·태블릿 첫 화면: 제목 → 영상 → 설명·버튼. 상단 바–제목, 제목–미니 40px(유지) */
   .ld .hero { padding-top: 40px; padding-bottom: 36px; gap: 40px; }
   .ld .hero-left { display: contents; }
   .ld .hero-title { order: 0; }
   .ld .hero-mini { order: 1; }
   .ld .hero-rest { order: 2; }
+  .ld .try { grid-template-columns: 1fr; gap: 20px; padding: 28px 8px 8px; border-radius: 24px; }
+  .ld #try { padding-bottom: 44px; }
+  .ld .try-head { padding: 0 12px; }
+  .ld .try-head { text-align: center; }
   .ld .zig .vis { order: -1; padding: 24px; }
   .ld .steps { grid-template-columns: 1fr; }
   .ld .ev { grid-template-columns: 1fr; }
@@ -99,3 +113,10 @@
 
 /* 기능 소개의 작은 버튼도 '이어서 체크하기'가 되면 상단처럼 라임 */
 .ld .gbtn.cont { background: var(--lime); color: var(--ink); }
+
+/* 휴대폰: 영상 아래 버튼 두 개를 한 줄로 */
+@media (max-width: 520px) {
+  .ld .promo-acts { flex-wrap: nowrap; gap: 8px; }
+  .ld .promo-try, .ld .promo-more { padding: 10px 16px; font-size: 14px; white-space: nowrap; }
+  .ld .promo-more small { display: none; }
+}
