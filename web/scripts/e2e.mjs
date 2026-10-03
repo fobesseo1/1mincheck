@@ -147,7 +147,7 @@ try {
 
   console.log('상세'); await p.evaluate(() => { location.hash = '/detail/dm'; });
   await new Promise((r) => setTimeout(r, 300));
-  const td = await text(); ok(td.includes('100명 중 1명') && td.includes('또래와 비슷해요') && td.includes('/ 11점'), '당뇨 상세: 보정값·또래 비교·선별점수');
+  const td = await text(); ok(td.includes('현재 가능성 추정') && td.includes('비슷한 조건의 100명 중 약 1명') && td.includes('또래 평균 약 1.5%와 비슷해요') && td.includes('/ 11점'), '당뇨 상세: 현재 가능성 → 100명 중 → 또래 평균');
   ok(td.includes('낮은 쪽에서 약 40번째'), '또래 100명 중 내 위치 (백분위)'); await shot('detail-dm');
   for (const id of ['htn', 'chol', 'obesity', 'nafld', 'osa', 'isi', 'dep', 'gad', 'osteo', 'gerd', 'diet']) {
     await p.evaluate((id) => { location.hash = '/detail/' + id; }, id); await new Promise((r) => setTimeout(r, 200));
