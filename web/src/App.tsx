@@ -7,6 +7,7 @@ import { Checkup } from './screens/Checkup.tsx';
 import { Detail } from './screens/Detail.tsx';
 import { WhatIf } from './screens/WhatIf.tsx';
 import { Record } from './screens/Record.tsx';
+import { Summary } from './screens/Summary.tsx';
 import { Landing } from './screens/Landing.tsx';
 import { samples } from '../../src/sampleData.ts';
 import type { ItemId } from './lib/content.ts';
@@ -48,6 +49,7 @@ export function App() {
   else if (route === '/result') screen = <Results />;
   else if (route === '/whatif') screen = <WhatIf key={JSON.stringify(draft)} />;
   else if (route === '/record') screen = <Record />;
+  else if (route === '/summary') screen = <div className="app"><div className="page fade"><Summary /></div></div>;
   else if (route.startsWith('/detail/')) screen = <div className="app"><Detail id={route.slice(8) as ItemId} /></div>;
   else if (route === '/dev') screen = <div className="app"><Dev /></div>;
   else screen = <Landing />;

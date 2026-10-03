@@ -102,3 +102,11 @@ details summary::-webkit-details-marker { display: none; }
 .more > summary > span:last-child { transition: transform .2s; }
 .more[open] > summary > span:last-child { transform: rotate(180deg); }
 .more-body { display: flex; flex-direction: column; gap: 14px !important; }
+
+/* 진료용 결과 요약: 인쇄할 때는 버튼·탭·예시 버튼을 숨기고 요약 표만 */
+@media print {
+  .no-print, .tabbar, .demo, .toast { display: none !important; }
+  html, body, .app { background: #fff !important; }
+  .app { max-width: none; }
+  .summary article { padding: 0 !important; border-radius: 0 !important; }
+}

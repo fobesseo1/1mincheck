@@ -8,11 +8,13 @@ const MARK = {
 const CHECK = { yes: ['●', INK, '권장'], maybe: ['◐', INK, '조건부'], no: ['○', '#9aa096', ''], unknown: ['?', 'var(--slate)', ''], info: ['·', 'var(--slate)', ''] } as const;
 
 /** 생활·검진으로 보는 추가 체크 카드 (engine/src/extras.ts) */
-export function ExtraCards({ xs }: { xs: Extra[] }) {
+const LEAD = '새 질문 없이 지금 답으로 공식 기준과 검증된 점수를 적용했어요. 대부분 확률이 아니라 기준에 해당하는지예요. ‘모름’은 낮다는 뜻이 아니에요.';
+export function ExtraCards({ xs, title = '생활·검진으로 보는 체크', lead = LEAD }: { xs: Extra[]; title?: string; lead?: string }) {
+  if (!xs.length) return null;
   return (
     <>
-      <h2 className="h2">생활·검진으로 보는 체크</h2>
-      <p className="lead" style={{ marginTop: -6, fontSize: 13, color: 'var(--slate)' }}>새 질문 없이 지금 답으로 공식 기준과 검증된 점수를 적용했어요. 대부분 확률이 아니라 기준에 해당하는지예요. ‘모름’은 낮다는 뜻이 아니에요.</p>
+      <h2 className="h2">{title}</h2>
+      <p className="lead" style={{ marginTop: -6, fontSize: 13, color: 'var(--slate)' }}>{lead}</p>
       {xs.map((x) => {
         const [bg, fg, tag] = LV[x.level], M = x.id === 'checkup' ? CHECK : MARK;
         return (
