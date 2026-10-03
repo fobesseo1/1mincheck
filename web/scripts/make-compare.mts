@@ -1,11 +1,11 @@
 // A/B 비교 안내 페이지(public/compare.html)를 만든다. 가상 프로필의 답은 src/lib/bProfiles.ts 에서 그대로 가져온다(손으로 옮기지 않음).
-// 결과 값은 넣지 않는다 — 두 버전에서 직접 입력해 보게 한다.
+// 결과 값은 넣지 않는다 — 세 버전에서 직접 입력해 보게 한다.
 // 사용: npx tsx scripts/make-compare.mts
 import { writeFileSync } from 'node:fs';
 import { B_PROFILES, draftOf } from '../src/lib/bProfiles.ts';
 import { ALC_FREQ, menoShown } from '../src/state.ts';
 
-const A_URL = 'https://fobesseo1.github.io/1mincheck/', B_URL = 'https://fobesseo1.github.io/1mincheck-b/';
+const M_URL = 'https://fobesseo1.github.io/1mincheck/', A_URL = 'https://fobesseo1.github.io/1mincheck-a/', B_URL = 'https://fobesseo1.github.io/1mincheck-b/';
 const yn = (v: boolean | null | undefined, y = '네', n = '아니요') => (v == null ? '–' : v ? y : n);
 const ISI_L = [['없음', '약간', '중간', '심함', '매우 심함'], ['없음', '약간', '중간', '심함', '매우 심함'], ['없음', '약간', '중간', '심함', '매우 심함'], ['매우 만족', '만족', '보통', '불만족', '매우 불만족'],
   ['전혀', '약간', '어느 정도', '많이', '매우 많이'], ['전혀', '약간', '어느 정도', '많이', '매우 많이'], ['전혀', '약간', '어느 정도', '많이', '매우 많이']];
@@ -41,7 +41,7 @@ const html = `<!doctype html>
 main{max-width:720px;margin:0 auto;padding:28px 16px 64px;display:flex;flex-direction:column;gap:18px}
 h1{margin:0;font-size:26px;line-height:1.3}h2{margin:0 0 8px;font-size:18px}
 section{background:#fff;border-radius:18px;padding:18px}
-.open{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.open{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
 .open a{display:flex;flex-direction:column;gap:2px;padding:16px;border-radius:14px;background:var(--ink);color:#fff;text-decoration:none;font-weight:800;font-size:18px}
 .open a small{font-weight:500;font-size:12px;color:#d8e8cf}
 .addr{font-size:13px;color:var(--sub)}.addr code{font-size:12px}
@@ -53,8 +53,8 @@ details ul{font-size:14px;margin-top:8px}.note{margin:6px 0 0;font-size:13px;col
 @media (max-width:480px){.open{grid-template-columns:1fr}}
 </style></head>
 <body><main>
-<h1>1분체크 두 버전 비교 안내</h1>
-<p class="small" style="margin:0">두 버전은 계산 방법과 결과 숫자가 같고, 보여주는 순서와 문장이 달라요. 어느 쪽이 더 낫다는 정답은 없어요. 써 보고 느낀 그대로 알려 주세요.</p>
+<h1>1분체크 버전 비교 안내</h1>
+<p class="small" style="margin:0">세 버전은 계산 방법과 결과 숫자가 같고, 보여주는 순서와 문장이 달라요. 어느 쪽이 더 낫다는 정답은 없어요. 써 보고 느낀 그대로 알려 주세요.</p>
 
 <section>
 <h2>열어 보기</h2>
@@ -66,10 +66,10 @@ details ul{font-size:14px;margin-top:8px}.note{margin:6px 0 0;font-size:13px;col
 <section>
 <h2>같은 조건으로 비교하는 방법</h2>
 <ol>
-<li>먼저 1번의 첫 화면을 5초만 보고, 무엇을 해 주는 서비스인지 한 문장으로 적어 보세요. 2번도 똑같이 해요.</li>
-<li>아래 가상 프로필 하나를 골라 1번에서 처음부터 끝까지 입력하고 결과를 봐요. 같은 답을 2번에도 입력해요.</li>
+<li>먼저 1번의 첫 화면을 5초만 보고, 무엇을 해 주는 서비스인지 한 문장으로 적어 보세요. 2번·3번도 똑같이 해요.</li>
+<li>아래 가상 프로필 하나를 골라 1번에서 처음부터 끝까지 입력하고 결과를 봐요. 같은 답을 2번·3번에도 입력해요.</li>
 <li>결과에서 숫자의 뜻, 걱정할 부분과 유지할 부분, 할 일을 찾아보세요. 저장·기록·진료용 요약도 눌러 봐요.</li>
-<li>두 버전의 기록은 서로 따로 저장돼요. 건강정보는 서버로 보내지 않아요. 실제 내 정보 대신 가상 프로필을 써도 돼요.</li>
+<li>세 버전의 기록은 서로 따로 저장돼요. 건강정보는 서버로 보내지 않아요. 실제 내 정보 대신 가상 프로필을 써도 돼요.</li>
 </ol>
 </section>
 
@@ -81,12 +81,12 @@ details ul{font-size:14px;margin-top:8px}.note{margin:6px 0 0;font-size:13px;col
 <li>걱정할 부분과 유지할 부분을 더 명확히 알 수 있는 쪽은?</li>
 <li>더 편하고 덜 피곤한 쪽은?</li>
 </ol>
-<p class="small">답은 ‘1번 / 2번 / 비슷함’과 그렇게 느낀 이유 한 줄이면 충분해요.</p>
+<p class="small">답은 ‘1번 / 2번 / 3번 / 비슷함’과 그렇게 느낀 이유 한 줄이면 충분해요.</p>
 </section>
 
 <section>
 <h2>비교용 가상 프로필 (실제 사람이 아니에요)</h2>
-<p class="small" style="margin-top:0">결과 값은 적지 않았어요. 두 버전에 같은 답을 넣고 직접 확인해 주세요. 소주 양은 ‘소주 늘리기(+)’ 버튼으로 맞춰요.</p>
+<p class="small" style="margin-top:0">결과 값은 적지 않았어요. 세 버전에 같은 답을 넣고 직접 확인해 주세요. 소주 양은 ‘소주 늘리기(+)’ 버튼으로 맞춰요.</p>
 ${prof}
 <details><summary><span class="id">P11</span> 기록이 없는 첫 이용</summary><ul><li>각 버전을 처음 연 상태(또는 기록 지우기 후)에서 P1을 입력하고 결과와 ‘기록’ 탭을 봐요.</li></ul></details>
 <details><summary><span class="id">P12</span> 기록 1개와 2개 이상</summary><ul><li>P2를 입력하고 결과를 저장 → ‘기록’ 탭에서 1개 상태를 봐요.</li><li>‘다시 체크’로 P2를 다시 입력하되 몸무게 84kg·허리 94cm로 바꿔 저장 → ‘기록’ 탭에서 비교를 봐요.</li></ul></details>
@@ -94,12 +94,12 @@ ${prof}
 <p class="small">이 안내는 비교를 위한 페이지예요. 건강정보를 주소(URL)에 담지 않고, 응답을 자동으로 모으지 않아요.</p>
 </main>
 <script>
-// 순서 편향을 줄이려고 ?o=2 이면 B를 1번으로 보여준다(배정·기록은 하지 않음)
-var A = { name: '현재 버전 (A)', url: '${A_URL}' }, B = { name: '제안 버전 (B)', url: '${B_URL}' };
-var swap = new URLSearchParams(location.search).get('o') === '2', first = swap ? B : A, second = swap ? A : B;
-document.getElementById('open').innerHTML = [first, second].map(function (v, k) { return '<a href="' + v.url + '" target="_blank" rel="noopener">' + (k + 1) + '번 열기<small>' + v.name + '</small></a>'; }).join('');
-document.getElementById('addr').innerHTML = '현재 버전(A): <code>' + A.url + '</code><br>제안 버전(B): <code>' + B.url + '</code>';
-document.getElementById('order-note').textContent = swap ? '이 안내는 B를 먼저 보는 순서예요. 다른 순서 안내: compare.html' : '이 안내는 A를 먼저 보는 순서예요. 다른 순서 안내: compare.html?o=2';
+// 순서 편향을 줄이려고 ?o=2·?o=3 이면 순서를 돌려 보여준다(배정·기록은 하지 않음)
+var M = { name: '메인 (합친 안)', url: '${M_URL}' }, A = { name: '이전 버전 (A, 보관용)', url: '${A_URL}' }, B = { name: '제안 버전 (B)', url: '${B_URL}' };
+var o = Number(new URLSearchParams(location.search).get('o')) || 1, base = [M, A, B], list = base.slice(o - 1).concat(base.slice(0, o - 1));
+document.getElementById('open').innerHTML = list.map(function (v, k) { return '<a href="' + v.url + '" target="_blank" rel="noopener">' + (k + 1) + '번 열기<small>' + v.name + '</small></a>'; }).join('');
+document.getElementById('addr').innerHTML = '메인(합친 안): <code>' + M.url + '</code><br>이전 버전(A, 보관용): <code>' + A.url + '</code><br>제안 버전(B): <code>' + B.url + '</code>';
+document.getElementById('order-note').textContent = '순서를 바꾼 안내: compare.html · compare.html?o=2 · compare.html?o=3 (지금 ' + o + '번째 순서)';
 </script>
 </body></html>
 `;
