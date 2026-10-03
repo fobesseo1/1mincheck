@@ -201,6 +201,8 @@ try {
   await click('모두 지우기').catch(() => {});
 
 
+  // 프로필 모듈은 개발 서버에서만 불러올 수 있다(배포본은 번들이라 건너뜀)
+  if (!BASE.includes('github.io')) {
   console.log('비교용 가상 프로필 (현재 엔진으로 계산)');
   await p.goto(BASE + '#/', { waitUntil: 'networkidle0' });
   const PROF = new URL('src/lib/bProfiles.ts', BASE).pathname;
@@ -250,6 +252,7 @@ try {
   p.once('dialog', (d) => d.accept()); await click('기록 지우기'); await new Promise((r) => setTimeout(r, 200));
   ok(await p.evaluate(() => localStorage.getItem('1mincheck.records') === '["A-SENTINEL"]' && localStorage.getItem('1mincheck-b.records') === '[]'), '기록 지우기는 B 기록만');
 
+  } else console.log('  - 배포 화면: 프로필·기록 단계는 개발 서버에서 확인 (건너뜀)');
   console.log('개발자 모드 (?dev=1616)');
   await p.goto(BASE.replace(/\/?$/, '/') + '?dev=1616#/result', { waitUntil: 'networkidle0' }); await new Promise((r) => setTimeout(r, 400));
   await p.evaluate(() => { document.querySelector('details.more').open = true; });

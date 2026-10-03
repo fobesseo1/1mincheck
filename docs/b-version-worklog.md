@@ -81,3 +81,10 @@
 - `scripts/e2e-b.mjs`(실제 Chrome): 처음부터 손으로 입력하는 전체 흐름, 결과 순서, 요약(기록 1개), 인쇄 시 버튼 숨김, 상세 12개, 바꿔보기, 검진 수치, 위기 안내, 개발자 모드, 프로필 11개 × 360·430px 가로 넘침 없음, 기록 0→1→같은 입력 2→바뀐 입력 3, A 기록 격리·B 기록만 지우기 — 모두 통과.
 - 요약 PDF: 기록 0개 상태에서 P6 요약을 Chrome PDF로 저장 확인.
 - A 사이트: 배포 전후로 index·스크립트·스타일·매니페스트·서비스 워커·영상 파일 해시 비교(아래 배포 기록).
+
+## 9. 배포 기록
+
+- B 소스: `fobesseo1/1mincheck` 브랜치 `b-version` 커밋 `ec11494` (A의 `main`·Actions 배포는 실행되지 않음 — 최근 배포 실행의 커밋이 그대로 `b7a594d`).
+- B 배포본: 새 공개 저장소 `fobesseo1/1mincheck-b` 커밋 `4dacefd` (빌드 결과 + `.nojekyll`), GitHub Pages 브랜치 배포(main, /). 주소 https://fobesseo1.github.io/1mincheck-b/ · 비교 안내 …/compare.html (`?o=2`는 B를 1번으로).
+- A 보존 확인: B 배포 전후 A의 `index.html`·JS·CSS·`manifest.webmanifest`·`sw.js`·`video/promo-20s.mp4` SHA-256 7개 모두 같음.
+- 배포된 B에서 `scripts/e2e-b.mjs` 실행: 손 입력 전체 흐름·요약·상세·바꿔보기·검진 수치 통과(프로필·기록 격리 단계는 개발 서버에서 통과).
