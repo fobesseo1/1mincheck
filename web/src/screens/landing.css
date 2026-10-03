@@ -25,7 +25,9 @@
 .ld .promo-clip { position: relative; aspect-ratio: 16 / 9; border-radius: 20px; overflow: hidden; background: #fff; isolation: isolate; transform: translateZ(0); }
 .ld .promo-frame.tall .promo-clip { aspect-ratio: 9 / 16; height: min(48vh, 560px); max-width: 100%; border-radius: 18px; }
 /* 영상을 칸보다 2px씩 크게 그려 가장자리를 잘라냄(덜 채워진 1px이 보이지 않게), 바탕은 흰색 */
-.ld .promo-v { position: absolute; left: -2px; top: -2px; width: calc(100% + 4px); height: calc(100% + 4px); object-fit: cover; display: block; background: #fff; }
+/* 영상 위(z축 위)에 안쪽 3px 흰 테두리를 덮는다: 스크롤 위치에 따라 영상 층 가장자리(아래·오른쪽)가 1px 어긋나 검게 비치는 것을 가림 */
+.ld .promo-clip::after { content: ''; position: absolute; inset: 0; z-index: 2; border-radius: inherit; box-shadow: inset 0 0 0 3px #fff; pointer-events: none; }
+.ld .promo-v { position: absolute; z-index: 1; left: -2px; top: -2px; width: calc(100% + 4px); height: calc(100% + 4px); object-fit: cover; display: block; background: #fff; }
 .ld .promo-fig { margin: 0; width: 100%; display: flex; flex-direction: column; gap: 12px; }
 .ld .promo-cap { display: flex; flex-direction: column; align-items: center; gap: 10px; font-size: 13px; color: var(--slate); text-align: center; }
 .ld .promo-acts { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
