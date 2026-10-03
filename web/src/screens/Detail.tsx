@@ -3,6 +3,7 @@ import { useStore, Nav, Icon, People, Gauge, Crisis } from '../ui.tsx';
 import { suggestScenario } from '../state.ts';
 import { viewDetail, f1, pctText, statusText, flagOf, severeBp, labOf, INK, LOOK, type ViewResult } from '../lib/view.ts';
 import { DevNote } from './DevNote.tsx';
+import { freqOf, peerLine } from '../lib/b.ts';
 import { NAMES, TITLE, TOOL, BADGE, WHAT, WHY, HOW, NEXT, NEXT_SPECIAL, SRC, KNHANES, MODULE_OF, MEANING, DISCLAIMER, type ItemId } from '../lib/content.ts';
 import { useInput, NeedInput } from './Results.tsx';
 
@@ -35,10 +36,11 @@ export function Detail({ id }: { id: ItemId }) {
         </div>
         {r.status === 'ok' && d.isProb && r.value != null && (<>
           {MEANING[id] && <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--obsidian)', marginTop: 10 }}>{MEANING[id]}</div>}
-          {d.cmp && <div style={{ fontSize: 30, lineHeight: 1.2, fontWeight: 900, letterSpacing: '-0.04em', color: d.cmp.col, marginTop: 4 }}>{d.cmp.headline}</div>}
+          <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--slate)', marginTop: 6 }}>현재 가능성 추정</div>
           <div><span style={{ fontSize: r.value < 0.1 ? 40 : 72, lineHeight: 1, fontWeight: 900, letterSpacing: '-0.06em', color: 'var(--obsidian)' }}>{pctText(r.value)}</span><b style={{ fontSize: 22, color: 'var(--obsidian)' }}>%</b></div>
-          <div style={{ fontSize: 14, color: 'var(--charcoal)' }}>나와 같은 조건인 사람 100명 중 약 <b>{d.n}명</b>{id === 'dm' ? ' · 상대 오차 ±약 25%' : ''}</div>
-          {d.cmp && <div style={{ fontSize: 13, color: 'var(--slate)' }}>또래 평균 {f1(d.cmp.peer)}% ({d.cmp.who})</div>}
+          <div style={{ fontSize: 15, color: 'var(--obsidian)' }}>비슷한 조건의 <b>{freqOf(r.value)}</b> 수준이에요{id === 'dm' && !r.flags?.includes('GLU_MODEL') ? ' · 상대 오차 ±약 25%' : ''}</div>
+          {d.cmp && <div style={{ fontSize: 14, fontWeight: 700, color: d.cmp.high ? '#cb272f' : 'var(--charcoal)' }}>{peerLine(d.cmp.me, d.cmp.peer, (id === 'dm' ? '약 ' : '') + f1(d.cmp.peer))}</div>}
+          {d.cmp && <div style={{ fontSize: 12, color: 'var(--slate)' }}>또래 평균 = {d.cmp.who}</div>}
           {d.rank != null && <div style={{ marginTop: 4, padding: '8px 14px', borderRadius: 12, background: 'var(--bg)', fontSize: 13, lineHeight: 1.5 }}>
             같은 나이(±5세)·성별 100명을 줄 세우면 <b>낮은 쪽에서 약 {d.rank}번째</b>예요
           </div>}

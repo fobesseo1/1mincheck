@@ -2,6 +2,8 @@ import { useEffect, useState, type CSSProperties } from 'react';
 import MINI from '../../../engine/src/mini_rates.json';
 import { useStore } from '../ui.tsx';
 import { riskView, fracOf, SEV_COLOR } from '../lib/risk.ts';
+import { freqOf, peerLine } from '../lib/b.ts';
+import { f1 } from '../lib/view.ts';
 
 // 랜딩 미니 체험: 성별·나이·키·몸무게만 받아 '결과 보기'를 누르면 보여준다.
 // 모르는 답을 '없음'으로 가정하지 않고, 같은 성별·나이대·BMI 구간 사람들의 실제 비율(국민건강영양조사 2022–2024, 진단받은 사람 포함)을 쓴다.
@@ -38,13 +40,13 @@ export function miniResults(age: number, sex: 'M' | 'F', heightCm: number, weigh
       const all = (row as unknown as Record<string, Cell>)[it.id + '_all'];
       // 절대 비율과 또래 비교 중 더 경고가 되는 쪽을 크게 (lib/risk.ts)
       const v = c && all ? riskView(c.pct, all.pct, group) : null;
-      return { ...it, pct: c ? c.pct : null, scope: c?.scope ?? '', sev: v?.sev ?? 0, big: v?.main ?? '–', small: v?.sub ?? '', frac: c && v && v.absSev >= v.relSev ? fracOf(c.pct) : null };
+      return { ...it, pct: c ? c.pct : null, all: all ? all.pct : null, scope: c?.scope ?? '', sev: v?.sev ?? 0, big: v?.main ?? '–', small: v?.sub ?? '', frac: c && v && v.absSev >= v.relSev ? fracOf(c.pct) : null };
     }),
   };
 }
 
 // 미니 결과는 탭을 닫기 전까지만 이 기기 세션에 둔다(서버 전송 없음). 랜딩의 다른 '체크 시작' 버튼들이 같은 색·문구를 쓴다.
-export const MINI_KEY = '1mincheck.mini';
+export const MINI_KEY = '1mincheck-b.mini';   // B버전 전용 키 (A버전 '1mincheck.mini'와 분리)
 /** 한 칸이라도 넣으면 저장(일부 입력). 결과까지 봤으면 tone·title 이 있다 */
 export type MiniSaved = { tone?: 0 | 1 | 2; title?: string; age: string; sex: 'M' | 'F' | null; h: string; w: string };
 export function loadMini(): MiniSaved | null { try { const s = sessionStorage.getItem(MINI_KEY); return s ? JSON.parse(s) : null; } catch { return null; } }
@@ -135,12 +137,12 @@ export function MiniTrial() {
             {res.rows.map((p) => (
               <div key={p.id} style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: '12px 14px', borderRadius: 14, background: 'var(--bg)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 10 }}>
-                  <b style={{ fontSize: 16, color: 'var(--obsidian)' }}>{p.name} <small style={{ fontSize: 11, fontWeight: 600, color: 'var(--slate)' }}>{p.who}</small></b>
-                  <b style={{ flexShrink: 0, fontSize: p.sev ? 22 : 15, fontWeight: 900, letterSpacing: '-0.03em', whiteSpace: 'nowrap', color: SEV_COLOR[p.sev] }}>{p.big}</b>
+                  <b style={{ fontSize: 16, color: 'var(--obsidian)' }}>{p.name} <small style={{ fontSize: 11, fontWeight: 600, color: 'var(--slate)' }}>같은 체형 비율 · {p.who}</small></b>
+                  <b style={{ flexShrink: 0, fontSize: p.sev ? 19 : 15, fontWeight: 800, letterSpacing: '-0.02em', whiteSpace: 'nowrap', color: SEV_COLOR[p.sev] }}>{p.pct != null ? freqOf(p.pct) : '–'}</b>
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
                   {p.frac ? <People m={p.frac.m} d={p.frac.d} col={SEV_COLOR[p.sev]} /> : <span />}
-                  {p.small && <span style={{ fontSize: 11, lineHeight: 1.4, color: 'var(--slate)', textAlign: 'right' }}>{p.small}</span>}
+                  {p.pct != null && p.all != null && <span style={{ fontSize: 11, lineHeight: 1.4, color: 'var(--charcoal)', textAlign: 'right' }}>{f1(p.pct)}% · {peerLine(p.pct, p.all, f1(p.all))}</span>}
                 </div>
               </div>
             ))}

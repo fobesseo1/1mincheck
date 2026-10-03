@@ -27,11 +27,12 @@ export function WhatIf() {
   return (
     <div className="app">
       <div className="page fade">
-        <Nav title="바꿔보기" sub="바꾸면 바로 다시 계산해요" right={<button className="circle" aria-label="처음 값으로" onClick={reset}>{Icon.reset}</button>} />
+        <Nav title="바꿔보기" sub="가상의 입력으로 다시 계산해요" right={<button className="circle" aria-label="처음 값으로" onClick={reset}>{Icon.reset}</button>} />
+        <p className="lead" style={{ margin: '-4px 4px 0', fontSize: 14 }}>몸 정보나 생활습관을 바꿔 입력하면, 추정 결과가 어떻게 달라지는지 볼 수 있어요.</p>
         <div className="dark3">
           <div><span className="k">체중</span><span className="v" style={{ fontSize: 22 }}>{after.weightKg}kg</span><span className="s">{sign(dw, 'kg')}</span></div>
           <div className="sep" />
-          <div className="mid"><span className="k">낮아지는 항목</span><span className="c" aria-live="polite">{down}<small style={{ fontSize: 20 }}>개</small></span><span className="s">{up ? `${up}개는 올라가요` : '올라가는 항목 없음'}</span></div>
+          <div className="mid"><span className="k">추정이 낮아지는 항목</span><span className="c" aria-live="polite">{down}<small style={{ fontSize: 20 }}>개</small></span><span className="s">{up ? `${up}개는 올라가요` : '올라가는 항목 없음'}</span></div>
           <div className="sep" />
           <div><span className="k">허리</span><span className="v" style={{ fontSize: 22 }}>{after.waistCm == null ? '모름' : after.waistCm + 'cm'}</span><span className="s">{after.waistCm == null ? '' : sign(dwa, 'cm')}</span></div>
         </div>
@@ -80,7 +81,7 @@ export function WhatIf() {
         <div className="help" style={{ padding: '0 4px', display: 'flex', flexDirection: 'column', gap: 4 }}>
           <span>· 고혈압은 {inp.waistCm != null ? '허리' : '체중(BMI)'} 변화로 계산한 추정이에요(한국인 코호트).</span>
           <span>· 고콜레스테롤은 BMI 25를 넘나들 때만 바뀌어요. 체중 영향은 대략적이에요.</span>
-          <span>· 계산 모형에서 숫자가 어떻게 바뀌는지 보여주는 거예요. 실제로 바꿨을 때 그만큼 줄어든다는 치료 효과는 아니에요.</span>
+          <span>· 가상의 입력 변화에 따른 계산이에요. 실제 치료 효과나 질병 감소를 보장하지 않아요.</span>
         </div>
       </div>
       <TabBar at="whatif" />

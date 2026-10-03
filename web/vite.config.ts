@@ -1,9 +1,9 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
-// GitHub Pages 주소: https://fobesseo1.github.io/1mincheck/
+// B버전(비교용) 주소: https://fobesseo1.github.io/1mincheck-b/ (A버전 /1mincheck/ 과 별도 저장소에 배포)
 export default defineConfig({
-  base: '/1mincheck/',
+  base: '/1mincheck-b/',
   plugins: [react()],
   server: { fs: { allow: ['..'] } },
   test: { environment: 'node' },

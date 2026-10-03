@@ -36,7 +36,8 @@ export function Start() {
           <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--slate)' }}>나와 비슷한 100명 중 몇 명일까요?</div>
         </div>
       </div>
-      <p className="lead" style={{ fontSize: 16 }}>질문 몇 개에 답하면 나이·성별이 같은 한국인 통계와 비교해 12가지 건강 항목을 보여드려요.</p>
+      <p className="lead" style={{ fontSize: 16 }}>간단한 몸 정보와 생활습관으로, 지금 건강을 가늠해 보세요. 나이·성별이 같은 한국인 통계와 비교해 보여드려요.</p>
+      <p className="help" style={{ margin: '-8px 0 0' }}>기본 체크 약 1분 · 추가 질문은 선택 · 검진 수치가 없어도 시작할 수 있어요</p>
       <button className="cta" onClick={() => { reset(); go('/intro'); }}>시작하기</button>
       <a className="link" href="#/record">이전 기록 보기</a>
     </div>

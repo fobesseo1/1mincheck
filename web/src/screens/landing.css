@@ -63,8 +63,8 @@
   .ld .hero { padding-top: 40px; padding-bottom: 36px; gap: 40px; }
   .ld .hero-left { display: contents; }
   .ld .hero-title { order: 0; }
-  .ld .hero-mini { order: 1; }
-  .ld .hero-rest { order: 2; }
+  .ld .hero-mini { order: 2; }   /* B: 휴대폰은 제목 → 설명·시작 버튼 → 결과 예시 */
+  .ld .hero-rest { order: 1; }
   .ld .try { grid-template-columns: 1fr; gap: 20px; padding: 28px 8px 8px; border-radius: 24px; }
   .ld #try { padding-bottom: 44px; }
   .ld .try-head { padding: 0 12px; }
@@ -120,3 +120,22 @@
   .ld .promo-try, .ld .promo-more { padding: 10px 16px; font-size: 14px; white-space: nowrap; }
   .ld .promo-more small { display: none; }
 }
+
+/* B: 첫 화면 대표 결과 예시 */
+.ld .ex-card { margin: 0; width: 100%; max-width: 460px; padding: 18px 18px 14px; border-radius: 24px; background: #fff; box-shadow: 0 18px 44px rgba(22, 51, 0, .12); display: flex; flex-direction: column; gap: 10px; letter-spacing: -0.005em; }
+.ld .ex-head { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--slate); }
+.ld .ex-badge { padding: 3px 10px; border-radius: 9999px; background: var(--ink); color: var(--lime); font-weight: 800; font-size: 12px; }
+.ld .ex-status { display: flex; flex-direction: column; gap: 6px; padding: 12px 14px; border-radius: 14px; border-top: 4px solid #cb272f; background: #fff; box-shadow: inset 0 0 0 1px var(--line2); }
+.ld .ex-status b { font-size: 19px; font-weight: 800; color: #cb272f; }
+.ld .ex-tag { align-self: flex-start; padding: 2px 10px; border-radius: 9999px; background: #cb272f; color: #fff; font-size: 12px; font-weight: 800; }
+.ld .ex-row { display: flex; flex-direction: column; gap: 2px; padding: 10px 2px 2px; border-top: 1px solid var(--line); }
+.ld .ex-row-top { display: flex; justify-content: space-between; align-items: baseline; font-size: 12px; color: var(--slate); }
+.ld .ex-row-top b { font-size: 15px; color: var(--obsidian); }
+.ld .ex-pct { font-size: 22px; font-weight: 800; letter-spacing: -0.02em; }
+.ld .ex-freq { font-size: 13px; color: var(--obsidian); }
+.ld .ex-peer { font-size: 12px; font-weight: 700; }
+.ld .ex-act { padding: 10px 12px; border-radius: 12px; background: var(--bg); font-size: 13px; font-weight: 700; color: var(--obsidian); }
+.ld .ex-card figcaption { font-size: 11px; line-height: 1.5; color: var(--slate); }
+.ld .read-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
+@media (max-width: 1032px) { .ld .read-grid { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 600px) { .ld .read-grid { grid-template-columns: 1fr; } }

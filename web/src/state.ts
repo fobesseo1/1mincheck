@@ -179,7 +179,8 @@ export function suggestScenario(i: Input): { weightKg: number; waistCm: number }
 }
 
 // ── 저장: 답하는 중인 값은 sessionStorage, 기록은 사용자가 저장할 때만 localStorage (모두 이 기기 안) ──
-const DKEY = '1mincheck.draft', RKEY = '1mincheck.records';
+// B버전은 A버전(같은 fobesseo1.github.io 출처)과 기록이 섞이지 않도록 키 이름을 따로 쓴다
+const DKEY = '1mincheck-b.draft', RKEY = '1mincheck-b.records';
 export function loadDraft(): Draft {
   try { const s = sessionStorage.getItem(DKEY); if (s) return { ...emptyDraft(), ...JSON.parse(s) }; } catch { /* 저장소 없음 */ }
   return emptyDraft();

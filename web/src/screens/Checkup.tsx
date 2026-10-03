@@ -35,7 +35,13 @@ export function Checkup() {
     <div className="page fade">
       <Nav back={back} title="검진 수치 넣기" sub="선택 · 아는 것만" />
       <H1 a="건강검진 결과지의" b="숫자를 넣어 주세요" />
-      <p className="lead">넣은 수치는 추정보다 먼저 반영돼요. 모르는 칸은 비워 두면 지금처럼 추정으로 보여드려요. 이 기기 안에서만 계산해요.</p>
+      <p className="lead">검진 수치가 없어도 결과를 볼 수 있어요. 아는 값만 넣으면 그 값이 쓰이는 항목에만 반영돼요. 이 기기 안에서만 계산해요.</p>
+      <div className="card" style={{ padding: '12px 16px', fontSize: 13, lineHeight: 1.65 }}>
+        <b style={{ color: 'var(--obsidian)' }}>넣은 값이 쓰이는 곳</b>
+        <div>혈압 → 고혈압(기준 범위로 판단) · 공복혈당 → 현재 당뇨 가능성(추정에 반영)과 기준 범위 · 총콜레스테롤 → 고콜레스테롤(기준 범위로 판단)</div>
+        <div>중성지방·HDL·eGFR·요단백 → 생활·검진 체크와 안내</div>
+        <div style={{ color: 'var(--slate)' }}>넣은 값은 입력한 검진 당시의 수치로 다뤄요. 지금 잰 값처럼 보지 않아요.</div>
+      </div>
       {(['life', 'checkup'] as const).map((w) => (
         <div key={w} className="card" style={{ padding: '6px 18px 10px' }}>
           <b style={{ display: 'block', padding: '12px 0 4px', fontSize: 13, color: 'var(--slate)' }}>{w === 'life' ? '혈압 · 혈당' : '혈액 · 소변 검사'}</b>
