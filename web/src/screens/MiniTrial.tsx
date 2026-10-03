@@ -44,7 +44,7 @@ export function miniResults(age: number, sex: 'M' | 'F', heightCm: number, weigh
 }
 
 // 미니 결과는 탭을 닫기 전까지만 이 기기 세션에 둔다(서버 전송 없음). 랜딩의 다른 '체크 시작' 버튼들이 같은 색·문구를 쓴다.
-export const MINI_KEY = '1mincheck.mini';
+export const MINI_KEY = '1mincheck-a.mini';   // 보관용 A 전용
 /** 한 칸이라도 넣으면 저장(일부 입력). 결과까지 봤으면 tone·title 이 있다 */
 export type MiniSaved = { tone?: 0 | 1 | 2; title?: string; age: string; sex: 'M' | 'F' | null; h: string; w: string };
 export function loadMini(): MiniSaved | null { try { const s = sessionStorage.getItem(MINI_KEY); return s ? JSON.parse(s) : null; } catch { return null; } }
