@@ -83,9 +83,14 @@ function PromoVideo() {
   useEffect(() => { window.addEventListener('promo-full', open); return () => window.removeEventListener('promo-full', open); }, []);   // eslint-disable-line react-hooks/exhaustive-deps
   return (
     <figure className="promo-fig">
-      <video ref={ref} className={tall ? 'promo promo-tall' : 'promo'} src={`${base}video/promo-20s${kind}.mp4`} poster={`${base}video/promo-poster${kind}.jpg`} muted loop playsInline preload="auto" controls={reduce}
-        onClick={reduce ? undefined : goTry} style={{ cursor: reduce ? undefined : 'pointer' }}
-        aria-label="1분체크를 쓰는 장면 20초 영상(소리 없음): 몸 정보 입력, 결과 카드, 판정 카드" />
+      {/* 흰 테두리 카드 안에서 영상 가장자리 1–2px을 잘라낸다: 일부 모니터·배율에서 영상 층 끝에 검은 줄이 비치는 것을 막음 */}
+      <div className={tall ? 'promo-frame tall' : 'promo-frame'}>
+        <div className="promo-clip">
+          <video ref={ref} className="promo-v" src={`${base}video/promo-20s${kind}.mp4`} poster={`${base}video/promo-poster${kind}.jpg`} muted loop playsInline preload="auto" controls={reduce}
+            onClick={reduce ? undefined : goTry} style={{ cursor: reduce ? undefined : 'pointer' }}
+            aria-label="1분체크를 쓰는 장면 20초 영상(소리 없음): 몸 정보 입력, 결과 카드, 판정 카드" />
+        </div>
+      </div>
       <figcaption className="promo-cap">
         <div className="promo-acts">
           <button type="button" className="promo-try" onClick={goTry}>나도 바로 해보기 <span aria-hidden>↓</span></button>
