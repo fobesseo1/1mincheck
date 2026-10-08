@@ -12,14 +12,14 @@ describe('기준선까지 거리', () => {
     expect(kgToLowerZone(160, 62)).toEqual({ kg: 4, line: 23, zone: '정상' });   // 24.2 → 58kg = 22.7
     expect(kgToLowerZone(172, 88)).toEqual({ kg: 15, line: 25, zone: '비만 전단계' });   // 29.7 → 73kg = 24.7
     expect(kgToLowerZone(160, 55)).toBeNull();
-    expect(bmiGauge(base, 0).gap).toBe('4kg 줄이면 BMI 23 아래(정상)예요');
-    expect(bmiGauge({ ...base, weightKg: 55 }, 0).gap).toMatch(/^정상 범위예요 · BMI 23까지 3\.9kg 여유$/);
+    expect(bmiGauge(base, 0).gap).toBe('4kg을 빼면\n정상 체중이 돼요');
+    expect(bmiGauge({ ...base, weightKg: 55 }, 0).gap).toBe('정상 체중이에요.\n3.9kg 더 늘면 비만 전단계예요.');
   });
   it('허리: 기준(여 85·남 90) 이상이면 줄일 cm, 아래면 여유', () => {
     expect(cmToWaistOk('F', 87)).toBe(3);   // 84cm
     expect(cmToWaistOk('M', 90)).toBe(1);
     expect(cmToWaistOk('F', 81.3)).toBeNull();
-    expect(waistGauge(base, 0)!.gap).toBe('기준 아래예요 · 85cm까지 3.7cm 여유');
+    expect(waistGauge(base, 0)!.gap).toBe('복부비만은 아니에요.\n85cm까지 3.7cm 남았어요.');
     expect(waistGauge({ ...base, waistCm: null }, 0)).toBeNull();
   });
   it('몸무게는 BMI 18.5 아래로 줄이지 않는다', () => {
@@ -46,7 +46,7 @@ describe('끌어서 바꾸는 막대 (kg·cm)', () => {
   it('허리: 기준선(여 85cm) 아래 기준 아래 · 이상 복부비만', () => {
     const t = waistTrack(base)!;
     expect(t.cut).toBe(85);
-    expect(toneAt(t, 84).name).toBe('기준 아래'); expect(toneAt(t, 85).name).toBe('복부비만');
+    expect(toneAt(t, 84).name).toBe('정상'); expect(toneAt(t, 85).name).toBe('복부비만');
     expect(waistTrack({ ...base, waistCm: null })).toBeNull();
   });
 });
@@ -88,17 +88,23 @@ describe('또래 100명 중 나', () => {
     for (const s of samples) {
       const cs = peerCards(s.input);
       expect(cs.map((c) => c.id)).toEqual(['dm', 'htn', 'nafld']);
-      for (const c of cs) if (c.kind === 'rank') { expect(c.rank).toBeGreaterThanOrEqual(1); expect(c.rank).toBeLessThanOrEqual(99); expect(c.word).toBe(rankWord(c.rank)); }
+      for (const c of cs) if (c.kind === 'rank') { expect(c.rank).toBeGreaterThanOrEqual(1); expect(c.rank).toBeLessThanOrEqual(99); expect(c.word).toBe(rankWord(c.rank, c.name)); }
     }
     const c = peerCards(base);
     expect(c.filter((x) => x.kind === 'rank').length).toBeGreaterThan(0);
   });
-  it('100명 중 N번째로 위험 / 좋음: 위쪽 절반은 위험한 쪽에서, 아래쪽 절반은 좋은 쪽에서 센다', () => {
-    expect(standing(92)).toEqual({ n: 9, side: '위험' });
-    expect(standing(51)).toEqual({ n: 50, side: '위험' });
-    expect(standing(50)).toEqual({ n: 50, side: '좋음' });
-    expect(standing(20)).toEqual({ n: 20, side: '좋음' });
-    expect(rankWord(99)).toBe('2번째로 위험');
+  it('또래 100명 중 높은 쪽 / 낮은 쪽에서 약 N번째 (그 항목 추정 위험도 순서)', () => {
+    expect(standing(92)).toEqual({ n: 9, side: '높은 쪽', dir: '높아요' });
+    expect(standing(51)).toEqual({ n: 50, side: '높은 쪽', dir: '높아요' });
+    expect(standing(50)).toEqual({ n: 50, side: '낮은 쪽', dir: '낮아요' });
+    expect(standing(20)).toEqual({ n: 20, side: '낮은 쪽', dir: '낮아요' });
+    expect(rankWord(99)).toBe('위험성이 2번째로 높아요');
+    expect(rankWord(98, '고혈압')).toBe('고혈압 위험성이 3번째로 높아요');
+    expect(rankWord(20, '당뇨')).toBe('당뇨 위험성이 20번째로 낮아요');
+  });
+  it('또래 평균 대비 한 줄은 cmpOf 구간과 같다', () => {
+    const c = peerCards(base).filter((x) => x.kind !== 'status') as { level: string }[];
+    for (const x of c) expect(['또래보다 낮은 편', '또래와 비슷한 편', '또래보다 높은 편']).toContain(x.level);
   });
   it('진단받은 항목은 그림 대신 상태', () => {
     const c = peerCards({ ...base, dx: { htn: true, dm: false, chol: false } }).find((x) => x.id === 'htn')!;

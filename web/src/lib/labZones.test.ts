@@ -43,9 +43,9 @@ describe('검진 풀이 구간 (공식 기준 그대로)', () => {
     expect(labCards({}, 'M')).toEqual([]);
     expect(labCards({ sbp: 120 }, 'M')).toEqual([]);   // 혈압은 두 값이 다 있어야
     const cs = labCards({ sbp: 118, dbp: 76, glu: 108, tc: 250, egfr: 95 }, 'F'), s = labSummary(cs);
-    expect(s.tone).toBe('high'); expect(s.title).toBe('총콜레스테롤 확인이 필요해요');
+    expect(s.tone).toBe('high'); expect(s.title).toBe('총콜레스테롤을 확인해 보세요');
     expect(s.order[0].key).toBe('tc'); expect(s.order[1].key).toBe('glu');
-    expect(labSummary(labCards({ glu: 108 }, 'F')).title).toBe('공복혈당은 조금 신경 쓸 구간이에요');
+    expect(labSummary(labCards({ glu: 108 }, 'F')).title).toBe('공복혈당은 조금 신경 써야 해요');
     expect(labSummary(labCards({ glu: 90, tc: 180 }, 'F')).title).toBe('넣은 수치가 모두 정상 범위예요');
   });
   it('급한 문구는 지금 바로 병원 가세요만 쓴다', () => {

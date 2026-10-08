@@ -3,7 +3,7 @@
 @import "tw-animate-css";
 
 @theme {
-  --font-sans: 'Pretendard Variable', Pretendard, -apple-system, system-ui, 'Noto Sans KR', sans-serif;
+  --font-sans: 'Pretendard Variable', Pretendard, 'Noto Sans KR', -apple-system, system-ui, sans-serif;
 
   --color-brand: #163300;
   --color-brand-tint: #2f6b12;
@@ -19,13 +19,15 @@
   --color-mint: #bcffbb;
   --color-canvas: #ffffff;
 
-  --color-good: #1e8a4c;
-  --color-good-dot: #34c771;
-  --color-good-bg: #e3f8ea;
-  --color-info: #477ee9;
-  --color-info-bg: #e8effc;
-  --color-warn: #b7791f;
-  --color-warn-bg: #fdf3d8;
+  /* 상태 색은 초록(좋음)·빨강(주의·위험) 두 가지. 단계 차이는 같은 색의 진하기로 */
+  --color-good: #2f6b12;
+  --color-good-dot: #3f9a1a;
+  --color-good-bg: #edf6e6;
+  --color-info: #5d605c;
+  --color-info-bg: #f2f4f0;
+  --color-warn: #c21d40;
+  --color-warn-dot: #fc8ea3;
+  --color-warn-bg: #fff3f5;
   --color-risk: #d81e44;
   --color-risk-dot: #fb2d54;
   --color-risk-bg: #ffe8ed;
@@ -71,7 +73,8 @@
   body { font-family: var(--font-sans); letter-spacing: -0.005em; min-height: 100dvh; word-break: keep-all; overflow-wrap: break-word;
     -webkit-font-smoothing: antialiased; -webkit-tap-highlight-color: transparent; font-weight: 400; }
   b, strong { font-weight: 500; }
-  h1, h2, h3, h4 { font-weight: 500; }
+  h1, h2, h3, h4 { font-weight: 500; text-wrap: balance; }
+  p, li, span { text-wrap: pretty; }
   :focus-visible { outline: 3px solid color-mix(in srgb, var(--color-brand) 45%, transparent); outline-offset: 2px; }
   input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; }
   details > summary { list-style: none; cursor: pointer; }
@@ -89,10 +92,10 @@
 }
 
 /* 한글 제목 비율 (애플 코리아 실측: 굵기 600 · 줄간격 1.15–1.25 · 가장 큰 제목 PC 96px). docs/jeton-analysis-2026-10-08.md */
-@utility kr-display { font-weight: 600; line-height: 1.12; font-size: clamp(44px, 6.4vw, 96px); }
+@utility kr-display { font-weight: 600; line-height: 1.14; font-size: clamp(36px, 5.8vw, 84px); }
 @utility kr-h1 { font-weight: 600; line-height: 1.15; font-size: clamp(38px, 5.4vw, 80px); }
-@utility kr-h2 { font-weight: 600; line-height: 1.18; font-size: clamp(30px, 4vw, 60px); }
+@utility kr-h2 { font-weight: 600; line-height: 1.24; font-size: clamp(28px, 3.3vw, 48px); }
 @utility kr-h3 { font-weight: 600; line-height: 1.25; font-size: clamp(21px, 1.9vw, 28px); }
 @utility kr-word { font-weight: 600; line-height: 1.1; font-size: clamp(48px, 7vw, 104px); }
-@utility kr-lead { font-weight: 500; line-height: 1.5; font-size: clamp(18px, 1.55vw, 22px); }
-@utility kr-body { font-weight: 400; line-height: 1.6; font-size: 17px; }
+@utility kr-lead { font-weight: 400; line-height: 1.6; font-size: clamp(17px, 1.4vw, 20px); }
+@utility kr-body { font-weight: 400; line-height: 1.65; font-size: 17px; }

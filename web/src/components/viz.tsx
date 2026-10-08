@@ -4,11 +4,27 @@ import { Progress } from '@/components/ui/progress';
 import { cn } from '@/lib/utils';
 
 export type Tone = 'low' | 'ok' | 'mid' | 'high' | 'urgent';
-/** 상태 색 (Jeton 보조색): 좋음 Emerald · 참고 Cobalt · 주의 호박색 · 위험 Coral Red */
-export const TONE_FILL: Record<Tone, string> = { low: 'bg-info', ok: 'bg-good-dot', mid: 'bg-[#e0a526]', high: 'bg-risk-dot', urgent: 'bg-risk' };
-export const TONE_TEXT: Record<Tone, string> = { low: 'text-info', ok: 'text-good', mid: 'text-warn', high: 'text-risk', urgent: 'text-risk' };
-const ME_RING: Record<Tone, string> = { low: 'ring-info', ok: 'ring-good-dot', mid: 'ring-[#e0a526]', high: 'ring-risk-dot', urgent: 'ring-risk' };
-export const TONE_BG: Record<Tone, string> = { low: 'bg-info-bg', ok: 'bg-good-bg', mid: 'bg-warn-bg', high: 'bg-risk-bg', urgent: 'bg-risk-bg' };
+/** 상태 색: 좋음 초록 · 주의(저체중·전단계) 옅은 빨강 · 위험 빨강 · 급함 진한 빨강 */
+export const TONE_FILL: Record<Tone, string> = { low: 'bg-warn-dot', ok: 'bg-good-dot', mid: 'bg-warn-dot', high: 'bg-risk-dot', urgent: 'bg-risk' };
+export const TONE_TEXT: Record<Tone, string> = { low: 'text-warn', ok: 'text-good', mid: 'text-warn', high: 'text-risk', urgent: 'text-risk' };
+const ME_RING: Record<Tone, string> = { low: 'ring-warn-dot', ok: 'ring-good-dot', mid: 'ring-warn-dot', high: 'ring-risk-dot', urgent: 'ring-risk' };
+export const TONE_BG: Record<Tone, string> = { low: 'bg-warn-bg', ok: 'bg-good-bg', mid: 'bg-warn-bg', high: 'bg-risk-bg', urgent: 'bg-risk-bg' };
+
+/**
+ * 구간 막대 배경. segs = 0–1 위치의 구간들. 좋음(ok) 구간은 초록 그대로,
+ * 그 밖은 좋음 구간에서 멀어질수록 빨강이 진해지는 이어진 그라데이션(구간 경계에서 끊기지 않는다).
+ */
+export function trackBg(segs: { from: number; to: number; tone: Tone }[]) {
+  const ok = segs.filter((s) => s.tone === 'ok');
+  const G = 'var(--color-good-dot)', red = (a: number) => `rgb(251 45 84 / ${Math.round(a * 100)}%)`, P = (x: number) => `${(x * 100).toFixed(2)}%`;
+  if (!ok.length) return `linear-gradient(to right, ${red(0.25)}, ${red(1)})`;
+  const a = Math.min(...ok.map((s) => s.from)), b = Math.max(...ok.map((s) => s.to));
+  const st: string[] = [];
+  if (a > 0) st.push(`${red(0.25 + 0.6 * Math.min(1, a / 0.35))} 0%`, `${red(0.22)} ${P(a)}`);
+  st.push(`${G} ${P(a)}`, `${G} ${P(b)}`);
+  if (b < 1) st.push(`${red(0.22)} ${P(b)}`, `${red(1)} 100%`);
+  return `linear-gradient(to right, ${st.join(', ')})`;
+}
 
 const reduced = () => typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches;
 /** 처음 보일 때 0에서 값까지 차오르게 (움직임 줄이기면 바로) */
@@ -22,23 +38,26 @@ function useRise(v: number, delay = 0) {
  * 구간 게이지: 막대가 내 자리(pos 0–1)까지 내 구간 색으로 차고, 기준선(ticks)이 그어진다.
  * now 를 주면 '지금' 자리에 빈 표시를 남긴다(바꾸면 비교). labels 를 주면 같은 폭 구간 이름을 아래에.
  */
-export function ZoneGauge({ pos, tone, ticks = [], labels, at, now, delay = 0, label }: {
+export function ZoneGauge({ pos, tone, ticks = [], labels, at, now, delay = 0, label, segs }: {
   pos: number; tone: Tone; ticks?: { at: number; text?: string }[]; labels?: string[]; at?: number; now?: number; delay?: number; label: string;
+  /** 주면 막대 전체를 구간 색(초록 → 빨강 진하기)으로 칠하고 내 자리에 점만 둔다 */
+  segs?: { from: number; to: number; tone: Tone }[];
 }) {
   const v = useRise(Math.max(2, Math.min(100, pos * 100)), delay);
   return (
     <div className="flex flex-col gap-1.5">
       <div className="relative py-1.5">
-        <Progress value={v} aria-label={label} className="h-3" indicatorClassName={cn(TONE_FILL[tone], 'duration-700 ease-out')} />
-        {ticks.map((t) => <i key={t.at} className="absolute top-0 bottom-0 w-0.5 -translate-x-1/2 rounded-full bg-ink/45" style={{ left: `${t.at * 100}%` }} />)}
+        {segs ? <div role="meter" aria-label={label} aria-valuenow={Math.round(pos * 100)} aria-valuemin={0} aria-valuemax={100} className="h-3 w-full rounded-full" style={{ background: trackBg(segs) }} />
+          : <Progress value={v} aria-label={label} className="h-3" indicatorClassName={cn(TONE_FILL[tone], 'duration-700 ease-out')} />}
+        {ticks.map((t) => <i key={t.at} className={cn('absolute -translate-x-1/2 rounded-full', segs ? 'top-1.5 bottom-1.5 w-[3px] bg-white' : 'top-0 bottom-0 w-0.5 bg-ink/45')} style={{ left: `${t.at * 100}%` }} />)}
         {now != null && <i className="absolute top-1/2 size-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-[3px] border-ash bg-white" style={{ left: `${now * 100}%` }} aria-hidden />}
         <i className="absolute top-1/2 size-5 -translate-x-1/2 -translate-y-1/2 rounded-full border-[3px] border-white bg-ink shadow-float transition-[left] duration-700 ease-out" style={{ left: `${v}%` }} aria-hidden />
       </div>
       {ticks.some((t) => t.text) && (
-        <div className="relative h-3.5">{ticks.filter((t) => t.text).map((t) => <span key={t.at} className="absolute -translate-x-1/2 text-[10.5px] text-ink-soft" style={{ left: `${t.at * 100}%` }}>{t.text}</span>)}</div>
+        <div className="relative h-4">{ticks.filter((t) => t.text).map((t) => <span key={t.at} className="absolute -translate-x-1/2 text-caption text-ink-soft" style={{ left: `${t.at * 100}%` }}>{t.text}</span>)}</div>
       )}
       {labels && (
-        <div className="flex">{labels.map((l, k) => <span key={k} className={cn('flex-1 text-center text-[10.5px] leading-tight', k === at ? cn('font-medium', TONE_TEXT[tone]) : 'text-ink-soft')}>{l}</span>)}</div>
+        <div className="flex">{labels.map((l, k) => <span key={k} className={cn('flex-1 text-center text-caption leading-tight', k === at ? cn('font-medium', TONE_TEXT[tone]) : 'text-ink-soft')}>{l}</span>)}</div>
       )}
     </div>
   );

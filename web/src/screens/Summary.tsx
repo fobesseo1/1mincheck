@@ -53,18 +53,18 @@ export function Summary() {
 
         <H>앱의 안내 ({v.tag}) · 확인이 필요한 항목과 할 일</H>
         <p style={{ margin: 0, fontSize: 13 }}><b>{v.title}</b></p>
-        <p style={{ margin: '2px 0 6px', fontSize: 13, color: '#6b4a45' }}>{v.sub}</p>
+        <p style={{ margin: '2px 0 6px', fontSize: 13, color: '#6b4a45', whiteSpace: 'pre-line' }}>{v.sub}</p>
         <ul style={{ margin: 0, paddingLeft: 18, fontSize: 13 }}>{v.actions.map((a) => <li key={a.t}>{a.t}{a.d ? ` — ${a.d}` : ''}</li>)}</ul>
         {v.also && <p style={{ margin: '4px 0 0', fontSize: 12, color: '#6b4a45' }}>{v.also}</p>}
 
         <H>질환 가능성 추정 (지금 상태를 추정한 값)</H>
         <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-          <thead><tr><th style={th}>항목</th><th style={th}>현재 가능성 추정</th><th style={th}>또래 평균</th><th style={th}>비고</th></tr></thead>
+          <thead><tr><th style={th}>항목</th><th style={th}>지금 가능성</th><th style={th}>또래 평균</th><th style={th}>비고</th></tr></thead>
           <tbody>{est.map((p) => { const b = probB(p);
             return <tr key={p.id}><td style={td}>{B_NAME[p.id] ?? p.title}</td>
               <td style={td}>{b.kind === 'estimate' || b.kind === 'range' ? `${p.pct}%` : b.big}</td>
               <td style={td}>{p.cmp ? `${p.peerTxt}%` : '–'}</td>
-              <td style={{ ...td, fontSize: 12, color: '#6b4a45' }}>{b.kind === 'estimate' ? b.freq.replace(' 수준이에요', '') : b.kind === 'range' ? '모르는 답이 있어 범위' : b.label}</td></tr>; })}</tbody>
+              <td style={{ ...td, fontSize: 12, color: '#6b4a45' }}>{b.kind === 'estimate' ? b.freq.replace('나와 비슷한 사람 ', '').replace(' 정도예요', '') : b.kind === 'range' ? '모르는 답이 있어 범위' : b.label}</td></tr>; })}</tbody>
         </table>
         <p style={{ margin: '4px 0 0', fontSize: 11, color: '#8a706c' }}>또래 평균 = {r.group} (국민건강영양조사). 당뇨·고혈압·콜레스테롤은 아직 진단받지 않은 같은 또래 기준.</p>
 

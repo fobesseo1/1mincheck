@@ -5,6 +5,8 @@ import type { Alcohol } from '../../../engine/src/engine.ts';
 import { Nav, AppShell, Help } from '../ui.tsx';
 import { suggestScenario, type AppInput } from '../state.ts';
 import { whatIfRows } from '../lib/view.ts';
+import { HIDDEN } from '../lib/features.ts';
+import type { ItemId } from '../lib/content.ts';
 import { useInput, NeedInput } from './Results.tsx';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -39,12 +41,13 @@ export function WhatIf() {
   const after = { ...inp, weightKg: r1(inp.weightKg + dw), waistCm: inp.waistCm == null ? null : r1(inp.waistCm + dwa),
     smoke: smoke ? 'current' as const : inp.smoke === 'current' ? 'never' as const : inp.smoke, alcohol: alc, exercise: ex,
     alc: alc === inp.alcohol ? (inp as AppInput).alc : undefined };   // 음주 단계를 바꾸면 원답(종류별 양)은 더 이상 맞지 않는다
-  const { rows, down, up } = whatIfRows(inp, after);
+  const { rows: all, down, up } = whatIfRows(inp, after);
+  const rows = all.filter((r) => !HIDDEN.includes(r.id as ItemId));   // 숨긴 분야(수면 등)는 빼고
   const sign = (n: number, u: string) => (n === 0 ? '그대로' : `${n > 0 ? '+' : '−'}${Math.abs(n)}${u}`);
   const reset = () => { setDw(0); setDwa(0); setAlc(inp.alcohol); setEx(inp.exercise !== false); setSmoke(inp.smoke === 'current'); };
   return (
     <AppShell>
-      <Nav back="/all" title="바꿔보기" sub="바꾸면 바로 다시 계산해요" right={<Button variant="soft" size="icon" aria-label="처음 값으로" onClick={reset}><RotateCcw /></Button>} />
+      <Nav back="/all" title="바꿔보기" sub="바꾸는 대로 바로 다시 계산해요" right={<Button variant="soft" size="icon" aria-label="처음 값으로" onClick={reset}><RotateCcw /></Button>} />
       <div className="flex items-stretch rounded-card bg-ink px-2 py-5 text-white shadow-float">
         <div className="flex flex-1 flex-col items-center justify-center gap-1 text-center"><span className="text-[11px] text-white/70">체중</span><span className="text-subheading font-medium">{after.weightKg}kg</span><span className="text-[11px] text-white/70">{sign(dw, 'kg')}</span></div>
         <i className="w-px bg-white/20" />
@@ -66,10 +69,10 @@ export function WhatIf() {
             </div>
           </div>
         ))}
-        <Help className="mx-0 py-3 text-[11px]">회색 = 지금, 주황 = 바꾼 후 · 골다공증은 체중 증가를 권하는 것처럼 읽힐 수 있어 넣지 않았어요.</Help>
+        <Help className="mx-0 py-3">{'옅은 막대는 지금, 진한 막대는 바꾼 뒤예요.\n골다공증은 체중을 늘리라는 뜻으로 읽힐 수 있어 넣지 않았어요.'}</Help>
       </Card>
 
-      <h2 className="mx-1 mt-2 text-[19px] font-medium">무엇을 바꿔볼까요?</h2>
+      <h2 className="mx-1 mt-2 text-[19px] font-medium">무엇을 바꿔 볼까요?</h2>
       <Card className="p-5">
         <div className="flex justify-between text-body-sm"><b className="font-medium">체중</b><span><b>{after.weightKg}kg</b> <span className="text-ink-soft">{sign(dw, 'kg')}</span></span></div>
         <Slider fill={false} aria-label="체중" min={-20} max={10} step={1} value={[dw]} onValueChange={([x]) => setDw(x)} />
@@ -83,13 +86,13 @@ export function WhatIf() {
         </Card>
       )}
       <Card className="flex flex-col gap-3 p-5">
-        <b className="text-body-sm font-medium">음주 <span className="font-normal text-ink-soft">하루 평균</span></b>
+        <b className="text-body-sm font-medium">술 <span className="font-normal text-ink-soft">하루 평균</span></b>
         <div className="flex gap-1 rounded-full bg-sand-soft p-1" role="group" aria-label="음주">
           {ALC.map(([v, t]) => <button key={v} type="button" aria-pressed={alc === v} onClick={() => setAlc(v)} className={cn('h-10 flex-1 cursor-pointer rounded-full text-body-sm font-medium', alc === v ? 'bg-white text-ink shadow-card' : 'text-ink-soft')}>{t}</button>)}
         </div>
       </Card>
       <Card className="px-5">
-        {([['운동', '주 2회 · 30분 이상', ex, setEx], ['흡연', '지금 피우는 경우', smoke, setSmoke]] as const).map(([t, s, v, f], k) => (
+        {([['운동', '일주일에 두 번, 30분 이상', ex, setEx], ['흡연', '지금 담배를 피우면', smoke, setSmoke]] as const).map(([t, s, v, f], k) => (
           <div key={t} className={cn('flex min-h-16 items-center justify-between', k && 'border-t border-sand-soft')}>
             <span><b className="text-body font-medium">{t}</b><div className="text-caption text-ink-soft">{s}</div></span>
             <Toggle on={v} label={t} onChange={f} />
@@ -97,9 +100,9 @@ export function WhatIf() {
         ))}
       </Card>
       <div className="flex flex-col gap-1 px-1 text-caption text-ink-soft">
-        <span>· 고혈압은 {inp.waistCm != null ? '허리' : '체중(BMI)'} 변화로 계산한 추정이에요(한국인 코호트).</span>
-        <span>· 고콜레스테롤은 BMI 25를 넘나들 때만 바뀌어요. 체중 영향은 대략적이에요.</span>
-        <span>· 계산 모형에서 숫자가 어떻게 바뀌는지 보여주는 거예요. 실제로 바꿨을 때 그만큼 줄어든다는 치료 효과는 아니에요.</span>
+        <span>· 고혈압은 {inp.waistCm != null ? '허리' : '체중(BMI)'} 변화로 다시 계산했어요(한국인 추적 연구).</span>
+        <span>· 고콜레스테롤은 BMI 25를 넘나들 때만 바뀌어요.</span>
+        <span>· 계산에서 숫자가 어떻게 바뀌는지 보여 드리는 거예요.<br />실제로 그만큼 줄어든다고 약속하는 건 아니에요.</span>
       </div>
     </AppShell>
   );

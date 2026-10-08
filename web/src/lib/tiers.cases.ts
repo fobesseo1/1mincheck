@@ -78,8 +78,8 @@ export const CASES: Case[] = [
   { id: 'x4', who: '고지혈증 진단 + eGFR 52', inp: mk(good, { age: 66, meno: true, dx: { htn: false, dm: false, chol: true } }, { egfr: 52 }), tier: 2, must: ['콩팥'] },
 
   // 문제가 여러 개면 빠짐없이: 과음(간) + 당뇨 또래 2배 이상 (2026-10-02 화면 사례: 59세 남성 2단계 비만·고혈압 진단·과음)
-  { id: 'y1', who: '과음 + 2단계 비만 + 고혈압 진단 (당뇨 또래 3배)', inp: mk(man, { age: 59, weightKg: 92, waistCm: 104, alcohol: 'd5', famDM: true, dx: { htn: true, dm: false, chol: false } }), tier: 2, must: ['간', '혈당', '평균보다', '고혈압'] },
-  { id: 'y2', who: '검진 수치 없이 비만·가족력만 (당뇨 또래 2배 이상)', inp: mk(man, { age: 45, weightKg: 95, waistCm: 106, famDM: true }), tier: 2, must: ['혈당', '평균보다'] },
+  { id: 'y1', who: '과음 + 2단계 비만 + 고혈압 진단 (당뇨 또래 3배)', inp: mk(man, { age: 59, weightKg: 92, waistCm: 104, alcohol: 'd5', famDM: true, dx: { htn: true, dm: false, chol: false } }), tier: 2, must: ['간', '혈당', '평균의', '고혈압'] },
+  { id: 'y2', who: '검진 수치 없이 비만·가족력만 (당뇨 또래 2배 이상)', inp: mk(man, { age: 45, weightKg: 95, waistCm: 106, famDM: true }), tier: 2, must: ['혈당', '평균의'] },
 
   // ── ⑤ 관리 중 ──
   { id: 'm1', who: '당뇨 진단, 그 외 양호', inp: mk(man, { age: 58, dx: { htn: false, dm: true, chol: false } }), tier: 5, must: ['관리'], not: NO_CMP_ONLY },

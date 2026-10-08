@@ -33,8 +33,8 @@ export function freqOf(pct: number, denom = denomOf(pct)): string {
 export function peerLine(me: number, peer: number, peerTxt: string): string {
   const P = `또래 평균 ${peerTxt}%`, label = ratioLabel(me, peer), xs = `약 ${xfmt(me / peer)}배`;
   if (label === '낮음') return `${P}보다 낮아요`;
-  if (label === '비슷') return me >= 20 ? `${P}와 비슷해요. 또래에서도 흔한 편이에요` : `${P}와 비슷해요`;
-  if (me < 1) return `${P}보다 높지만(${xs}), 추정 가능성 자체는 낮은 편이에요`;
+  if (label === '비슷') return me >= 20 ? `${P}와 비슷해요.\n또래에게도 흔한 편이에요.` : `${P}와 비슷해요`;
+  if (me < 1) return `${P}보다 높지만(${xs}),\n가능성 자체는 낮은 편이에요`;
   return `${P}보다 높아요 (${xs})`;
 }
 
@@ -47,12 +47,12 @@ export function probB(p: ProbRow, inp?: AppInput): ProbB {
   const st = p.status as string;
   if (st === 'ok' && p.cmp) {
     const me = p.cmp.me;
-    return { kind: 'estimate', label: '현재 가능성 추정', big: `${p.pct}%`, freq: `비슷한 조건의 ${freqOf(me)} 수준이에요`,
+    return { kind: 'estimate', label: '지금 가능성', big: `${p.pct}%`, freq: `나와 비슷한 사람 ${freqOf(me)} 정도예요`,
       peer: peerLine(me, p.cmp.peer, p.peerTxt), high: p.cmp.high };
   }
   if (st === 'ok' && p.pct.includes('–')) {
     const [a, b] = p.pct.split('–').map(Number), one = a === b;   // 모르는 답이 있어도 값이 같으면 하나로
-    return { kind: 'range', label: '현재 가능성 추정', big: one ? `약 ${a}%` : `약 ${p.pct}%`, freq: `비슷한 조건의 ${one ? freqOf(a) : `100명 중 약 ${Math.round(a)}–${Math.round(b)}명`} 수준이에요`,
+    return { kind: 'range', label: '지금 가능성', big: one ? `약 ${a}%` : `약 ${p.pct}%`, freq: `나와 비슷한 사람 ${one ? freqOf(a) : `100명 중 약 ${Math.round(a)}–${Math.round(b)}명`} 정도예요`,
       note: one ? '' : rangeNote(inp) };
   }
   if (st === 'managed') return { kind: 'managed', label: '진단받아 관리 중', big: '관리 중', note: '이미 진단받은 항목은 가능성을 다시 추정하지 않아요. 지금처럼 꾸준히 관리해 주세요.' };
@@ -99,11 +99,11 @@ export function reasonOf(id: ItemId, inp: AppInput, p?: ProbRow): string | null 
     default: return null;
   }
   const s = xs.filter(Boolean) as string[];
-  return s.length ? `계산에 반영한 정보: ${s.join(' · ')}` : null;
+  return s.length ? `계산에 넣은 정보: ${s.join(' · ')}` : null;
 }
 
 // ── 이번 결과에 반영한 정보 ──
-const LAB_NAME: [keyof ReturnType<typeof labOf>, string][] = [['sbp', '혈압'], ['glu', '공복혈당'], ['tc', '총콜레스테롤'], ['tg', '중성지방'], ['hdl', 'HDL'], ['egfr', 'eGFR'], ['upro', '요단백']];
+const LAB_NAME: [keyof ReturnType<typeof labOf>, string][] = [['sbp', '혈압'], ['glu', '공복혈당'], ['tc', '총콜레스테롤'], ['tg', '중성지방'], ['hdl', 'HDL'], ['egfr', 'eGFR'], ['upro', '요단백']];   // 계산에 쓰는 검진값만 (혈색소·간 수치 등은 검진 풀이에서만)
 const BP_ANS = { unknown: '모름', normal: '정상', elevated: '주의(120–139/80–89)', high: '140/90 이상' } as const;
 export function scopeOf(inp: AppInput) {
   const L = labOf(inp);

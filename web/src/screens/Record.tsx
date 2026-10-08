@@ -22,7 +22,7 @@ export function Record() {
         <Nav title="기록 비교" sub="이 기기에 저장된 기록" />
         <Card className="flex flex-col gap-2.5 px-5 py-8 text-center">
           <b className="text-[19px] font-medium">{n === 0 ? '아직 저장한 기록이 없어요' : '아직 기록이 하나예요'}</b>
-          <span className="text-body-sm text-ink-soft">결과 화면에서 ‘이 기기에 기록 저장’을 누르면 남아요. 몇 달 뒤 다시 체크하면 달라진 만큼을 나란히 보여드려요.</span>
+          <span className="whitespace-pre-line text-body-sm text-ink-soft">{'결과 화면에서 ‘이 기기에 기록 저장’을 누르면 남아요.\n몇 달 뒤 다시 체크하면, 달라진 만큼 나란히 보여 드려요.'}</span>
           {n === 1 && <Button variant="outline" className="mt-2" onClick={() => open(0)}>{records[0].date} 결과 다시 보기</Button>}
         </Card>
         <Button asChild size="lg" className="w-full"><a href="#/start">체크 시작하기 <ArrowRight /></a></Button>

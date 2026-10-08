@@ -12,18 +12,22 @@ export const PEER_IDS: ItemId[] = ['dm', 'htn', 'nafld'];
 export const PEER_NAME: Record<string, string> = { dm: '당뇨', htn: '고혈압', nafld: '지방간' };
 
 export type PeerCard =
-  | { id: ItemId; name: string; kind: 'rank'; rank: number; word: string; high: boolean; pct: string; peer: string; who: string; group: string }
-  | { id: ItemId; name: string; kind: 'count'; n: number; word: string; high: boolean; pct: string; peer: string; who: string; group: string }
+  | { id: ItemId; name: string; kind: 'rank'; rank: number; word: string; level: string; high: boolean; pct: string; peer: string; who: string; group: string }
+  | { id: ItemId; name: string; kind: 'count'; n: number; word: string; level: string; high: boolean; pct: string; peer: string; who: string; group: string }
   | { id: ItemId; name: string; kind: 'status'; word: string; note: string; group: string };
 
 /**
- * 백분위(낮은 쪽에서 몇 번째, 1–99) → '100명 중 N번째로 위험/좋음'.
- * 위쪽 절반은 위험한 쪽에서 세고(92 → 9번째로 위험), 아래쪽 절반은 좋은 쪽에서 센다(20 → 20번째로 좋음).
+ * 백분위(engine/src/percentile.ts rankOf: 같은 성별·나이 ±5세, 아직 진단받지 않은 또래 100명을 그 항목 추정 위험도가
+ * 낮은 순서로 세웠을 때 낮은 쪽에서 몇 번째, 1–99) → '위험성이 N번째로 높아요' / 'N번째로 낮아요'.
+ * 사람 전체의 건강 순위가 아니라 그 항목의 추정 위험도 순서다. 위쪽 절반은 높은 쪽부터(98 → 높은 쪽에서 3번째) 센다.
  */
-export function standing(rank: number): { n: number; side: '위험' | '좋음' } {
-  return rank > 50 ? { n: 101 - rank, side: '위험' } : { n: rank, side: '좋음' };
+export function standing(rank: number): { n: number; side: '높은 쪽' | '낮은 쪽'; dir: '높아요' | '낮아요' } {
+  return rank > 50 ? { n: 101 - rank, side: '높은 쪽', dir: '높아요' } : { n: rank, side: '낮은 쪽', dir: '낮아요' };
 }
-export const rankWord = (rank: number) => { const s = standing(rank); return `${s.n}번째로 ${s.side}`; };
+/** '고혈압 위험성이 3번째로 높아요' (앞에 '또래 100명 중'을 작게) */
+export const rankWord = (rank: number, name = '') => { const s = standing(rank); return `${name ? name + ' ' : ''}위험성이 ${s.n}번째로 ${s.dir}`; };
+/** 또래 평균과 비교한 한 줄 (view.ts cmpOf 의 낮음·비슷·높음, 같은 0.8·1.25배 구간) */
+export const LEVEL_WORD: Record<string, string> = { 낮음: '또래보다 낮은 편', 비슷: '또래와 비슷한 편', 높음: '또래보다 높은 편', '매우 높음': '또래보다 높은 편' };
 const RATIO_WORD: Record<string, string> = { 낮음: '또래보다 낮은 편', 비슷: '또래와 비슷', 높음: '또래보다 높은 편', '매우 높음': '또래보다 높은 편' };
 const STATUS_WORD: Record<string, string> = { managed: '진단받아 관리 중', criteria: '검진 수치가 기준 이상', measured: '검진 수치로 확인', excluded: '간 수치 검사로 확인해요', na: '대상 아님', needs_input: '답하면 볼 수 있어요' };
 
@@ -32,8 +36,8 @@ export function peerCards(inp: Input): PeerCard[] {
   return PEER_IDS.map((id): PeerCard => {
     const r = R[id], name = PEER_NAME[id], c = cmpOf(id, r, inp);
     if (r.status === 'ok' && r.value != null && c) {
-      const rank = rankOf(id, inp.sex, inp.age, r.value), base = { id, name, high: c.high, pct: pctText(r.value), peer: `${id === 'dm' ? '약 ' : ''}${f1(c.peer)}`, who: c.who, group };
-      return rank != null ? { ...base, kind: 'rank', rank, word: rankWord(rank) } : { ...base, kind: 'count', n: Math.round(r.value), word: RATIO_WORD[c.label] ?? '또래와 비슷' };
+      const rank = rankOf(id, inp.sex, inp.age, r.value), base = { id, name, level: LEVEL_WORD[c.label] ?? '또래와 비슷한 편', high: c.high, pct: pctText(r.value), peer: `${id === 'dm' ? '약 ' : ''}${f1(c.peer)}`, who: c.who, group };
+      return rank != null ? { ...base, kind: 'rank', rank, word: rankWord(rank, name) } : { ...base, kind: 'count', n: Math.round(r.value), word: RATIO_WORD[c.label] ?? '또래와 비슷' };
     }
     if (r.status === 'ok' && r.range)
       return { id, name, kind: 'status', word: `비슷한 조건 100명 중 약 ${Math.round(r.range[0])}–${Math.round(r.range[1])}명`, note: '허리둘레 등을 몰라 범위로 보여드려요. 넣으면 또래 중 내 자리를 볼 수 있어요.', group };

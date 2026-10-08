@@ -56,9 +56,9 @@ export function verdict(inp: AppInput, r: R, sc: Scenario): Verdict {
   type H = { key: string; short: string; t: string; d?: string; href?: string };
   const hs: H[] = [];
   const b = bmiOf(inp), best = r.best;
-  const gain = best && sc && (sc.weightKg || sc.waistCm) ? `${[sc.weightKg && `체중 ${Math.abs(sc.weightKg)}kg`, sc.waistCm && `허리 ${Math.abs(sc.waistCm)}cm`].filter(Boolean).join('·')}만 줄여도 ${best.name}${j(best.name, '이', '가')} ${best.a}% → ${best.b}%로 줄어요.` : undefined;
+  const gain = best && sc && (sc.weightKg || sc.waistCm) ? `${[sc.weightKg && `체중 ${Math.abs(sc.weightKg)}kg`, sc.waistCm && `허리 ${Math.abs(sc.waistCm)}cm`].filter(Boolean).join(', ')}만 줄여도\n${best.name} 가능성이 ${best.a}%에서 ${best.b}%로 내려가요.` : undefined;
   if (inp.smoke === 'current') hs.push({ key: 'smoke', short: '금연', t: '담배를 끊으세요', d: '보건소 금연클리닉은 무료로 상담과 금연 보조제를 받을 수 있어요.' });
-  if (b >= 25) hs.push({ key: 'weight', short: '체중 관리', t: '체중을 줄이세요', d: gain ?? '지금 체중의 5%만 줄여도 혈압·혈당이 좋아져요.', href: '#/whatif' });
+  if (b >= 25) hs.push({ key: 'weight', short: '체중 관리', t: '체중을 줄이세요', d: gain ?? '지금 체중의 5%만 줄여도\n혈압과 혈당이 좋아져요.', href: '#/whatif' });
   else if (waistHigh(inp)) hs.push({ key: 'waist', short: '허리둘레 관리', t: `허리둘레를 줄이세요 (목표 ${inp.sex === 'F' ? '85' : '90'}cm 미만)`, d: gain ?? '뱃살이 줄면 당뇨·지방간 가능성이 함께 내려가요.', href: '#/whatif' });
   else if (b < 18.5) hs.push({ key: 'under', short: '체중 관리', t: '끼니를 거르지 말고 단백질을 챙기세요', d: '체중이 적으면 근육과 뼈가 약해지기 쉬워요.' });
   if (inp.exercise === false) hs.push({ key: 'exercise', short: '운동', t: '주 2회 이상, 한 번에 30분씩 운동하세요', d: '빠르게 걷기도 충분해요.' });
@@ -75,26 +75,26 @@ export function verdict(inp: AppInput, r: R, sc: Scenario): Verdict {
   type C = { name: string; why: string; t: string; d?: string; href?: string; short?: string; body?: boolean };
   const cs: C[] = [];
   const bpHigh = L.sbp != null && L.dbp != null && (L.sbp >= 140 || L.dbp >= 90);
-  if (!bpHigh && !dx.htn && L.sbp == null && inp.bp === 'high') cs.push({ name: '혈압', why: '최근 잰 혈압이 140/90 이상이었다고 답하셨어요', t: '가까운 내과에서 혈압 진료를 받으세요', d: '그 전에 집에서 며칠 아침·저녁으로 재서 기록해 가세요.', href: '#/detail/htn', short: '혈압 진료', body: true });
+  if (!bpHigh && !dx.htn && L.sbp == null && inp.bp === 'high') cs.push({ name: '혈압', why: '최근 잰 혈압이 140/90 이상이었어요', t: '가까운 내과에서 혈압 진료를 받으세요', d: '그 전에 집에서 며칠 아침·저녁으로 재서 기록해 가세요.', href: '#/detail/htn', short: '혈압 진료', body: true });
   if (bpHigh) cs.push(dx.htn
-    ? { name: '혈압', why: `검진 혈압 ${L.sbp}/${L.dbp} · 치료 목표(140/90 미만)보다 높아요`, t: '진료 때 이 수치를 알리세요', d: '약 조절이 필요한지 상담하세요. 집에서 잰 혈압 기록을 가져가면 좋아요.', short: '혈압 약 조절 상담', body: true }
-    : { name: '혈압', why: `검진 혈압 ${L.sbp}/${L.dbp} · 고혈압 기준(140/90 이상)이에요`, t: '가까운 내과에서 혈압 진료를 받으세요', d: '그 전에 집에서 며칠 아침·저녁으로 재서 기록해 가세요.', href: '#/detail/htn', short: '혈압 진료', body: true });
-  if (!dx.dm && L.glu != null && L.glu >= 126) cs.push({ name: '혈당', why: `공복혈당 ${L.glu} · 당뇨 기준(126 이상)이에요`, t: '내과에서 혈당을 다시 확인하세요', d: '다른 날 공복혈당을 다시 재거나 당화혈색소 검사를 받아요.', href: '#/detail/dm', short: '혈당 재검사·당화혈색소', body: true });
-  if (!dx.chol && L.tc != null && L.tc >= 240) cs.push({ name: '콜레스테롤', why: `총콜레스테롤 ${L.tc} · 기준(240 이상)이에요`, t: '내과에서 콜레스테롤을 자세히 확인하세요', d: 'LDL·중성지방·HDL을 함께 보고 치료가 필요한지 정해요.', href: '#/detail/chol', short: 'LDL 등 지질검사', body: true });
-  if (L.tg != null && L.tg >= 500) cs.push({ name: '중성지방', why: `중성지방 ${L.tg} · 매우 높아요(500 이상)`, t: '내과에서 중성지방 진료를 받으세요', d: '이만큼 높으면 췌장염 위험이 있어요. 술과 단 음식을 바로 줄이세요.', short: '중성지방 진료', body: true });
+    ? { name: '혈압', why: `검진 혈압 ${L.sbp}/${L.dbp}, 치료 목표(140/90 미만)보다 높아요`, t: '진료 때 이 수치를 알리세요', d: '약 조절이 필요한지 상담하세요. 집에서 잰 혈압 기록을 가져가면 좋아요.', short: '혈압 약 조절 상담', body: true }
+    : { name: '혈압', why: `검진 혈압 ${L.sbp}/${L.dbp}, 고혈압 기준(140/90)을 넘어요`, t: '가까운 내과에서 혈압 진료를 받으세요', d: '그 전에 집에서 며칠 아침·저녁으로 재서 기록해 가세요.', href: '#/detail/htn', short: '혈압 진료', body: true });
+  if (!dx.dm && L.glu != null && L.glu >= 126) cs.push({ name: '혈당', why: `공복혈당 ${L.glu}, 당뇨 기준(126)을 넘어요`, t: '내과에서 혈당을 다시 확인하세요', d: '다른 날 공복혈당을 다시 재거나 당화혈색소 검사를 받아요.', href: '#/detail/dm', short: '혈당 재검사·당화혈색소', body: true });
+  if (!dx.chol && L.tc != null && L.tc >= 240) cs.push({ name: '콜레스테롤', why: `총콜레스테롤 ${L.tc}, 기준(240)을 넘어요`, t: '내과에서 콜레스테롤을 자세히 확인하세요', d: 'LDL·중성지방·HDL을 함께 보고 치료가 필요한지 정해요.', href: '#/detail/chol', short: 'LDL 등 지질검사', body: true });
+  if (L.tg != null && L.tg >= 500) cs.push({ name: '중성지방', why: `중성지방 ${L.tg}, 매우 높아요(500 이상)`, t: '내과에서 중성지방 진료를 받으세요', d: '이만큼 높으면 췌장염 위험이 있어요. 술과 단 음식을 바로 줄이세요.', short: '중성지방 진료', body: true });
   const egfrLow = L.egfr != null && L.egfr < 60, upro = L.upro != null && L.upro >= 2;
   if (egfrLow || upro) cs.push({ name: '콩팥', why: [egfrLow && `eGFR ${L.egfr} (60 미만)`, upro && '요단백 1+ 이상'].filter(Boolean).join(' · '), t: '내과에서 콩팥 검사를 다시 받으세요', d: '한 번의 검사로는 콩팥병이라고 하지 않아요. 다시 검사해서 같은지 확인해요.', short: '콩팥 재검사', body: true });
-  if (st('nafld')?.status === 'excluded') cs.push({ name: '간', why: '술을 많이 드셔서 간 검사가 필요해요', t: '간 수치 검사를 받으세요', d: 'AST·ALT·감마지티피 혈액검사로 술 때문에 간이 상했는지 봐요. 술을 줄이는 게 먼저예요.', href: '#/detail/nafld', short: '간 수치 검사', body: true });
+  if (st('nafld')?.status === 'excluded') cs.push({ name: '간', why: '술을 많이 마셔서 간 검사가 필요해요', t: '간 수치 검사를 받으세요', d: 'AST·ALT·감마지티피 혈액검사로 술 때문에 간이 상했는지 봐요. 술을 줄이는 게 먼저예요.', href: '#/detail/nafld', short: '간 수치 검사', body: true });
   // 또래의 2배 이상인 확률 항목도 병원 확인 사유 (몸 → 마음 순서, 배수가 큰 것 먼저)
   const CMP_NAME: Partial<Record<ItemId, [string, string, string, string]>> = {
-    dm: ['혈당', '당뇨', '혈당 검사(공복혈당·당화혈색소)를 받으세요', '혈당 검사'], htn: ['혈압', '고혈압', '혈압을 재고 내과 진료를 받으세요', '혈압 측정'],
-    chol: ['콜레스테롤', '고콜레스테롤', '콜레스테롤 혈액검사를 받으세요', '콜레스테롤 검사'], nafld: ['간', '지방간', '간 수치 검사와 복부 초음파로 확인하세요', '간 수치·복부 초음파'], osteo: ['뼈', '골다공증', '골밀도 검사를 받으세요', '골밀도 검사'] };
+    dm: ['혈당', '당뇨', '혈당 검사(공복혈당·당화혈색소)를 받으세요', '혈당 검사'], htn: ['혈압', '고혈압', '혈압을 재고 내과 진료를 받으세요', '혈압 재기'],
+    chol: ['콜레스테롤', '고콜레스테롤', '콜레스테롤 혈액검사를 받으세요', '콜레스테롤 검사'], nafld: ['간', '지방간', '간 수치 검사와 복부 초음파로 확인하세요', '간 수치 검사·복부 초음파'], osteo: ['뼈', '골다공증', '골밀도 검사를 받으세요', '골밀도 검사'] };
   // 개인(5명 중 1명 이상)이든 집단(또래의 2배 이상)이든 더 경고가 되는 쪽으로: 당뇨·고혈압·콜레스테롤은 20% 이상이면 또래와 비슷해도 확인
   const absHigh = (p: (typeof r.prob)[number]) => ['dm', 'htn', 'chol'].includes(p.id) && p.cmp!.me >= 20;
   r.prob.filter((p) => p.cmp && (p.cmp.x >= 2 || absHigh(p)) && CMP_NAME[p.id as ItemId]).sort((a, b) => b.cmp!.x - a.cmp!.x).forEach((p) => {
     const [name, dis, t, short] = CMP_NAME[p.id as ItemId]!;
     if (cs.some((c) => c.name === name)) return;
-    cs.push({ name, why: p.cmp!.x >= 2 ? `${dis} 가능성이 같은 나이·성별 평균보다 크게 높아요` : `${dis} 가능성이 ${oneIn(p.cmp!.me)}꼴이에요`, t, d: `지금 ${p.pct}% · 같은 또래 평균 ${p.peerTxt}%`, href: `#/detail/${p.id}`, short, body: true });
+    cs.push({ name, why: p.cmp!.x >= 2 ? `${dis} 가능성이 또래 평균의 ${xfmt(p.cmp!.x)}배예요` : `${dis} 가능성이 ${p.pct}%로 높은 편이에요`, t, d: `지금 ${p.pct}% · 같은 또래 평균 ${p.peerTxt}%`, href: `#/detail/${p.id}`, short, body: true });
   });
   if (strong('dep')) cs.push({ name: '마음', why: '우울 점수가 상담을 권하는 수준이에요', t: '정신건강복지센터나 병원에서 상담을 받으세요', d: '많이 힘들면 109(24시간)로 전화하세요.', href: '#/detail/dep' });
   if (strong('gad')) cs.push({ name: '불안', why: '불안 점수가 확인이 필요한 수준이에요', t: '불안이 2주 넘게 이어지면 상담을 받으세요', href: '#/detail/gad' });
@@ -107,7 +107,7 @@ export function verdict(inp: AppInput, r: R, sc: Scenario): Verdict {
     // 몸 검사가 2개 이상이면 한 번의 방문으로 묶는다(내과, 골밀도가 끼면 병원). 마음·수면·소화는 따로. 그다음 가장 효과 큰 습관 1개(예: 금연)
     const bodyCs = cs.filter((c) => c.body), other = cs.filter((c) => !c.body);
     const acts: Verdict['actions'] = [], shown = new Set<string>();
-    if (bodyCs.length >= 2) acts.push({ t: `${bodyCs.some((c) => c.name === '뼈') ? '병원' : '내과'}에서 한 번에 확인하세요`, d: [...new Set(bodyCs.map((c) => c.short ?? c.name))].join(' · ') });
+    if (bodyCs.length >= 2) acts.push({ t: `${bodyCs.some((c) => c.name === '뼈') ? '병원' : '내과'}에서 한 번에 검사받으세요`, d: [...new Set(bodyCs.map((c) => c.short ?? c.name))].join(', ') });
     else if (bodyCs.length === 1) acts.push({ t: bodyCs[0].t, d: bodyCs[0].d, href: bodyCs[0].href });
     bodyCs.forEach((c) => shown.add(c.name));
     for (const c of other) if (acts.length < 2) { acts.push({ t: c.t, d: c.d, href: c.href }); shown.add(c.name); }
@@ -115,8 +115,8 @@ export function verdict(inp: AppInput, r: R, sc: Scenario): Verdict {
     if (h && acts.length < 3) acts.push({ t: h.t, d: h.d, href: h.href });
     const rest = names.filter((n) => !shown.has(n));
     return {
-      tier: 2, tag: '병원 확인', title: `${names.slice(0, 3).join('·')} 확인이 필요해요`,
-      sub: cs.slice(0, 3).map((c) => c.why).join(' / ') + (dxNames.length ? ` · ${dxNames.join('·')}${j(dxNames[dxNames.length - 1], '은', '는')} 지금처럼 관리를 이어가세요` : ''),
+      tier: 2, tag: '병원 확인', title: `${names.length === 2 ? and(names) : names.slice(0, 3).join('·')}${j(names[Math.min(names.length, 3) - 1], '을', '를')} 확인해 보세요`,
+      sub: cs.slice(0, 3).map((c) => c.why).join('\n') + (dxNames.length ? `\n${dxNames.join('·')}${j(dxNames[dxNames.length - 1], '은', '는')} 지금처럼 관리를 이어가세요` : ''),
       actions: acts,
       also: rest.length ? `함께 확인할 것: ${rest.join('·')}` : undefined,
     };

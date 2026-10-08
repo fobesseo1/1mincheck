@@ -4,7 +4,7 @@
 // 또래 평균은 같은 성별·연령대에서 '진단받지 않은 사람'의 실측 비율이다. 엔진 식은 그대로.
 import { runAll as engineRunAll, whatIf as engineWhatIf, ratioLabel, type Input, type Result } from '../../../engine/src/engine.ts';
 import { drinkOf, type AppInput } from '../state.ts';
-import type { Lab } from '../../../engine/src/extras.ts';
+import type { Lab } from './labs.ts';
 import { calibrate, peerOf, CAL_IDS, type CalId } from '../../../engine/src/calibrate.ts';
 import { rankOf } from '../../../engine/src/percentile.ts';
 import { adjustNumeric, adjustGluAge, isNum } from '../../../engine/src/numeric.ts';
@@ -285,7 +285,7 @@ export function viewResults(inp: Input, sc: Scenario) {
     rings, prob, score, crisis };
 }
 
-export const WI_META: Record<string, [string, string]> = { dm: ['이미 당뇨일 확률', '%'], htn: ['고혈압', '%'], chol: ['고콜레스테롤', '%'], obesity: ['비만', 'BMI'], nafld: ['지방간', '%'], osa: ['수면무호흡', '점'] };
+export const WI_META: Record<string, [string, string]> = { dm: ['당뇨', '%'], htn: ['고혈압', '%'], chol: ['고콜레스테롤', '%'], obesity: ['비만', 'BMI'], nafld: ['지방간', '%'], osa: ['수면무호흡', '점'] };
 export function whatIfRows(inp: Input, after: Input) {
   const by = byId(runAll(inp)), byA = byId(runAll(after));
   const scale = (u: string, v: number | null) => v == null ? 0 : u === '%' ? Math.min(100, (v / 30) * 100) : u === 'BMI' ? Math.max(0, Math.min(100, ((v - 15) / 20) * 100)) : (v / 8) * 100;

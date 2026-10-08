@@ -19,7 +19,7 @@ export const BMI_ZONES: Zone[] = [
   { from: 25, to: 30, name: '1단계 비만', tone: 'high' }, { from: 30, to: 35, name: '2단계 비만', tone: 'high' }, { from: 35, to: Infinity, name: '3단계 비만', tone: 'high' },
 ];
 export const waistCut = (sex: 'M' | 'F') => (sex === 'F' ? 85 : 90);
-export const waistZones = (sex: 'M' | 'F'): Zone[] => [{ from: 0, to: waistCut(sex), name: '기준 아래', tone: 'ok' }, { from: waistCut(sex), to: Infinity, name: '복부비만', tone: 'high' }];
+export const waistZones = (sex: 'M' | 'F'): Zone[] => [{ from: 0, to: waistCut(sex), name: '정상', tone: 'ok' }, { from: waistCut(sex), to: Infinity, name: '복부비만', tone: 'high' }];
 export const zoneOf = (zs: Zone[], v: number) => zs.find((z) => v >= z.from && v < z.to)!;
 
 const r1 = (x: number) => Math.round(x * 10) / 10;
@@ -54,15 +54,16 @@ export const minWeightDelta = (heightCm: number, weightKg: number, floor = -15) 
 export function bmiGauge(i: Input, dw: number): Gauge {
   const now = r1(bmiOf(i.heightCm, i.weightKg)), after = r1(bmiOf(i.heightCm, i.weightKg + dw));
   const nz = zoneOf(BMI_ZONES, now), hm2 = (i.heightCm / 100) ** 2, k = kgToLowerZone(i.heightCm, i.weightKg);
-  const gap = k ? `${k.kg}kg 줄이면 BMI ${k.line} 아래(${k.zone})예요`
-    : now >= 18.5 ? `정상 범위예요 · BMI 23까지 ${r1(23 * hm2 - i.weightKg)}kg 여유`
-    : `저체중이에요 · 정상(BMI 18.5)까지 ${r1(18.5 * hm2 - i.weightKg)}kg`;
+  const AFTER: Record<number, string> = { 35: '2단계 비만으로 내려가요', 30: '1단계 비만으로 내려가요', 25: '비만에서 벗어나요', 23: '정상 체중이 돼요' };
+  const gap = k ? `${k.kg}kg을 빼면\n${AFTER[k.line]}`
+    : now >= 18.5 ? `정상 체중이에요.\n${r1(23 * hm2 - i.weightKg)}kg 더 늘면 비만 전단계예요.`
+    : `저체중이에요.\n${r1(18.5 * hm2 - i.weightKg)}kg 늘면 정상 체중이 돼요.`;
   return { key: 'bmi', title: '몸무게 (BMI)', unit: 'BMI', min: 16, max: 36, zones: BMI_ZONES, lines: [18.5, 23, 25, 30, 35], now, after, nowZone: nz, afterZone: zoneOf(BMI_ZONES, after), gap };
 }
 export function waistGauge(i: Input, dwa: number): Gauge | null {
   if (i.waistCm == null) return null;
   const c = waistCut(i.sex), zs = waistZones(i.sex), now = i.waistCm, after = r1(i.waistCm + dwa), need = cmToWaistOk(i.sex, now);
-  const gap = need != null ? `${need}cm 줄이면 복부비만 기준(${c}cm) 아래예요` : `기준 아래예요 · ${c}cm까지 ${r1(c - now)}cm 여유`;
+  const gap = need != null ? `허리를 ${need}cm 줄이면\n복부비만에서 벗어나요` : `복부비만은 아니에요.\n${c}cm까지 ${r1(c - now)}cm 남았어요.`;
   return { key: 'waist', title: '허리둘레', unit: 'cm', min: c - 25, max: c + 20, zones: zs, lines: [c], now, after, nowZone: zoneOf(zs, now), afterZone: zoneOf(zs, after), gap };
 }
 

@@ -3,7 +3,7 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { ChevronDown, Minus, Plus, Check, Flame, Salad, Moon, Heart, MessageCircle, ArrowRight } from 'lucide-react';
 import { useStore, Nav, Progress, H1, Lead, Help, Choice, YN, Branch, ScaleItem, Closed, Next, Crisis, optCls } from '../ui.tsx';
 import { LABS, parseLab, bpOf } from '../lib/labs.ts';
-import type { LabKey } from '../../../engine/src/extras.ts';
+import type { LabKey } from '../lib/labs.ts';
 import { LabField } from './Checkup.tsx';
 import { loadMini } from './MiniTrial.tsx';
 import { modOn, anyModOn } from '../lib/features.ts';
@@ -100,8 +100,8 @@ export function Info() {
     <Screen>
       <Head s="info" title="기본정보" />
       <MiniBridge />
-      <H1 a="몸에 대한 숫자부터" b="알려주세요" />
-      <Help className="-mt-2">답한 내용은 이 기기 안에서만 계산해요 · 진단이 아닌 참고 정보예요 · 만 19세 이상</Help>
+      <H1 a="먼저 몸 정보를" b="알려 주세요" />
+      <Help className="-mt-2">{'답한 내용은 이 기기 안에서만 계산해요.\n만 19세 이상 성인을 위한 참고 정보예요.'}</Help>
       <Choice q="성별" value={d.sex} onChange={(v) => set({ sex: v })} options={[{ v: 'M' as const, t: '남성' }, { v: 'F' as const, t: '여성' }]} />
       <div className="grid grid-cols-2 gap-3">
         <Card className="px-5 py-4"><NumField id="age" label="만 나이" unit="세" value={d.age} onChange={(v) => set({ age: v })} /></Card>
@@ -126,10 +126,10 @@ export function Info() {
           <span className="min-h-4 text-caption text-ash">{Number(d.waist) > 0 ? (d.waistUnit === 'in' ? `약 ${(Number(d.waist) * 2.54).toFixed(1)}cm` : `약 ${(Number(d.waist) / 2.54).toFixed(1)}인치`) : ''}</span>
         </div>
       </Card>
-      <Help className="-mt-1">허리둘레는 배꼽 높이 기준 둘레예요.</Help>
+      <Help className="-mt-1">허리둘레는 배꼽 높이에서 잰 둘레예요.</Help>
       {bmi != null && (
         <div className="flex items-center justify-between rounded-card bg-ink px-5 py-4 text-white animate-rise">
-          <div><div className="text-caption font-medium text-brand-tint">자동 계산</div><div className="text-body-sm">{cat} · 대한비만학회 기준</div></div>
+          <div><div className="text-caption font-medium text-brand-tint">키와 몸무게로 계산했어요</div><div className="text-body-sm">{cat} (대한비만학회 기준)</div></div>
           <div><span className="text-body-sm text-white/70">BMI </span><b className="text-heading-sm font-medium">{bmi.toFixed(1)}</b></div>
         </div>
       )}
@@ -173,13 +173,13 @@ export function Life() {
             <button key={k} type="button" className={optCls(d.dx[k], 'sm')} aria-pressed={d.dx[k]} onClick={() => toggleDx(k)}>{t}</button>
           ))}
         </div>
-        <div className="text-caption text-ink-soft">고지혈증은 콜레스테롤·중성지방 이상 진단, 또는 검진에서 이상 소견을 받은 경우예요. 진단받은 항목은 확률 대신 ‘관리 중’으로 보여드려요.</div>
+        <div className="whitespace-pre-line text-caption text-ink-soft">{'고지혈증은 콜레스테롤이나 중성지방이 높다고 진단받은 경우예요.\n진단받은 질환은 가능성 대신 ‘관리 중’으로 보여 드려요.'}</div>
       </Card>
       <Choice q="최근에 잰 혈압은요?" cols={2} value={d.bp} onChange={(v) => set({ bp: v })}
         options={[{ v: 'unknown' as const, t: '모름' }, { v: 'normal' as const, t: '정상', s: '120/80 미만' }, { v: 'elevated' as const, t: '주의', s: '120–139 / 80–89' }, { v: 'high' as const, t: '높음', s: '140 / 90 이상' }]} />
-      <Optional label="혈압 숫자를 알면 (선택)" keys={['sbp', 'dbp']} note={bpNum ? `${({ normal: '정상', elevated: '주의', high: '높음', unknown: '모름' } as const)[bpNum]}으로 계산해요` : '두 숫자를 넣으면 위 칸이 자동으로 정해져요'} />
+      <Optional label="혈압 숫자를 알면 (선택)" keys={['sbp', 'dbp']} note={bpNum ? `${({ normal: '정상', elevated: '주의', high: '높음', unknown: '모름' } as const)[bpNum]}으로 계산해요` : '두 숫자를 넣으면 위 답이 저절로 골라져요'} />
       <Optional label="최근 공복혈당을 알면 (선택)" keys={['glu']} />
-      <Button asChild variant="link" size="sm" className="self-center"><a href="#/labs">건강검진 결과지가 있으면 더 정확하게</a></Button>
+      <Button asChild variant="link" size="sm" className="self-center"><a href="#/labs">건강검진 결과지가 있으면 숫자를 넣어 보세요</a></Button>
       <Grow />
       <Next error={lifeError(d)} to={nextOf(d, 'life')} label={nextOf(d, 'life') === '/result' ? '결과 보기' : '다음: 관심 분야 고르기'} />
     </Screen>
@@ -211,7 +211,7 @@ function Drinks() {
   const c = alcCalc(d.alcFreq, d.alcAmt), freq = ALC_FREQ.find((f) => f.v === d.alcFreq)!;
   const fmt = (v: number) => (Number.isInteger(v) ? String(v) : v.toFixed(1));
   return (
-    <Branch title="한 번 마실 때 보통 얼마나 마시나요?" sub="여러 종류를 섞어 마시면 각각 넣어 주세요">
+    <Branch title="한 번 마실 때 보통 얼마나 마시나요?" sub="여러 술을 섞어 마시면 하나씩 넣어 주세요">
       <div role="group" aria-label="한 번 마실 때 마시는 양" className="-my-2 flex flex-col">
         {DRINKS.map((k) => (
           <div key={k.k} className="flex min-h-[52px] items-center gap-2.5 border-b border-sand-soft">
@@ -222,7 +222,7 @@ function Drinks() {
           </div>
         ))}
         <div className={cn('mt-3 rounded-btn px-3.5 py-3 text-body-sm', c.per ? 'bg-blush text-ink' : 'bg-sand-soft text-ink-soft')} role="status">
-          {c.per ? <>{freq.t} × 한 번에 약 {fmt(c.per)}잔 <ArrowRight className="mx-0.5 inline size-3.5 align-[-2px] text-brand" /> <b>하루 평균 약 {c.daily.toFixed(1)}잔</b> ({ALC_LABEL[c.cat!]})</> : '+ 버튼으로 양을 넣어 주세요'}
+          {c.per ? <>{freq.t} × 한 번에 약 {fmt(c.per)}잔 <ArrowRight className="mx-0.5 inline size-3.5 align-[-2px] text-brand" /> <b>하루 평균 약 {c.daily.toFixed(1)}잔</b> ({ALC_LABEL[c.cat!]})</> : '+ 버튼을 눌러 양을 넣어 주세요'}
         </div>
       </div>
     </Branch>

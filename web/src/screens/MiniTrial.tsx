@@ -1,6 +1,6 @@
 import { useEffect, useState, type CSSProperties } from 'react';
 import MINI from '../../../engine/src/mini_rates.json';
-import { ArrowRight, UserRound } from 'lucide-react';
+import { ArrowRight, UserRound, Check } from 'lucide-react';
 import { useStore } from '../ui.tsx';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -68,10 +68,10 @@ export const MINI_CTA = {
 /** 미니 결과 한 줄 결론: 세 항목을 종합해 '그래서 어떤가'를 먼저 말한다 */
 export function miniHeadline(rows: { name: string; sev: number }[]) {
   const hi = rows.filter((r) => r.sev === 2), mid = rows.filter((r) => r.sev >= 1);
-  if (hi.length >= 2) return { tone: 2, title: `${rows.length}가지 중 ${hi.length}가지가 위험한 쪽이에요`, sub: '같은 체형 평균만 봐도 이래요. 내 습관까지 넣어야 진짜 위험이 나와요.' };
+  if (hi.length >= 2) return { tone: 2, title: `${rows.length}가지 중 ${hi.length}가지가 위험한 쪽이에요`, sub: '같은 체형의 평균만 봐도 이래요.\n내 습관까지 넣으면 더 정확해져요.' };
   if (mid.length >= 1) { const last = mid[mid.length - 1].name, c = last.charCodeAt(last.length - 1) - 0xac00;
-    return { tone: 1, title: `${mid.map((r) => r.name).join('·')}${c >= 0 && c % 28 ? '을' : '를'} 조심해야 하는 체형이에요`, sub: '체형만 본 결과예요. 허리·혈압·흡연·가족력에 따라 나는 더 높을 수도 있어요.' }; }
-  return { tone: 0, title: '또래보다 괜찮은 체형이에요', sub: '체형만 본 결과예요. 허리·혈압·흡연·가족력까지 넣으면 더 정확해요.' };
+    return { tone: 1, title: `${mid.map((r) => r.name).join('·')}${c >= 0 && c % 28 ? '을' : '를'} 조심해야 하는 체형이에요`, sub: '체형만 본 결과예요.\n허리, 혈압, 흡연, 가족력에 따라 더 높을 수도 있어요.' }; }
+  return { tone: 0, title: '또래보다 괜찮은 체형이에요', sub: '체형만 본 결과예요.\n허리, 혈압, 흡연, 가족력까지 넣으면 더 정확해요.' };
 }
 
 /** 'd명 중 m명'을 사람 그림으로: m명이 차례로 채워진다 */
@@ -88,7 +88,8 @@ function People({ m, d, col }: { m: number; d: number; col: string }) {
 const TONE_BOX = ['bg-good-bg text-good', 'bg-risk-bg text-risk', 'bg-risk text-white'] as const;
 const TONE_BTN = ['', 'bg-white text-risk border border-risk-dot hover:bg-risk-bg', 'bg-risk text-white hover:bg-risk/90'] as const;
 
-export function MiniTrial() {
+/** preset: 랜딩의 예시 인물을 누르면 그 사람의 4가지 정보를 채우고 바로 결과를 보여 준다(n 이 바뀔 때마다) */
+export function MiniTrial({ preset }: { preset?: { sex: 'M' | 'F'; age: number; h: number; w: number; n: number } } = {}) {
   const { setDraft } = useStore();
   const saved = loadMini();   // 새로고침해도 탭을 닫기 전까지는 결과를 다시 보여준다
   const [age, setAge] = useState(saved?.age ?? ''), [sex, setSex] = useState<'M' | 'F' | null>(saved?.sex ?? null), [h, setH] = useState(saved?.h ?? ''), [w, setW] = useState(saved?.w ?? '');
@@ -98,6 +99,11 @@ export function MiniTrial() {
     const hd = res ? miniHeadline(res.rows) : null;
     saveMini(age || sex || h || w ? { tone: hd ? (hd.tone as 0 | 1 | 2) : undefined, title: hd?.title, age, sex, h, w } : null);
   }, [age, sex, h, w, res]);
+  useEffect(() => {
+    if (!preset) return;
+    setSex(preset.sex); setAge(String(preset.age)); setH(String(preset.h)); setW(String(preset.w)); setTried(true);
+    setRes(miniResults(preset.age, preset.sex, preset.h, preset.w));
+  }, [preset?.n]);   // eslint-disable-line react-hooks/exhaustive-deps
   const err = miniError(age, h, w, sex);
   // 값을 고치면 결과를 지우고 다시 누르게 한다 (입력할 때마다 숫자가 바뀌지 않게)
   const edit = (set: (s: string) => void) => (s: string) => { set(s.replace(/[^0-9.]/g, '')); setRes(null); };
@@ -119,12 +125,12 @@ export function MiniTrial() {
   return (
     <div className="mini flex flex-col gap-4 rounded-[24px] bg-white p-6 text-ink shadow-float">
       <div className="flex flex-col gap-0.5">
-        <b className="text-[19px] font-medium">내 건강, 간단히 먼저 보기</b>
-        <span className="text-caption text-ink-soft">성별·나이·키·몸무게만 입력해 보세요</span>
+        <b className="text-[19px] font-semibold">내 몸 정보로 간단히 확인하기</b>
+        <span className="text-caption text-ink-soft">성별·나이·키·몸무게, 4가지만 넣어 보세요</span>
       </div>
       <div className="flex gap-2">
         {(['F', 'M'] as const).map((s) => <button key={s} type="button" onClick={() => { setSex(s); setRes(null); }} aria-pressed={sex === s}
-          className={cn('h-12 flex-1 cursor-pointer rounded-btn text-body font-medium transition-colors', sex === s ? 'bg-ink text-white' : 'bg-sand-soft text-ink hover:bg-sand')}>{s === 'F' ? '여성' : '남성'}</button>)}
+          className={cn('flex h-12 flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-btn border-2 text-body font-medium transition-colors', sex === s ? 'border-brand bg-brand text-white' : 'border-transparent bg-sand-soft text-ink hover:bg-sand')}>{sex === s && <Check className="size-4" strokeWidth={3} />}{s === 'F' ? '여성' : '남성'}</button>)}
       </div>
       <div className="flex gap-2">{field('만 나이', age, setAge, '세', '45')}{field('키', h, setH, 'cm', '165')}{field('몸무게', w, setW, 'kg', '65')}</div>
       {!res && <Button size="lg" className="w-full" onClick={show}>간단 결과 보기 <ArrowRight /></Button>}
@@ -135,7 +141,7 @@ export function MiniTrial() {
           <div role="status" className="mini-res flex flex-col gap-2 animate-rise">
             <div className={cn('rounded-card px-4 py-3.5', TONE_BOX[hd.tone as 0 | 1 | 2])}>
               <b className="block text-[19px] leading-snug font-medium">{hd.title}</b>
-              <span className={cn('mt-1 block text-body-sm', hd.tone === 2 ? 'text-white/90' : 'text-ink-soft')}>{hd.sub}</span>
+              <span className={cn('mt-1 block whitespace-pre-line text-body-sm', hd.tone === 2 ? 'text-white/90' : 'text-ink-soft')}>{hd.sub}</span>
             </div>
             <span className="text-caption text-ink-soft">기본 정보로 보는 간단한 추정 결과예요. {res.group} · {res.bmiLabel} (내 BMI {res.bmi})인 사람들은</span>
             {res.rows.map((p) => (
@@ -154,7 +160,7 @@ export function MiniTrial() {
             <Button size="lg" className={cn('mini-go mt-1.5 h-auto min-h-14 w-full whitespace-normal py-3 leading-snug', TONE_BTN[hd.tone as 0 | 1 | 2])} onClick={go}>
               {MINI_CTA[hd.tone as 0 | 1 | 2].main} <ArrowRight />
             </Button>
-            <span className="text-center text-caption text-ink-soft">허리·혈압·흡연·가족력 등 약 10문항 · 서버 저장 없음</span>
+            <span className="text-center text-caption text-ink-soft">허리, 혈압, 흡연 등 10문항 정도예요 · 서버에 저장하지 않아요</span>
             <details className="text-caption text-ink-soft">
               <summary className="font-medium">어떻게 계산했나요?</summary>
               <p className="mt-1.5">국민건강영양조사(2022–2024) 원시자료에서 나와 성별·나이대·BMI가 같은 사람들의 값이에요. 당뇨·고혈압은 진단받은 사람까지 포함한 실제 비율, 지방간은 점수표 평균이에요. 나에게 맞춘 값이 아니고 진단도 아니에요.</p>

@@ -66,8 +66,8 @@ export const Progress = ({ step, total }: { step: number; total: number }) => (
 export const H1 = ({ a, b }: { a: ReactNode; b: ReactNode }) => (
   <h1 className="mx-1 mt-2 mb-1 text-heading-sm text-ink-soft">{a}<b className="block text-ink">{b}</b></h1>
 );
-export const Lead = ({ children, className }: { children: ReactNode; className?: string }) => <p className={cn('mx-1 text-body-sm text-ink-soft', className)}>{children}</p>;
-export const Help = ({ children, className }: { children: ReactNode; className?: string }) => <p className={cn('mx-1 text-caption text-ink-soft', className)}>{children}</p>;
+export const Lead = ({ children, className }: { children: ReactNode; className?: string }) => <p className={cn('mx-1 whitespace-pre-line text-body-sm text-ink-soft', className)}>{children}</p>;
+export const Help = ({ children, className }: { children: ReactNode; className?: string }) => <p className={cn('mx-1 whitespace-pre-line text-caption text-ink-soft', className)}>{children}</p>;
 
 /** 선택 버튼 하나 */
 export const optCls = (on: boolean, size?: 'sm' | 'xs') => cn('flex min-h-12 cursor-pointer flex-col items-center justify-center rounded-btn px-1.5 py-1.5 text-center leading-tight font-medium transition-colors',

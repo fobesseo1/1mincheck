@@ -1,7 +1,7 @@
 // 사용자가 답하는 중인 값(Draft)과, 그것을 engine 의 Input 으로 바꾸는 규칙 (docs/spec.md §5)
 import type { Input, Alcohol, Bp } from '../../engine/src/engine.ts';
-import { ALCOHOL_G, type Drink, type Lab } from '../../engine/src/extras.ts';
-import { parseLab, labError, bpOf, type LabDraft } from './lib/labs.ts';
+import { ALCOHOL_G, type Drink } from '../../engine/src/extras.ts';
+import { parseLab, labError, bpOf, type LabDraft, type Lab } from './lib/labs.ts';
 import { modOn } from './lib/features.ts';
 
 type YN = boolean | null;
