@@ -94,7 +94,7 @@ export function verdict(inp: AppInput, r: R, sc: Scenario): Verdict {
   r.prob.filter((p) => p.cmp && (p.cmp.x >= 2 || absHigh(p)) && CMP_NAME[p.id as ItemId]).sort((a, b) => b.cmp!.x - a.cmp!.x).forEach((p) => {
     const [name, dis, t, short] = CMP_NAME[p.id as ItemId]!;
     if (cs.some((c) => c.name === name)) return;
-    cs.push({ name, why: p.cmp!.x >= 2 ? `${dis} 가능성이 또래의 ${xfmt(p.cmp!.x)}배예요` : `${dis} 가능성이 ${oneIn(p.cmp!.me)}꼴이에요`, t, d: `지금 ${p.pct}% · 같은 또래 평균 ${p.peerTxt}%`, href: `#/detail/${p.id}`, short, body: true });
+    cs.push({ name, why: p.cmp!.x >= 2 ? `${dis} 가능성이 같은 나이·성별 평균보다 크게 높아요` : `${dis} 가능성이 ${oneIn(p.cmp!.me)}꼴이에요`, t, d: `지금 ${p.pct}% · 같은 또래 평균 ${p.peerTxt}%`, href: `#/detail/${p.id}`, short, body: true });
   });
   if (strong('dep')) cs.push({ name: '마음', why: '우울 점수가 상담을 권하는 수준이에요', t: '정신건강복지센터나 병원에서 상담을 받으세요', d: '많이 힘들면 109(24시간)로 전화하세요.', href: '#/detail/dep' });
   if (strong('gad')) cs.push({ name: '불안', why: '불안 점수가 확인이 필요한 수준이에요', t: '불안이 2주 넘게 이어지면 상담을 받으세요', href: '#/detail/gad' });
