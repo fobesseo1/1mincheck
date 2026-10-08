@@ -1,8 +1,13 @@
+// 기록 비교: 이 기기에 저장한 두 기록을 나란히. 디자인: docs/DESIGN.md
 import { useState } from 'react';
-import { useStore, Nav, TabBar, Icon } from '../ui.tsx';
+import { ArrowRight, Printer, ChevronDown, Trash2 } from 'lucide-react';
+import { useStore, Nav, AppShell, Help, Arrowed, go } from '../ui.tsx';
 import { saveRecords, fromInput } from '../state.ts';
 import { viewRecord } from '../lib/view.ts';
-import { go } from '../ui.tsx';
+import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
 
 export function Record() {
   const { records, setRecords, setDraft, toast } = useStore();
@@ -13,74 +18,67 @@ export function Record() {
   const open = (k: number) => { setDraft(() => fromInput(records[k].input)); go('/result'); };
   if (n < 2) {
     return (
-      <div className="app">
-        <div className="page fade">
-          <Nav title="기록 비교" sub="이 기기에 저장된 기록" />
-          <div className="card" style={{ padding: '32px 20px', textAlign: 'center', display: 'flex', flexDirection: 'column', gap: 10 }}>
-            <b style={{ fontSize: 17, color: 'var(--obsidian)' }}>{n === 0 ? '아직 저장한 기록이 없어요' : '아직 기록이 하나예요'}</b>
-            <span style={{ fontSize: 14, lineHeight: 1.55 }}>결과 화면에서 ‘이 기기에 기록 저장’을 누르면 남아요. 몇 달 뒤 다시 체크하면 달라진 만큼을 나란히 보여드려요.</span>
-            {n === 1 && <button className="cta outline" onClick={() => open(0)} style={{ marginTop: 8 }}>{records[0].date} 결과 다시 보기</button>}
-          </div>
-          <a className="cta" href="#/start">체크 시작하기</a>
-          <div className="grow" />
-          {n > 0 && <button className="link" onClick={clear} style={{ fontSize: 13 }}>기록 지우기</button>}
-        </div>
-        <TabBar at="record" />
-      </div>
+      <AppShell tab="record">
+        <Nav title="기록 비교" sub="이 기기에 저장된 기록" />
+        <Card className="flex flex-col gap-2.5 px-5 py-8 text-center">
+          <b className="text-[19px] font-medium">{n === 0 ? '아직 저장한 기록이 없어요' : '아직 기록이 하나예요'}</b>
+          <span className="text-body-sm text-ink-soft">결과 화면에서 ‘이 기기에 기록 저장’을 누르면 남아요. 몇 달 뒤 다시 체크하면 달라진 만큼을 나란히 보여드려요.</span>
+          {n === 1 && <Button variant="outline" className="mt-2" onClick={() => open(0)}>{records[0].date} 결과 다시 보기</Button>}
+        </Card>
+        <Button asChild size="lg" className="w-full"><a href="#/start">체크 시작하기 <ArrowRight /></a></Button>
+        <div className="flex-1" />
+        {n > 0 && <Button variant="ghost" size="sm" className="self-center text-ink-soft" onClick={clear}><Trash2 /> 기록 지우기</Button>}
+      </AppShell>
     );
   }
   const p = records[Math.min(pi, n - 1)], c = records[Math.min(ci, n - 1)];
   const v = viewRecord(p.input, c.input);
-  const sel = (val: number, set: (x: number) => void, label: string, dark?: boolean) => (
-    <label style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, padding: 10, borderRadius: 14, background: dark ? 'var(--ink)' : 'var(--bg)' }}>
-      <span className="cap" style={{ color: dark ? '#d8e8cf' : undefined }}>{label}</span>
-      <select value={val} onChange={(e) => set(Number(e.target.value))} style={{ border: 0, background: 'transparent', fontSize: 15, fontWeight: 700, color: dark ? '#fff' : 'var(--obsidian)', textAlign: 'center' }}>
-        {records.map((r, k) => <option key={r.id} value={k} style={{ color: '#000' }}>{r.date}{k === n - 1 ? ' (최근)' : ''}</option>)}
+  const sel = (val: number, set: (x: number) => void, label: string, now?: boolean) => (
+    <label className={cn('flex flex-1 flex-col items-center gap-0.5 rounded-btn p-2.5', now ? 'bg-brand text-white' : 'bg-sand-soft')}>
+      <span className={cn('text-caption', now ? 'text-white/80' : 'text-ink-soft')}>{label}</span>
+      <select value={val} onChange={(e) => set(Number(e.target.value))} className={cn('cursor-pointer border-0 bg-transparent text-center text-body font-medium outline-none', now ? 'text-white' : 'text-ink')}>
+        {records.map((r, k) => <option key={r.id} value={k} className="text-ink">{r.date}{k === n - 1 ? ' (최근)' : ''}</option>)}
       </select>
     </label>
   );
   return (
-    <div className="app">
-      <div className="page fade">
-        <Nav title="기록 비교" sub={`이 기기에 저장된 기록 ${n}개`} />
-        <div className="card" style={{ display: 'flex', alignItems: 'center', gap: 8, padding: 8 }}>
-          {sel(pi, setPi, '이전')}<span style={{ color: 'var(--ink)' }}>{Icon.right}</span>{sel(ci, setCi, '지금', true)}
-        </div>
-        <div className="dark3">
-          <div><span className="k">체중</span><span className="v" style={{ fontSize: 22 }}>{v.weight.v}</span><span className="s">{v.weight.s}</span></div>
-          <div className="sep" />
-          <div className="mid"><span className="k">좋아진 항목</span><span className="c">{v.down}<small style={{ fontSize: 20 }}>개</small></span><span className="s">{v.habit}</span></div>
-          <div className="sep" />
-          <div><span className="k">허리</span><span className="v" style={{ fontSize: 22 }}>{v.waist.v}</span><span className="s">{v.waist.s}</span></div>
-        </div>
-        <h2 className="h2">달라진 항목</h2>
-        <div className="card" style={{ padding: '4px 18px' }}>
-          {v.rows.length === 0 && <div style={{ padding: '16px 0', fontSize: 14 }}>달라진 항목이 없어요.</div>}
-          {v.rows.map((r) => (
-            <div key={r.id} className="row">
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}><b style={{ fontSize: 15, color: 'var(--obsidian)' }}>{r.name}</b>
-                <span className="tag" style={{ background: r.better ? 'var(--lime)' : 'var(--look-bg)', color: r.better ? 'var(--ink)' : 'var(--look)' }}>{r.delta}</span></div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                <span style={{ width: 56, fontSize: 15, fontWeight: 600, color: 'var(--slate)' }}>{r.b}</span>
-                <svg width="100%" height="28" viewBox="0 0 200 28" preserveAspectRatio="none" aria-hidden="true" style={{ flex: 1 }}><line x1="6" y1={r.y1} x2="194" y2={r.y2} stroke="var(--ink)" strokeWidth="2" strokeDasharray="4 4" /><circle cx="6" cy={r.y1} r="5" fill="#c2c6be" /><circle cx="194" cy={r.y2} r="6" fill="var(--ink)" /></svg>
-                <span style={{ width: 64, textAlign: 'right', fontSize: 20, fontWeight: 900, letterSpacing: '-0.03em', color: 'var(--obsidian)' }}>{r.a}</span>
-              </div>
-              {r.why && <span style={{ fontSize: 12, color: 'var(--slate)' }}>{r.why}</span>}
-            </div>
-          ))}
-          <details style={{ padding: '14px 0' }}>
-            <summary style={{ display: 'flex', justifyContent: 'space-between', fontSize: 15, fontWeight: 700, color: 'var(--obsidian)' }}>그대로인 항목 {v.same.length}개 {Icon.down}</summary>
-            <div style={{ marginTop: 10, fontSize: 13, lineHeight: 1.8 }}>{v.same.join(' · ')}</div>
-          </details>
-        </div>
-        <button className="cta outline" onClick={() => window.print()}>{Icon.save} 진료 때 보여줄 리포트로 저장(인쇄·PDF)</button>
-        <button className="cta outline" onClick={() => open(Math.min(ci, n - 1))}>{c.date} 결과 자세히 보기</button>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '0 4px' }}>
-          <span className="help">기록은 이 기기에만 있어요. 브라우저 데이터를 지우면 함께 사라져요.</span>
-          <button className="link" onClick={clear} style={{ fontSize: 13, flexShrink: 0 }}>기록 지우기</button>
-        </div>
+    <AppShell tab="record">
+      <Nav title="기록 비교" sub={`이 기기에 저장된 기록 ${n}개`} />
+      <Card className="flex items-center gap-2 p-2">{sel(pi, setPi, '이전')}<ArrowRight className="size-5 text-brand" />{sel(ci, setCi, '지금', true)}</Card>
+      <div className="flex items-stretch rounded-card bg-ink px-2 py-5 text-white shadow-float">
+        {[['체중', v.weight.v, v.weight.s], null, ['좋아진 항목', `${v.down}개`, v.habit], null, ['허리', v.waist.v, v.waist.s]].map((x, k) => x ? (
+          <div key={k} className={cn('flex flex-1 flex-col items-center justify-center gap-1 text-center', k === 2 && 'flex-[1.5]')}>
+            <span className="text-[11px] text-white/70">{x[0]}</span>
+            <span className={cn('font-medium', k === 2 ? 'text-heading text-brand-tint' : 'text-subheading')}>{x[1]}</span>
+            <span className="text-[11px] text-white/70"><Arrowed text={x[2]} /></span>
+          </div>
+        ) : <i key={k} className="w-px bg-white/20" />)}
       </div>
-      <TabBar at="record" />
-    </div>
+      <h2 className="mx-1 mt-2 text-[19px] font-medium">달라진 항목</h2>
+      <Card className="px-5 py-1">
+        {v.rows.length === 0 && <div className="py-4 text-body-sm">달라진 항목이 없어요.</div>}
+        {v.rows.map((r) => (
+          <div key={r.id} className="flex flex-col gap-2 border-b border-sand-soft py-4 last:border-b-0">
+            <div className="flex items-center justify-between"><b className="text-body font-medium">{r.name}</b><Badge variant={r.better ? 'good' : 'risk'}>{r.delta}</Badge></div>
+            <div className="flex items-center gap-3">
+              <span className="w-14 text-body font-medium text-ink-soft">{r.b}</span>
+              <svg width="100%" height="28" viewBox="0 0 200 28" preserveAspectRatio="none" aria-hidden="true" className="flex-1"><line x1="6" y1={r.y1} x2="194" y2={r.y2} stroke="var(--color-brand)" strokeWidth="2" strokeDasharray="4 4" /><circle cx="6" cy={r.y1} r="5" fill="var(--color-sand)" /><circle cx="194" cy={r.y2} r="6" fill="var(--color-brand)" /></svg>
+              <span className="w-16 text-right text-subheading font-medium">{r.a}</span>
+            </div>
+            {r.why && <span className="text-caption text-ink-soft"><Arrowed text={r.why} /></span>}
+          </div>
+        ))}
+        <details className="group py-3.5">
+          <summary className="flex items-center justify-between text-body font-medium">그대로인 항목 {v.same.length}개 <ChevronDown className="size-5 text-brand transition-transform group-open:rotate-180" /></summary>
+          <div className="mt-2.5 text-body-sm leading-loose text-ink-soft">{v.same.join(' · ')}</div>
+        </details>
+      </Card>
+      <Button variant="outline" size="lg" className="w-full" onClick={() => window.print()}><Printer /> 진료 때 보여줄 리포트로 저장(인쇄·PDF)</Button>
+      <Button variant="soft" size="lg" className="w-full" onClick={() => open(Math.min(ci, n - 1))}>{c.date} 결과 자세히 보기</Button>
+      <div className="flex items-center justify-between gap-3 px-1">
+        <Help className="mx-0">기록은 이 기기에만 있어요. 브라우저 데이터를 지우면 함께 사라져요.</Help>
+        <Button variant="ghost" size="sm" className="shrink-0 text-ink-soft" onClick={clear}><Trash2 /> 기록 지우기</Button>
+      </div>
+    </AppShell>
   );
 }

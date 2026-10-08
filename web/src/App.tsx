@@ -53,26 +53,26 @@ export function App() {
 
   let screen: JSX.Element;
   if (!route.startsWith('/') || route === '/') screen = <Landing />;
-  else if (APP[route]) { const S = APP[route]; screen = <div className="app"><S /></div>; }
+  else if (APP[route]) { const S = APP[route]; screen = <S />; }
   else if (route === '/result') screen = <Results />;
   else if (route === '/all') screen = <All />;
   else if (route === '/labs' || route === '/checkup') screen = <LabsInput />;   // 예전 '검진 수치 넣기' 주소도 검진 풀이로
   else if (route === '/labs/result') screen = <LabsResult />;
   else if (route === '/whatif') screen = <WhatIf key={JSON.stringify(draft)} />;
   else if (route === '/record') screen = <Record />;
-  else if (route === '/summary') screen = <div className="app"><div className="page fade"><Summary /></div></div>;
-  else if (route.startsWith('/detail/')) screen = <div className="app"><Detail id={route.slice(8) as ItemId} /></div>;
-  else if (route === '/dev') screen = <div className="app"><Dev /></div>;
+  else if (route === '/summary') screen = <Summary />;
+  else if (route.startsWith('/detail/')) screen = <Detail id={route.slice(8) as ItemId} />;
+  else if (route === '/dev') screen = <Dev />;
   else screen = <Landing />;
 
   return (
     <StoreCtx.Provider value={{ draft, setDraft, reset, records, setRecords, toast }}>
       {screen}
-      {msg && <div className="toast" role="status">{msg}</div>}
-      {isDev() && <a href="#/dev" style={{ position: 'fixed', top: 8, left: 8, zIndex: 50, padding: '3px 8px', borderRadius: 8, background: '#ffd84d', color: '#4a3800', fontSize: 11, fontWeight: 800, textDecoration: 'none' }}>개발자 모드 · 보정 확인</a>}
+      {msg && <div className="fixed left-1/2 bottom-[calc(96px+env(safe-area-inset-bottom))] z-50 -translate-x-1/2 rounded-full bg-ink px-5 py-3 text-body-sm font-medium text-white shadow-float animate-rise" role="status">{msg}</div>}
+      {isDev() && <a href="#/dev" className="fixed top-2 left-2 z-50 rounded-lg bg-citrus px-2 py-0.5 text-[11px] font-medium text-ink no-underline">개발자 모드 · 보정 확인</a>}
       {(import.meta.env.DEV || isDev()) && route.startsWith('/') && route !== '/' && (
-        <div className="demo" role="group" aria-label="개발용 예시 불러오기">
-          {[...samples, ...stressSamples].map((s) => <button key={s.id} type="button" onClick={() => { setDraft(() => fromInput(s.input)); toast(`예시 ${s.label} 불러옴`); }}>{s.label}</button>)}
+        <div className="demo no-print fixed left-3 bottom-[calc(84px+env(safe-area-inset-bottom))] z-30 flex gap-1 rounded-full border border-dashed border-ash bg-white p-1" role="group" aria-label="개발용 예시 불러오기">
+          {[...samples, ...stressSamples].map((s) => <button key={s.id} type="button" className="h-7 cursor-pointer rounded-full px-2.5 text-caption font-medium hover:bg-sand-soft" onClick={() => { setDraft(() => fromInput(s.input)); toast(`예시 ${s.label} 불러옴`); }}>{s.label}</button>)}
         </div>
       )}
     </StoreCtx.Provider>

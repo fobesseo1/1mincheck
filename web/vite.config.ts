@@ -1,5 +1,7 @@
 import { defineConfig, type Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
+import tailwindcss from '@tailwindcss/vite';
+import { fileURLToPath } from 'node:url';
 
 // 두 곳에 배포한다: GitHub Pages(main 브랜치, https://fobesseo1.github.io/1mincheck/)와 Vercel(simple-v2 브랜치, 주소 맨 앞 '/').
 // Vercel 은 빌드할 때 VERCEL=1 과 배포 주소(VERCEL_PROJECT_PRODUCTION_URL·VERCEL_URL)를 넣어 준다.
@@ -32,7 +34,8 @@ function sharePreview(): Plugin {
 
 export default defineConfig({
   base,
-  plugins: [react(), sharePreview()],
+  plugins: [react(), tailwindcss(), sharePreview()],
+  resolve: { alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) } },
   define: { __ANALYTICS__: JSON.stringify(onVercel) },
   server: { fs: { allow: ['..'] } },
   test: { environment: 'node' },

@@ -33,12 +33,17 @@ async function click(label, group) {
   await wait(150);
 }
 async function type(sel, v) { await p.click(sel, { clickCount: 3 }); await p.type(sel, v); }
-/** React 가 관리하는 range 입력 값 바꾸기 */
-const slide = (label, v) => p.evaluate((label, v) => {
-  const s = document.querySelector(`input[aria-label="${label}"]`);
-  Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set.call(s, String(v));
-  s.dispatchEvent(new Event('input', { bubbles: true }));
-}, label, v);
+/** shadcn(Radix) 슬라이더: 손잡이에 초점을 두고 방향키로 n칸 */
+async function slide(label, steps) {
+  await p.focus(`[role=slider][aria-label="${label}"]`);
+  for (let k = 0; k < Math.abs(steps); k++) await p.keyboard.press(steps < 0 ? 'ArrowLeft' : 'ArrowRight');
+  await wait(100);
+}
+/** shadcn(Radix) 탭: 누르는 순간(mousedown)에 바뀐다 */
+async function tab(label) {
+  const el = await p.evaluateHandle((label) => [...document.querySelectorAll('[role=tab]')].find((e) => e.textContent.trim() === label), label);
+  await el.click(); await wait(200);
+}
 
 try {
   await p.goto(BASE, { waitUntil: 'networkidle0' });
@@ -70,15 +75,17 @@ try {
 
   console.log('결과 3장');
   const tr = await text();
-  ok(['지금 내 상태', '또래 100명 중 나', '이대로면 vs 바꾸면'].every((l) => tr.includes(l.replace('지금 내 상태', '')) ) && !!(await p.$('section[aria-label="지금 내 상태"]')) && !!(await p.$('section[aria-label="또래 100명 중 나"]')) && !!(await p.$('#change')), '카드 3장');
+  ok(['지금 내 상태', '또래 100명 중 나', '이대로면 vs 바꾸면'].every((l) => tr.includes(l.replace('지금 내 상태', '')) ) && !!(await p.$('section[aria-label="지금 내 상태"]')) && !!(await p.$('[aria-label="또래 100명 중 나"]')) && !!(await p.$('#change')), '카드 3장');
   ok(/나는 \d+번째/.test(tr), '또래 중 내 자리 (n번째)');
   ok(!/배예요|\d배\)/.test(tr), '결과 첫 화면에 몇 배 표현 없음');
+  ok(await p.evaluate(() => getComputedStyle(document.querySelector('section[aria-label="지금 내 상태"] h2')).fontSize === '28px'), '판정 제목 28px (Jeton 글자 크기)');
+  ok(await p.evaluate(() => getComputedStyle(document.body).letterSpacing === '-0.08px' || getComputedStyle(document.body).letterSpacing.startsWith('-0.0')), '본문 자간 -0.5%');
   ok(tr.includes('3cm 줄이면 복부비만 기준(90cm) 아래예요'), '허리 기준선까지 거리');
   ok(tr.includes('10년 안에 당뇨가 생길 가능성') && tr.includes('이대로면 23.4%'), '이대로면 10년 당뇨 23.4%');
   const h = await p.evaluate(() => document.documentElement.scrollHeight);
   ok(h <= 844 * 3.2, `결과 화면 길이 ${h}px (화면 약 ${(h / 844).toFixed(1)}장)`);
   await shot('result');
-  await click('고혈압', '항목'); ok((await text()).includes('고혈압 ·'), '또래 탭 전환');
+  await tab('고혈압'); ok((await p.evaluate(() => document.querySelector('[role=tabpanel]:not([hidden])')?.innerText || '')).includes('고혈압 ·'), '또래 탭 전환');
   await click('허리 90cm 아래로'); await wait(600);
   const tc = await p.evaluate(() => document.getElementById('change').innerText);
   ok(tc.includes('89cm 기준 아래') && tc.includes('바꾸면 8.9%'), '허리 −3cm: 기준선 아래, 10년 당뇨 23.4% → 8.9%');
@@ -99,7 +106,7 @@ try {
   const tl = await text();
   ok(tl.includes('총콜레스테롤·HDL 콜레스테롤 확인이 필요해요') || tl.includes('확인이 필요해요'), '검진 요약 한 줄');
   ok(tl.includes('고혈압 전단계') && tl.includes('당뇨 전 단계') && tl.includes('높음') && tl.includes('낮음'), '구간 이름');
-  ok((tl.match(/→ /g) || []).length >= 4, '카드마다 할 일');
+  ok(await p.evaluate(() => document.querySelectorAll('[aria-label$="콜레스테롤"] .lucide-arrow-right, [aria-label="혈압"] .lucide-arrow-right, [aria-label="공복혈당"] .lucide-arrow-right').length >= 4), '카드마다 할 일');
   await shot('labs-result');
   await click('이 숫자를 반영한 내 결과 보기');
   const tr2 = await text();

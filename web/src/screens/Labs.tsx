@@ -1,15 +1,19 @@
 // v2 검진 풀이: 결과지 숫자를 넣으면(#/labs) 하나씩 쉽게 풀어 준다(#/labs/result).
-// 넣은 값은 1분 체크 결과에도 함께 반영된다(같은 draft.lab). 계산 없이 공식 기준 구간만 쓴다(lib/labZones.ts).
-import type { CSSProperties } from 'react';
-import { useStore, Nav, H1, TabBar, Icon, go } from '../ui.tsx';
+// 넣은 값은 1분 체크 결과에도 함께 반영된다(같은 draft.lab). 계산 없이 공식 기준 구간만 쓴다(lib/labZones.ts). 디자인: docs/DESIGN.md
+import { ArrowRight, ChevronLeft, Camera, Trash2 } from 'lucide-react';
+import { useStore, Nav, H1, Lead, Help, AppShell, go, optCls } from '../ui.tsx';
 import { toInput } from '../state.ts';
 import { LABS, labError, parseLab } from '../lib/labs.ts';
 import { labCards, labSummary, type LabCard, type LabTone } from '../lib/labZones.ts';
 import { LabField } from './Checkup.tsx';
+import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Badge, type BadgeVariant } from '@/components/ui/badge';
+import { ZoneGauge, TONE_TEXT, TONE_BG } from '@/components/viz';
+import { cn } from '@/lib/utils';
 
-const RED = '#cb272f';
-const TONE_BG: Record<LabTone, string> = { ok: 'var(--linen)', mid: '#fbeec9', high: '#fbe1df', urgent: '#f6c9c6' };
-const TONE_FG: Record<LabTone, string> = { ok: 'var(--ink)', mid: '#7a5a00', high: RED, urgent: RED };
+const UNIT: Record<string, string> = { bp: 'mmHg', egfr: 'mL/min', upro: '' };
+const BADGE: Record<LabTone, BadgeVariant> = { ok: 'good', mid: 'warn', high: 'risk', urgent: 'risk' };
 
 /** 결과지 숫자 넣기 */
 export function LabsInput() {
@@ -18,49 +22,55 @@ export function LabsInput() {
   const n = labCards(parseLab(d.lab ?? {}), d.sex).length;
   const ready = !!toInput(d);
   return (
-    <div className="app">
-      <div className="page fade">
-        <Nav back={ready ? '/result' : '/'} title="검진 풀이" sub="아는 숫자만 넣어도 돼요" />
-        <H1 a="건강검진 결과지의" b="숫자를 넣어 주세요" />
-        <p className="lead">숫자 하나하나가 무슨 뜻인지, 무엇을 하면 되는지 쉽게 풀어 드려요. 넣은 숫자는 이 기기 안에서만 써요.</p>
-        {!d.sex && (
-          <div className="card q" role="group" aria-label="성별">
-            <div className="qt">성별 <span style={{ fontWeight: 400, fontSize: 13, color: 'var(--slate)' }}>(좋은 콜레스테롤 기준이 달라요)</span></div>
-            <div className="opts" style={{ gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}>
-              {(['F', 'M'] as const).map((s) => <button key={s} type="button" className="opt" aria-pressed={d.sex === s} onClick={() => setDraft((x) => ({ ...x, sex: s }))}>{s === 'F' ? '여성' : '남성'}</button>)}
-            </div>
+    <AppShell tab="labs">
+      <Nav back={ready ? '/result' : '/'} title="검진 풀이" sub="아는 숫자만 넣어도 돼요" />
+      <H1 a="건강검진 결과지의" b="숫자를 넣어 주세요" />
+      <Lead>숫자 하나하나가 무슨 뜻인지, 무엇을 하면 되는지 쉽게 풀어 드려요. 넣은 숫자는 이 기기 안에서만 써요.</Lead>
+      {!d.sex && (
+        <Card className="flex flex-col gap-3 p-4" role="group" aria-label="성별">
+          <div className="text-body font-medium">성별 <span className="text-body-sm font-normal text-ink-soft">(좋은 콜레스테롤 기준이 달라요)</span></div>
+          <div className="grid grid-cols-2 gap-1.5">
+            {(['F', 'M'] as const).map((s) => <button key={s} type="button" className={optCls(false)} aria-pressed={false} onClick={() => setDraft((x) => ({ ...x, sex: s }))}>{s === 'F' ? '여성' : '남성'}</button>)}
           </div>
-        )}
-        {([['life', '혈압 · 혈당', '결과지 ‘고혈압’·‘당뇨병’ 칸'], ['checkup', '혈액 · 소변 검사', '결과지 ‘이상지질혈증’·‘신장질환’·‘요검사’ 칸']] as const).map(([w, t, h]) => (
-          <div key={w} className="card" style={{ padding: '6px 18px 10px' }}>
-            <b style={{ display: 'block', padding: '12px 0 0', fontSize: 14, color: 'var(--obsidian)' }}>{t}</b>
-            <span style={{ display: 'block', paddingBottom: 4, fontSize: 12, color: 'var(--slate)' }}>{h}</span>
-            {LABS.filter((l) => l.where === w).map((l) => <LabField key={l.key} l={l} />)}
-          </div>
-        ))}
-        <div className="err" role="alert">{err ?? ''}</div>
-        <button type="button" className="cta" aria-disabled={!!err || n === 0} onClick={() => { if (!err && n) go('/labs/result'); }}>{n ? `${n}개 쉽게 풀어보기` : '숫자를 하나 이상 넣어 주세요'}</button>
-        {n > 0 && <button type="button" className="link" style={{ fontSize: 13 }} onClick={() => setDraft((x) => ({ ...x, lab: {} }))}>넣은 숫자 모두 지우기</button>}
-        <p className="help" style={{ margin: '0 4px' }}>나중에는 결과지 사진을 찍으면 숫자를 자동으로 채우는 기능을 준비하고 있어요.</p>
-      </div>
-      <TabBar at="labs" />
-    </div>
+        </Card>
+      )}
+      {([['life', '혈압 · 혈당', '결과지 ‘고혈압’·‘당뇨병’ 칸'], ['checkup', '혈액 · 소변 검사', '결과지 ‘이상지질혈증’·‘신장질환’·‘요검사’ 칸']] as const).map(([w, t, h]) => (
+        <Card key={w} className="px-4 pt-3 pb-2">
+          <b className="block text-body font-medium">{t}</b>
+          <span className="block pb-1 text-caption text-ink-soft">{h}</span>
+          {LABS.filter((l) => l.where === w).map((l) => <LabField key={l.key} l={l} />)}
+        </Card>
+      ))}
+      <div className="min-h-[18px] text-center text-body-sm font-medium text-risk" role="alert">{err ?? ''}</div>
+      <Button size="lg" className="w-full" aria-disabled={!!err || n === 0} onClick={() => { if (!err && n) go('/labs/result'); }}>{n ? <>{n}개 쉽게 풀어보기 <ArrowRight /></> : '숫자를 하나 이상 넣어 주세요'}</Button>
+      {n > 0 && <Button variant="ghost" size="sm" className="self-center text-ink-soft" onClick={() => setDraft((x) => ({ ...x, lab: {} }))}><Trash2 /> 넣은 숫자 모두 지우기</Button>}
+      <Help className="flex items-center gap-1.5"><Camera className="size-4 shrink-0" /> 나중에는 결과지 사진을 찍으면 숫자를 자동으로 채우는 기능을 준비하고 있어요.</Help>
+    </AppShell>
   );
 }
 
-/** 구간 막대: 구간마다 같은 폭, 점이 왼쪽에서 제자리로 미끄러져 들어온다 */
+/** 구간 게이지: 같은 폭 구간, 내 구간 색으로 내 자리까지 차오른다 */
 export function ZoneBar({ c, delay }: { c: LabCard; delay: number }) {
   const n = c.zones.length;
+  return <ZoneGauge label={`${c.title} 구간`} pos={c.pos} tone={c.tone} delay={delay} at={c.at} labels={c.zones.map((z) => z.name)} ticks={Array.from({ length: n - 1 }, (_, k) => ({ at: (k + 1) / n }))} />;
+}
+
+/** 숫자 하나 카드 */
+export function LabCardView({ c, k }: { c: LabCard; k: number }) {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-      <div className="zonebar" style={{ ['--pos' as string]: `${c.pos * 100}%`, ['--delay' as string]: `${delay}ms` } as CSSProperties}>
-        {c.zones.map((z, k) => <i key={k} style={{ width: `${100 / n}%`, background: k === c.at ? TONE_FG[z.tone] : TONE_BG[z.tone], opacity: k === c.at ? 0.9 : 1 }} />)}
-        <b className="pin" />
+    <Card aria-label={c.title} className="flex flex-col gap-3 p-5 animate-rise" style={{ animationDelay: `${k * 90}ms` }}>
+      <div className="flex items-baseline justify-between gap-3">
+        <b className="text-[17px] font-medium">{c.title}</b>
+        <span className="whitespace-nowrap"><b className={cn('text-heading-sm font-medium', TONE_TEXT[c.tone])}>{c.value}</b> <small className="text-caption text-ink-soft">{UNIT[c.key] ?? 'mg/dL'}</small></span>
       </div>
-      <div style={{ display: 'flex' }}>
-        {c.zones.map((z, k) => <span key={k} style={{ width: `${100 / n}%`, textAlign: 'center', fontSize: 10.5, lineHeight: 1.3, fontWeight: k === c.at ? 800 : 500, color: k === c.at ? TONE_FG[z.tone] : 'var(--slate)' }}>{z.name}</span>)}
+      <span className="-mt-2 text-caption text-ink-soft">{c.easy}</span>
+      <ZoneBar c={c} delay={250 + k * 90} />
+      <div className={cn('flex flex-col gap-1.5 rounded-btn px-3.5 py-3', TONE_BG[c.tone])}>
+        <span className="text-body-sm"><Badge variant={BADGE[c.tone]} className="mr-1.5 bg-white">{c.zone}</Badge>{c.mean}</span>
+        <span className={cn('flex items-start gap-1.5 text-body-sm font-medium', c.tone === 'urgent' ? 'text-risk' : 'text-ink')}><ArrowRight className="mt-0.5 size-4 shrink-0" />{c.todo}</span>
+        {c.note && <span className="text-caption text-ink-soft">{c.note}</span>}
       </div>
-    </div>
+    </Card>
   );
 }
 
@@ -69,46 +79,31 @@ export function LabsResult() {
   const { draft: d } = useStore();
   const cs = labCards(parseLab(d.lab ?? {}), d.sex);
   if (!cs.length) return (
-    <div className="app"><div className="page fade" style={{ justifyContent: 'center', textAlign: 'center' }}>
-      <h1 className="h1">아직 넣은 숫자가<b>없어요</b></h1>
-      <a className="cta" href="#/labs" style={{ marginTop: 20 }}>결과지 숫자 넣기</a>
-    </div></div>
+    <div className="mx-auto flex min-h-dvh max-w-[440px] flex-col justify-center gap-4 px-5 text-center">
+      <h1 className="text-heading-sm text-ink-soft">아직 넣은 숫자가<b className="block text-ink">없어요</b></h1>
+      <Button asChild size="lg" className="mt-4"><a href="#/labs">결과지 숫자 넣기</a></Button>
+    </div>
   );
   const s = labSummary(cs), ready = !!toInput(d);
+  const head = s.tone === 'urgent' ? 'bg-risk text-white' : s.tone === 'high' ? 'bg-white border-t-[6px] border-risk-dot' : s.tone === 'ok' ? 'bg-good-bg' : 'bg-warn-bg';
   return (
-    <div className="app">
-      <div className="page fade">
-        <Nav back="/labs" title="검진 풀이" sub={`넣은 숫자 ${cs.length}개`} />
-        <section className="card" style={{ padding: '18px', display: 'flex', flexDirection: 'column', gap: 8, background: s.tone === 'urgent' ? RED : s.tone === 'ok' ? 'var(--lime)' : '#fff', borderTop: s.tone === 'high' ? `6px solid ${RED}` : undefined }}>
-          <b style={{ fontSize: 22, lineHeight: 1.3, fontWeight: 900, letterSpacing: '-0.03em', color: s.tone === 'urgent' ? '#fff' : s.tone === 'high' ? RED : 'var(--ink)' }}>{s.title}</b>
-          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-            {([['urgent', '지금 확인'], ['high', '확인 필요'], ['mid', '신경 쓸 것'], ['ok', '괜찮음']] as const).filter(([k]) => s.count[k]).map(([k, t]) => (
-              <span key={k} className="pill" style={{ background: '#fff', color: TONE_FG[k], boxShadow: 'inset 0 0 0 1.5px currentColor' }}>{t} {s.count[k]}</span>
-            ))}
-          </div>
-        </section>
-        {s.order.map((c, k) => (
-          <section key={c.key} className="card labcard" aria-label={c.title} style={{ padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: 10, animationDelay: `${k * 90}ms` }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 10 }}>
-              <b style={{ fontSize: 16, color: 'var(--obsidian)' }}>{c.title}</b>
-              <span style={{ whiteSpace: 'nowrap' }}><b style={{ fontSize: 24, fontWeight: 900, letterSpacing: '-0.03em', color: TONE_FG[c.tone] }}>{c.value}</b> <small style={{ fontSize: 11, color: 'var(--slate)' }}>{c.key === 'upro' ? '' : c.key === 'bp' ? 'mmHg' : c.key === 'egfr' ? 'mL/min' : 'mg/dL'}</small></span>
-            </div>
-            <span style={{ fontSize: 12, lineHeight: 1.45, color: 'var(--slate)', marginTop: -6 }}>{c.easy}</span>
-            <ZoneBar c={c} delay={250 + k * 90} />
-            <div style={{ padding: '10px 12px', borderRadius: 12, background: TONE_BG[c.tone], display: 'flex', flexDirection: 'column', gap: 4 }}>
-              <span style={{ fontSize: 14, lineHeight: 1.5, color: 'var(--obsidian)' }}><b style={{ color: TONE_FG[c.tone] }}>{c.zone}</b> · {c.mean}</span>
-              <span style={{ fontSize: 14, lineHeight: 1.5, fontWeight: 700, color: c.tone === 'urgent' ? RED : 'var(--ink)' }}>→ {c.todo}</span>
-              {c.note && <span style={{ fontSize: 12, lineHeight: 1.5, color: 'var(--charcoal)' }}>{c.note}</span>}
-            </div>
-          </section>
-        ))}
-        {ready
-          ? <a className="cta" href="#/result">이 숫자를 반영한 내 결과 보기</a>
-          : <a className="cta" href="#/info">1분 체크도 해보기 <small style={{ fontSize: 12, fontWeight: 600 }}>· 넣은 숫자가 함께 반영돼요</small></a>}
-        <a className="cta outline" href="#/labs">{Icon.back} 숫자 고치기·더 넣기</a>
-        <p className="help" style={{ margin: '0 4px' }}>대한고혈압학회·대한당뇨병학회·한국지질·동맥경화학회 진료지침과 국가건강검진 판정 기준으로 나눈 구간이에요. 한 번 잰 값이라 진단이 아니며, 실제 판정은 의사가 해요.</p>
-      </div>
-      <TabBar at="labs" />
-    </div>
+    <AppShell tab="labs">
+      <Nav back="/labs" title="검진 풀이" sub={`넣은 숫자 ${cs.length}개`} />
+      <section className={cn('flex flex-col gap-3 rounded-card p-5 shadow-card', head)}>
+        <h2 className={cn('text-heading-sm', s.tone === 'urgent' ? 'text-white' : s.tone === 'high' ? 'text-risk' : s.tone === 'ok' ? 'text-good' : 'text-warn')}>{s.title}</h2>
+        <div className="flex flex-wrap gap-1.5">
+          {([['urgent', '지금 확인', 'risk'], ['high', '확인 필요', 'risk'], ['mid', '신경 쓸 것', 'warn'], ['ok', '괜찮음', 'good']] as const).filter(([k]) => s.count[k]).map(([k, t, v]) => (
+            <Badge key={k} variant={v} className="bg-white">{t} {s.count[k]}</Badge>
+          ))}
+        </div>
+      </section>
+      {s.order.map((c, k) => <LabCardView key={c.key} c={c} k={k} />)}
+      {ready
+        ? <Button asChild size="lg" className="w-full"><a href="#/result">이 숫자를 반영한 내 결과 보기 <ArrowRight /></a></Button>
+        : <Button asChild size="lg" className="w-full"><a href="#/info">1분 체크도 해보기 <ArrowRight /></a></Button>}
+      {!ready && <Help className="-mt-2 text-center">넣은 숫자가 1분 체크 결과에도 함께 반영돼요.</Help>}
+      <Button asChild variant="outline" size="lg" className="w-full"><a href="#/labs"><ChevronLeft /> 숫자 고치기·더 넣기</a></Button>
+      <Help>대한고혈압학회·대한당뇨병학회·한국지질·동맥경화학회 진료지침과 국가건강검진 판정 기준으로 나눈 구간이에요. 한 번 잰 값이라 진단이 아니며, 실제 판정은 의사가 해요.</Help>
+    </AppShell>
   );
 }

@@ -5,8 +5,8 @@
  *  - 절대: 20% 이상 강(진한 빨강), 10–20% 중(옅은 빨강)
  *  - 또래: 2배 이상 강, 1.25–2배 중, 0.8 미만 낮음 (결과 화면 ratioLabel 과 같은 구간)
  */
-export type Sev = 0 | 1 | 2;   // 0 낮음·보통(회색), 1 주의(옅은 빨강), 2 높음(진한 빨강) — 위험 표시에 초록 계열은 쓰지 않는다
-export const SEV_COLOR = ['var(--slate)', '#e0605a', '#cb272f'] as const;
+export type Sev = 0 | 1 | 2;   // 0 낮음·보통, 1 주의, 2 높음 — 위험 표시에 초록 계열은 쓰지 않는다
+export const SEV_COLOR = ['var(--color-ink-soft)', '#fb2d54', '#d81e44'] as const;   // docs/DESIGN.md: 보통 잉크 · 주의 Coral · 위험 진한 Coral
 
 /** 퍼센트 → 자연 빈도. 50% 이상은 'n명 중 m명'(분모 2–5), 10–50%는 'n명 중 1명', 10% 미만은 '100명 중 n명' */
 /** 자연 빈도의 분수 (사람 그림용). 10% 미만·95% 이상은 null */

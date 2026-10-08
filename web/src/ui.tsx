@@ -1,8 +1,14 @@
-// 공통 화면 부품
+// 공통 화면 부품 (Jeton 스타일 · Tailwind · shadcn · lucide). 디자인 기준: docs/DESIGN.md
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
+import {
+  ChevronLeft, ChevronRight, ChevronDown, Check, ArrowUpRight, Bookmark, Share2, RotateCcw, MessageCircle, LayoutGrid, SlidersHorizontal,
+  LineChart, History, Smartphone, FileText, Play, X, ArrowRight,
+} from 'lucide-react';
 import type { Draft, RecordItem } from './state.ts';
+import { cn } from '@/lib/utils';
+import { Button } from '@/components/ui/button';
 
-// ── 라우팅: 해시(#/result) 기반. GitHub Pages 에서 새로고침해도 안전 ──
+// ── 라우팅: 해시(#/result) 기반. 정적 호스팅에서 새로고침해도 안전 ──
 export function useRoute() {
   const [h, setH] = useState(location.hash.slice(1) || '/');
   useEffect(() => {
@@ -22,39 +28,50 @@ export interface Store {
 export const StoreCtx = createContext<Store>(null as unknown as Store);
 export const useStore = () => useContext(StoreCtx);
 
-// ── 아이콘 (선 아이콘) ──
-const P = { fill: 'none', stroke: 'currentColor', strokeWidth: 2.2, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const };
+// ── 아이콘: lucide-react 한 묶음만 (이모지·글자 기호 쓰지 않음) ──
+const s = 'size-5';
 export const Icon = {
-  back: <svg width="20" height="20" viewBox="0 0 24 24" {...P}><path d="M15 18l-6-6 6-6" /></svg>,
-  check: <svg width="16" height="16" viewBox="0 0 24 24" {...P} strokeWidth={3}><path d="M5 12l5 5 9-10" /></svg>,
-  down: <svg width="18" height="18" viewBox="0 0 24 24" {...P}><path d="M6 9l6 6 6-6" /></svg>,
-  right: <svg width="18" height="18" viewBox="0 0 24 24" {...P}><path d="M9 6l6 6-6 6" /></svg>,
-  ext: <svg width="18" height="18" viewBox="0 0 24 24" {...P} strokeWidth={2}><path d="M7 17L17 7M9 7h8v8" /></svg>,
-  save: <svg width="20" height="20" viewBox="0 0 24 24" {...P} strokeWidth={2}><path d="M6 3h12v18l-6-4-6 4z" /></svg>,
-  share: <svg width="20" height="20" viewBox="0 0 24 24" {...P} strokeWidth={2}><path d="M12 3v13M7 8l5-5 5 5M5 14v6h14v-6" /></svg>,
-  reset: <svg width="20" height="20" viewBox="0 0 24 24" {...P} strokeWidth={2}><path d="M4 12a8 8 0 1 0 2.3-5.6M4 4v4h4" /></svg>,
-  chat: <svg width="22" height="22" viewBox="0 0 24 24" {...P} strokeWidth={2}><path d="M4 5h16v11H8l-4 4z" /></svg>,
-  grid: <svg width="24" height="24" viewBox="0 0 24 24" {...P} strokeWidth={2}><rect x="4" y="4" width="7" height="7" rx="2" /><rect x="13" y="4" width="7" height="7" rx="2" /><rect x="4" y="13" width="7" height="7" rx="2" /><rect x="13" y="13" width="7" height="7" rx="2" /></svg>,
-  sliders: <svg width="24" height="24" viewBox="0 0 24 24" {...P} strokeWidth={2}><path d="M4 7h10M18 7h2M4 17h4M12 17h8" /><circle cx="16" cy="7" r="2" /><circle cx="10" cy="17" r="2" /></svg>,
-  chart: <svg width="24" height="24" viewBox="0 0 24 24" {...P} strokeWidth={2}><path d="M4 19V5M4 19h16" /><path d="M8 15l3-4 3 2 5-6" /></svg>,
-  clock: <svg width="24" height="24" viewBox="0 0 24 24" {...P} strokeWidth={2}><circle cx="12" cy="12" r="8" /><path d="M12 8v4l3 2" /></svg>,
-  doc: <svg width="24" height="24" viewBox="0 0 24 24" {...P} strokeWidth={2}><path d="M7 3h7l4 4v14H7z" /><path d="M14 3v4h4M10 12h5M10 16h5" /></svg>,
-  phone: <svg width="22" height="22" viewBox="0 0 24 24" {...P} strokeWidth={2}><rect x="6" y="2.5" width="12" height="19" rx="3" /><path d="M10 18.5h4" /></svg>,
+  back: <ChevronLeft className={s} />, check: <Check className="size-4" strokeWidth={3} />, down: <ChevronDown className={s} />, right: <ChevronRight className={s} />,
+  ext: <ArrowUpRight className={s} />, save: <Bookmark className={s} />, share: <Share2 className={s} />, reset: <RotateCcw className={s} />,
+  chat: <MessageCircle className="size-6" />, grid: <LayoutGrid className="size-6" />, sliders: <SlidersHorizontal className="size-6" />, chart: <LineChart className="size-6" />,
+  clock: <History className="size-6" />, phone: <Smartphone className="size-6" />, doc: <FileText className="size-6" />, play: <Play className="size-4" fill="currentColor" />, close: <X className={s} />,
 };
+
+/** 앱 화면 틀: 가운데 440px, 흰 바탕 */
+export function AppShell({ children, tab }: { children: ReactNode; tab?: Parameters<typeof TabBar>[0]['at'] }) {
+  return (
+    <div className="mx-auto flex min-h-dvh max-w-[440px] flex-col bg-white">
+      <div className="flex flex-1 flex-col gap-4 px-5 pt-[calc(12px+env(safe-area-inset-top))] pb-8 animate-rise">{children}</div>
+      {tab && <TabBar at={tab} />}
+    </div>
+  );
+}
+/** 예전 화면 틀 이름(.page) 대신 쓰는 묶음 */
+export const Page = ({ children, className }: { children: ReactNode; className?: string }) => <div className={cn('flex flex-1 flex-col gap-4 px-5 pt-[calc(12px+env(safe-area-inset-top))] pb-8 animate-rise', className)}>{children}</div>;
 
 export function Nav({ back, title, sub, right }: { back?: string; title: string; sub?: string; right?: ReactNode }) {
   return (
-    <div className="nav">
-      {back ? <a className="circle" href={'#' + back} aria-label="뒤로">{Icon.back}</a> : <div style={{ width: 44 }} />}
-      <div className="title"><b>{title}</b>{sub && <span>{sub}</span>}</div>
-      {right ?? <div style={{ width: 44 }} />}
+    <div className="flex h-14 items-center justify-between">
+      {back ? <Button asChild variant="ghost" size="icon" className="bg-sand-soft"><a href={'#' + back} aria-label="뒤로">{Icon.back}</a></Button> : <div className="w-11" />}
+      <div className="flex flex-col items-center text-center"><b className="text-[17px] font-medium text-ink">{title}</b>{sub && <span className="text-caption text-ink-soft">{sub}</span>}</div>
+      {right ?? <div className="w-11" />}
     </div>
   );
 }
 export const Progress = ({ step, total }: { step: number; total: number }) => (
-  <div className="progress" role="progressbar" aria-valuemin={1} aria-valuemax={total} aria-valuenow={step} aria-label="진행"><i style={{ width: `${(step / total) * 100}%` }} /></div>
+  <div className="flex gap-1.5" role="progressbar" aria-valuemin={1} aria-valuemax={total} aria-valuenow={step} aria-label="진행">
+    {Array.from({ length: total }, (_, k) => <i key={k} className={cn('h-1.5 flex-1 rounded-full transition-colors', k < step ? 'bg-brand' : 'bg-sand')} />)}
+  </div>
 );
-export const H1 = ({ a, b }: { a: ReactNode; b: ReactNode }) => <h1 className="h1">{a}<b>{b}</b></h1>;
+export const H1 = ({ a, b }: { a: ReactNode; b: ReactNode }) => (
+  <h1 className="mx-1 mt-2 mb-1 text-heading-sm text-ink-soft">{a}<b className="block text-ink">{b}</b></h1>
+);
+export const Lead = ({ children, className }: { children: ReactNode; className?: string }) => <p className={cn('mx-1 text-body-sm text-ink-soft', className)}>{children}</p>;
+export const Help = ({ children, className }: { children: ReactNode; className?: string }) => <p className={cn('mx-1 text-caption text-ink-soft', className)}>{children}</p>;
+
+/** 선택 버튼 하나 */
+export const optCls = (on: boolean, size?: 'sm' | 'xs') => cn('flex min-h-12 cursor-pointer flex-col items-center justify-center rounded-btn px-1.5 py-1.5 text-center leading-tight font-medium transition-colors',
+  size === 'xs' ? 'text-caption' : size === 'sm' ? 'text-body-sm' : 'text-body', on ? 'bg-ink text-white' : 'bg-sand-soft text-ink hover:bg-sand');
 
 /** 한 개 고르기 */
 export function Choice<T>({ q, options, value, onChange, cols, size, help, badge }: {
@@ -62,17 +79,17 @@ export function Choice<T>({ q, options, value, onChange, cols, size, help, badge
   cols?: number; size?: 'sm' | 'xs'; help?: ReactNode; badge?: string;
 }) {
   return (
-    <div className="card q" role="group" aria-label={typeof q === 'string' ? q : undefined}>
-      {badge && <span className="pill" style={{ alignSelf: 'flex-start', background: 'var(--linen)', color: 'var(--ink)' }}>{badge}</span>}
-      <div className="qt">{q}</div>
-      <div className="opts" style={{ gridTemplateColumns: `repeat(${cols ?? options.length}, minmax(0, 1fr))` }}>
+    <div className="flex flex-col gap-3 rounded-card bg-white p-4 shadow-card" role="group" aria-label={typeof q === 'string' ? q : undefined}>
+      {badge && <span className="self-start rounded-full bg-blush px-2.5 py-0.5 text-caption font-medium text-brand">{badge}</span>}
+      <div className="text-body font-medium leading-snug text-ink">{q}</div>
+      <div className="grid gap-1.5" style={{ gridTemplateColumns: `repeat(${cols ?? options.length}, minmax(0, 1fr))` }}>
         {options.map((o) => (
-          <button key={String(o.v)} type="button" className={'opt' + (size ? ' ' + size : '')} aria-pressed={value === o.v} onClick={() => onChange(o.v)}>
-            {o.t}{o.s && <small>{o.s}</small>}
+          <button key={String(o.v)} type="button" className={optCls(value === o.v, size)} aria-pressed={value === o.v} onClick={() => onChange(o.v)}>
+            {o.t}{o.s && <small className="mt-0.5 text-[11px] font-normal opacity-80">{o.s}</small>}
           </button>
         ))}
       </div>
-      {help && <div className="help">{help}</div>}
+      {help && <div className="text-caption text-ink-soft">{help}</div>}
     </div>
   );
 }
@@ -82,79 +99,88 @@ export const YN = ({ q, value, onChange, help }: { q: string; value: boolean | n
 /** 분기로 열린 질문 묶음 */
 export function Branch({ title, sub, children }: { title: string; sub: string; children: ReactNode }) {
   return (
-    <div className="card branch fade">
-      <div className="hd"><span style={{ color: 'var(--lime)' }}>{Icon.down}</span><div><b>{title}</b><span>{sub}</span></div></div>
-      <div className="bd">{children}</div>
+    <div className="overflow-hidden rounded-card bg-white shadow-card animate-rise">
+      <div className="flex items-center gap-2.5 bg-ink px-4 py-3.5 text-white"><ChevronDown className="size-5 text-brand" /><div><b className="text-body-sm font-medium">{title}</b><span className="block text-caption text-white/75">{sub}</span></div></div>
+      <div className="flex flex-col gap-5 p-4">{children}</div>
     </div>
   );
 }
 export function ScaleItem({ q, labels, value, onChange, size }: { q: string; labels: string[]; value: number | null; onChange: (v: number) => void; size?: 'sm' | 'xs' }) {
   return (
-    <div className="it" role="group" aria-label={q}>
-      <b>{q}</b>
-      <div className="opts" style={{ gridTemplateColumns: `repeat(${labels.length}, minmax(0, 1fr))` }}>
-        {labels.map((t, j) => <button key={j} type="button" className={'opt' + (size ? ' ' + size : '')} aria-pressed={value === j} onClick={() => onChange(j)}>{t}</button>)}
+    <div className="flex flex-col gap-2" role="group" aria-label={q}>
+      <b className="text-body-sm font-medium leading-snug text-ink">{q}</b>
+      <div className="grid gap-1.5" style={{ gridTemplateColumns: `repeat(${labels.length}, minmax(0, 1fr))` }}>
+        {labels.map((t, j) => <button key={j} type="button" className={optCls(value === j, size)} aria-pressed={value === j} onClick={() => onChange(j)}>{t}</button>)}
       </div>
     </div>
   );
 }
 export const Closed = ({ children }: { children: ReactNode }) => (
-  <div className="closed"><span style={{ color: 'var(--slate)', flexShrink: 0 }}>{Icon.right}</span><div>{children}</div></div>
+  <div className="flex items-start gap-3 rounded-card border border-dashed border-sand p-4 text-body-sm"><ChevronRight className="size-5 shrink-0 text-ink-soft" /><div>{children}</div></div>
 );
 /** 다음 버튼: 조건이 덜 되면 이유를 보여줌 */
 export function Next({ error, to, label, onGo }: { error: string | null; to: string; label: string; onGo?: () => void }) {
   const [tried, setTried] = useState(false);
   return (
     <>
-      <div className="err" role="status" aria-live="polite">{tried && error ? error : ''}</div>
-      <button type="button" className="cta" aria-disabled={!!error} onClick={() => { if (error) { setTried(true); return; } onGo?.(); go(to); }}>{label}</button>
+      <div className="min-h-[18px] text-center text-body-sm font-medium text-risk" role="status" aria-live="polite">{tried && error ? error : ''}</div>
+      <Button size="lg" className="w-full" aria-disabled={!!error} onClick={() => { if (error) { setTried(true); return; } onGo?.(); go(to); }}>{label}</Button>
     </>
   );
 }
 export function TabBar({ at }: { at: 'result' | 'labs' | 'whatif' | 'record' | 'again' }) {
   const T: [typeof at, string, string, ReactNode][] = [['result', '#/result', '결과', Icon.grid], ['labs', '#/labs', '검진 풀이', Icon.doc], ['record', '#/record', '기록', Icon.chart], ['again', '#/start', '다시 체크', Icon.clock]];
   return (
-    <nav className="tabbar" aria-label="주요 메뉴">
-      {T.map(([k, h, t, ic]) => <a key={k} href={h} aria-current={at === k ? 'page' : undefined}>{ic}{t}</a>)}
+    <nav className="no-print sticky bottom-0 z-10 flex rounded-t-[24px] bg-white px-3 pt-2 pb-[calc(10px+env(safe-area-inset-bottom))] shadow-card" aria-label="주요 메뉴">
+      {T.map(([k, h, t, ic]) => (
+        <a key={k} href={h} aria-current={at === k ? 'page' : undefined} className={cn('flex h-14 flex-1 flex-col items-center justify-center gap-1 text-[11px] font-medium no-underline', at === k ? 'text-brand' : 'text-ink-soft')}>{ic}{t}</a>
+      ))}
     </nav>
   );
 }
-export function Ring({ f, label, col = 'var(--ink)', size = 72 }: { f: number; label: string; col?: string; size?: number }) {
+/** 원형 비율 (모든 항목 보기의 또래 배수) */
+export function Ring({ f, label, col = 'var(--color-brand)', size = 72 }: { f: number; label: string; col?: string; size?: number }) {
   const r = size * 0.39, C = 2 * Math.PI * r;
   return (
-    <div style={{ position: 'relative', width: size, height: size }}>
+    <div className="relative" style={{ width: size, height: size }}>
       <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} aria-hidden="true">
-        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="var(--fog)" strokeWidth={size * 0.1} />
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="var(--color-sand)" strokeWidth={size * 0.1} />
         <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke={col} strokeWidth={size * 0.1} strokeLinecap="round" strokeDasharray={`${C * f} ${C}`} transform={`rotate(-90 ${size / 2} ${size / 2})`} />
       </svg>
-      <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: size * 0.22, fontWeight: 800, color: 'var(--obsidian)' }}>{label}</div>
+      <div className="absolute inset-0 flex items-center justify-center font-medium text-ink" style={{ fontSize: size * 0.22 }}>{label}</div>
     </div>
   );
 }
+/** 반원 게이지 (상세 화면 점수) */
 export function Gauge({ f, v, col, w = 120 }: { f: number; v: string; col: string; w?: number }) {
   const S = Math.PI * 48;
   return (
-    <div style={{ position: 'relative', width: w, height: w * 0.58 }}>
+    <div className="relative" style={{ width: w, height: w * 0.58 }}>
       <svg width={w} height={w * 0.58} viewBox="0 0 120 70" aria-hidden="true">
-        <path d="M 12 62 A 48 48 0 0 1 108 62" fill="none" stroke="var(--fog)" strokeWidth="10" strokeLinecap="round" />
+        <path d="M 12 62 A 48 48 0 0 1 108 62" fill="none" stroke="var(--color-sand)" strokeWidth="10" strokeLinecap="round" />
         <path d="M 12 62 A 48 48 0 0 1 108 62" fill="none" stroke={col} strokeWidth="10" strokeLinecap="round" strokeDasharray={`${S * f} ${S}`} />
       </svg>
-      <div style={{ position: 'absolute', left: 0, right: 0, bottom: 0, textAlign: 'center', fontSize: w * 0.2, fontWeight: 900, letterSpacing: '-0.04em', color: 'var(--obsidian)' }}>{v}</div>
+      <div className="absolute inset-x-0 bottom-0 text-center font-medium text-ink" style={{ fontSize: w * 0.2 }}>{v}</div>
     </div>
   );
 }
+/** 사람 100명 그림 (상세 화면) */
 export function People({ cells, cols = 20, size = 14 }: { cells: string[]; cols?: number; size?: number }) {
-  const C: Record<string, string> = { keep: 'var(--ink)', gone: 'var(--lime)', rest: '#d3d6d0' };
+  const C: Record<string, string> = { keep: 'text-brand', gone: 'text-good-dot', rest: 'text-sand' };
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`, gap: '4px 3px', width: '100%' }} aria-hidden="true">
+    <div className="grid w-full gap-x-[3px] gap-y-1" style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }} aria-hidden="true">
       {cells.map((c, k) => (
-        <svg key={k} width={size} height={size} viewBox="0 0 24 24" style={{ display: 'block', margin: '0 auto', color: C[c] }}>
+        <svg key={k} width={size} height={size} viewBox="0 0 24 24" className={cn('mx-auto block', C[c])}>
           <circle cx="12" cy="7" r="4.5" fill="currentColor" /><path d="M4 23c0-4.5 3.6-8 8-8s8 3.5 8 8z" fill="currentColor" />
         </svg>
       ))}
     </div>
   );
 }
+/** 'a → b' 같은 문장의 화살표 글자를 lucide 아이콘으로 바꿔 보여준다 */
+export const Arrowed = ({ text, className }: { text: string; className?: string }) => (
+  <>{text.split('→').map((t, k) => <span key={k}>{k > 0 && <ArrowRight className={cn('mx-0.5 inline size-3.5 align-[-2px]', className)} />}{t.trim()}</span>)}</>
+);
 export const Crisis = () => (
-  <div className="crisis" role="alert">{Icon.chat}<div>마음이 많이 힘들다면 혼자 견디지 않아도 돼요. <a href="tel:109">자살예방상담 109</a>(24시간)에 지금 바로 전화할 수 있고, 가까운 정신건강복지센터에서도 이야기를 들어줘요.</div></div>
+  <div className="flex gap-3 rounded-card bg-info-bg p-4 text-body-sm leading-relaxed text-info" role="alert">{Icon.chat}<div>마음이 많이 힘들다면 혼자 견디지 않아도 돼요. <a className="font-medium text-info" href="tel:109">자살예방상담 109</a>(24시간)에 지금 바로 전화할 수 있고, 가까운 정신건강복지센터에서도 이야기를 들어줘요.</div></div>
 );

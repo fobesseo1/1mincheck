@@ -8,7 +8,7 @@ export function DevNote({ id, raw, value, rawPeer, peer, sex, age }: { id: strin
   if (!isDev() || raw == null) return null;
   const c = calInfo(id as CalId, sex, age);
   return (
-    <div style={{ padding: '8px 10px', borderRadius: 10, background: '#fff6d6', color: '#6b5200', fontSize: 11, lineHeight: 1.5, fontFamily: 'ui-monospace, monospace' }}>
+    <div className="rounded-[10px] bg-citrus px-2.5 py-2 font-mono text-[11px] leading-normal text-ink">
       DEV · 엔진 {f1(raw)}% → 보정 {value != null ? f1(value) : '–'}% · 또래 엔진 {rawPeer != null ? f1(rawPeer) : '–'}% → 실측 {peer != null ? f1(peer) : '–'}%<br />
       {c.band} (n={c.n}) · a={c.a ?? '–'} · b={c.slope} · {calVersion}
     </div>

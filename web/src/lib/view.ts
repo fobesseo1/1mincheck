@@ -89,7 +89,8 @@ import { NAMES, TITLE, BADGE, PROB_IDS, MEANING, PEER_NOTE, ACTION, MANAGED, EXC
 export const severeBp = (inp: Input) => { const L = labOf(inp); return L.sbp != null && L.dbp != null && (L.sbp >= 180 || L.dbp >= 120); };
 
 export type Scenario = { weightKg: number; waistCm: number };
-export const INK = '#163300', LOOK = '#0b4c72', LOW_BG = '#e2f6d5', SAME_BG = '#f2f4f0', HIGH_BG = '#dfeaf1';
+/** 화면 색 (docs/DESIGN.md): 보통 = Ink Roast, 살펴볼 것 = 위험 Coral, 바탕은 좋음·보통·위험 */
+export const INK = '#360802', LOOK = '#d81e44', LOW_BG = '#e3f8ea', SAME_BG = '#f3ecea', HIGH_BG = '#ffe8ed';
 export const f1 = (v: number) => (Math.round(v * 10) / 10).toFixed(1);
 export const byId = (list: Result[]) => Object.fromEntries(list.map((r) => [r.id, r])) as Record<ItemId, Result>;
 export const hasScenario = (s: Scenario) => !!(s.weightKg || s.waistCm);

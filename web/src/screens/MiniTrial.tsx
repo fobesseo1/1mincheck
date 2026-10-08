@@ -1,6 +1,9 @@
 import { useEffect, useState, type CSSProperties } from 'react';
 import MINI from '../../../engine/src/mini_rates.json';
+import { ArrowRight, UserRound } from 'lucide-react';
 import { useStore } from '../ui.tsx';
+import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 import { riskView, fracOf, SEV_COLOR } from '../lib/risk.ts';
 import { freqOf, peerLine } from '../lib/b.ts';
 import { f1 } from '../lib/view.ts';
@@ -74,15 +77,16 @@ export function miniHeadline(rows: { name: string; sev: number }[]) {
 /** 'd명 중 m명'을 사람 그림으로: m명이 차례로 채워진다 */
 function People({ m, d, col }: { m: number; d: number; col: string }) {
   return (
-    <span aria-hidden style={{ display: 'inline-flex', gap: 2 }}>
+    <span aria-hidden className="inline-flex gap-0.5">
       {Array.from({ length: d }, (_, k) => (
-        <svg key={k} width="14" height="16" viewBox="0 0 14 16" className={k < m ? 'mini-on' : ''} style={{ ['--c' as string]: col, animationDelay: `${0.15 + k * 0.12}s` } as CSSProperties}>
-          <circle cx="7" cy="4" r="3.2" /><path d="M1.5 15.5c0-3.6 2.5-6.2 5.5-6.2s5.5 2.6 5.5 6.2z" />
-        </svg>
+        <UserRound key={k} className="size-4 animate-rise" style={{ color: k < m ? col : 'var(--color-sand)', animationDelay: `${0.15 + k * 0.12}s` } as CSSProperties} fill="currentColor" strokeWidth={0} />
       ))}
     </span>
   );
 }
+
+const TONE_BOX = ['bg-good-bg text-good', 'bg-risk-bg text-risk', 'bg-risk text-white'] as const;
+const TONE_BTN = ['', 'bg-white text-risk border border-risk-dot hover:bg-risk-bg', 'bg-risk text-white hover:bg-risk/90'] as const;
 
 export function MiniTrial() {
   const { setDraft } = useStore();
@@ -103,57 +107,57 @@ export function MiniTrial() {
   };
   const go = () => { setDraft((d) => ({ ...d, age, sex, height: h, weight: w })); location.hash = '#/info'; };
   const field = (label: string, v: string, set: (s: string) => void, unit: string, ph: string) => (
-    <label style={{ display: 'flex', flexDirection: 'column', gap: 4, flex: 1, minWidth: 0 }}>
-      <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--slate)' }}>{label}</span>
-      <span style={{ display: 'flex', alignItems: 'baseline', gap: 4, height: 48, padding: '0 12px', borderRadius: 12, background: 'var(--bg)' }}>
+    <label className="flex min-w-0 flex-1 flex-col gap-1">
+      <span className="text-caption font-medium text-ink-soft">{label}</span>
+      <span className="flex h-14 items-baseline gap-1 rounded-card bg-blush/70 px-3.5">
         <input inputMode="decimal" value={v} placeholder={ph} aria-label={label} onChange={(e) => edit(set)(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') show(); }}
-          style={{ width: '100%', minWidth: 0, border: 0, background: 'transparent', fontSize: 20, fontWeight: 800, color: 'var(--obsidian)', lineHeight: '48px', outline: 'none' }} />
-        <small style={{ fontSize: 13, color: 'var(--slate)' }}>{unit}</small>
+          className="w-full min-w-0 border-0 bg-transparent text-[22px] leading-[56px] font-medium text-ink outline-none placeholder:text-ink/25" />
+        <small className="text-body-sm text-ink-soft">{unit}</small>
       </span>
     </label>
   );
   return (
-    <div className="card mini" style={{ borderRadius: 24, boxShadow: '0 6px 20px rgba(0,0,0,.06)', padding: 24, display: 'flex', flexDirection: 'column', gap: 16 }}>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-        <b style={{ fontSize: 18, color: 'var(--obsidian)' }}>내 건강, 간단히 먼저 보기</b>
-        <span className="cap">성별·나이·키·몸무게만 입력해 보세요</span>
+    <div className="mini flex flex-col gap-4 rounded-[24px] bg-white p-6 text-ink shadow-float">
+      <div className="flex flex-col gap-0.5">
+        <b className="text-[19px] font-medium">내 건강, 간단히 먼저 보기</b>
+        <span className="text-caption text-ink-soft">성별·나이·키·몸무게만 입력해 보세요</span>
       </div>
-      <div style={{ display: 'flex', gap: 8 }}>
+      <div className="flex gap-2">
         {(['F', 'M'] as const).map((s) => <button key={s} type="button" onClick={() => { setSex(s); setRes(null); }} aria-pressed={sex === s}
-          style={{ flex: 1, height: 44, borderRadius: 12, border: `2px solid ${sex === s ? 'var(--ink)' : 'var(--line)'}`, background: sex === s ? 'var(--lime)' : '#fff', color: 'var(--ink)', fontSize: 15, fontWeight: 700 }}>{s === 'F' ? '여성' : '남성'}</button>)}
+          className={cn('h-12 flex-1 cursor-pointer rounded-btn text-body font-medium transition-colors', sex === s ? 'bg-ink text-white' : 'bg-sand-soft text-ink hover:bg-sand')}>{s === 'F' ? '여성' : '남성'}</button>)}
       </div>
-      <div style={{ display: 'flex', gap: 8 }}>{field('만 나이', age, setAge, '세', '45')}{field('키', h, setH, 'cm', '165')}{field('몸무게', w, setW, 'kg', '65')}</div>
-      {!res && <button type="button" className="btn dark" onClick={show} style={{ border: 0, width: '100%' }}>간단 결과 보기</button>}
-      {!res && tried && err && <div role="alert" style={{ fontSize: 14, textAlign: 'center', color: 'var(--look)', fontWeight: 600 }}>{err}</div>}
+      <div className="flex gap-2">{field('만 나이', age, setAge, '세', '45')}{field('키', h, setH, 'cm', '165')}{field('몸무게', w, setW, 'kg', '65')}</div>
+      {!res && <Button size="lg" className="w-full" onClick={show}>간단 결과 보기 <ArrowRight /></Button>}
+      {!res && tried && err && <div role="alert" className="text-center text-body-sm font-medium text-risk">{err}</div>}
       {res && (() => {
         const hd = miniHeadline(res.rows);
         return (
-          <div role="status" className="mini-res" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-            <div style={{ padding: '14px 16px', borderRadius: 16, background: hd.tone === 2 ? '#cb272f' : hd.tone === 1 ? '#fdecea' : 'var(--lime)', color: hd.tone === 2 ? '#fff' : hd.tone === 1 ? '#cb272f' : 'var(--ink)' }}>
-              <b style={{ display: 'block', fontSize: 19, lineHeight: 1.35, fontWeight: 900, letterSpacing: '-0.03em' }}>{hd.title}</b>
-              <span style={{ display: 'block', marginTop: 4, fontSize: 13, lineHeight: 1.5, color: hd.tone === 1 ? 'var(--charcoal)' : undefined }}>{hd.sub}</span>
+          <div role="status" className="mini-res flex flex-col gap-2 animate-rise">
+            <div className={cn('rounded-card px-4 py-3.5', TONE_BOX[hd.tone as 0 | 1 | 2])}>
+              <b className="block text-[19px] leading-snug font-medium">{hd.title}</b>
+              <span className={cn('mt-1 block text-body-sm', hd.tone === 2 ? 'text-white/90' : 'text-ink-soft')}>{hd.sub}</span>
             </div>
-            <span style={{ fontSize: 12, color: 'var(--slate)' }}>기본 정보로 보는 간단한 추정 결과예요. {res.group} · {res.bmiLabel} (내 BMI {res.bmi})인 사람들은</span>
+            <span className="text-caption text-ink-soft">기본 정보로 보는 간단한 추정 결과예요. {res.group} · {res.bmiLabel} (내 BMI {res.bmi})인 사람들은</span>
             {res.rows.map((p) => (
-              <div key={p.id} style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: '12px 14px', borderRadius: 14, background: 'var(--bg)' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 10 }}>
-                  <b style={{ fontSize: 16, color: 'var(--obsidian)' }}>{p.name} <small style={{ fontSize: 11, fontWeight: 600, color: 'var(--slate)' }}>같은 체형 비율 · {p.who}</small></b>
-                  <b style={{ flexShrink: 0, fontSize: p.sev ? 19 : 15, fontWeight: 800, letterSpacing: '-0.02em', whiteSpace: 'nowrap', color: SEV_COLOR[p.sev] }}>{p.pct != null ? freqOf(p.pct) : '–'}</b>
+              <div key={p.id} className="flex flex-col gap-1.5 rounded-btn bg-sand-soft/70 px-3.5 py-3">
+                <div className="flex items-baseline justify-between gap-2.5">
+                  <b className="text-body font-medium">{p.name} <small className="text-[11px] font-normal text-ink-soft">같은 체형 비율 · {p.who}</small></b>
+                  <b className={cn('shrink-0 whitespace-nowrap font-medium', p.sev ? 'text-[19px]' : 'text-body')} style={{ color: SEV_COLOR[p.sev] }}>{p.pct != null ? freqOf(p.pct) : '–'}</b>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
+                <div className="flex items-center justify-between gap-2.5">
                   {p.frac ? <People m={p.frac.m} d={p.frac.d} col={SEV_COLOR[p.sev]} /> : <span />}
-                  {p.pct != null && p.all != null && <span style={{ fontSize: 11, lineHeight: 1.4, color: 'var(--charcoal)', textAlign: 'right' }}>{f1(p.pct)}% · {peerLine(p.pct, p.all, f1(p.all))}</span>}
+                  {p.pct != null && p.all != null && <span className="text-right text-[11px] text-ink-soft">{f1(p.pct)}% · {peerLine(p.pct, p.all, f1(p.all))}</span>}
                 </div>
               </div>
             ))}
-            {/* 버튼도 결론 단계를 따른다: 위험 = 빨강(빠른 맥박·화살표), 조심 = 빨강 테두리, 괜찮음 = 라임(느린 빛) */}
-            <button type="button" className={`btn mini-go mini-go-${hd.tone}`} onClick={go} style={{ width: '100%', marginTop: 6, fontSize: 16, height: 'auto', minHeight: 54, padding: '12px 20px', lineHeight: 1.35, textAlign: 'center' }}>
-              {MINI_CTA[hd.tone as 0 | 1 | 2].main} <span className="mini-arrow" aria-hidden>→</span>
-            </button>
-            <span style={{ fontSize: 12, textAlign: 'center', color: 'var(--slate)' }}>허리·혈압·흡연·가족력 등 약 10문항 · 서버 저장 없음</span>
-            <details style={{ fontSize: 12, color: 'var(--slate)' }}>
-              <summary style={{ cursor: 'pointer', fontWeight: 700 }}>어떻게 계산했나요?</summary>
-              <p className="help" style={{ margin: '6px 0 0', fontSize: 12, lineHeight: 1.5 }}>국민건강영양조사(2022–2024) 원시자료에서 나와 성별·나이대·BMI가 같은 사람들의 값이에요. 당뇨·고혈압은 진단받은 사람까지 포함한 실제 비율, 지방간은 점수표 평균이에요. 나에게 맞춘 값이 아니고 진단도 아니에요.</p>
+            {/* 버튼도 결론 단계를 따른다: 위험 = 위험색, 조심 = 위험색 테두리, 괜찮음 = 브랜드 */}
+            <Button size="lg" className={cn('mini-go mt-1.5 h-auto min-h-14 w-full whitespace-normal py-3 leading-snug', TONE_BTN[hd.tone as 0 | 1 | 2])} onClick={go}>
+              {MINI_CTA[hd.tone as 0 | 1 | 2].main} <ArrowRight />
+            </Button>
+            <span className="text-center text-caption text-ink-soft">허리·혈압·흡연·가족력 등 약 10문항 · 서버 저장 없음</span>
+            <details className="text-caption text-ink-soft">
+              <summary className="font-medium">어떻게 계산했나요?</summary>
+              <p className="mt-1.5">국민건강영양조사(2022–2024) 원시자료에서 나와 성별·나이대·BMI가 같은 사람들의 값이에요. 당뇨·고혈압은 진단받은 사람까지 포함한 실제 비율, 지방간은 점수표 평균이에요. 나에게 맞춘 값이 아니고 진단도 아니에요.</p>
             </details>
           </div>
         );

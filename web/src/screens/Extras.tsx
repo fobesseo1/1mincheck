@@ -1,44 +1,45 @@
+// 생활·검진으로 보는 추가 체크 카드 (engine/src/extras.ts). 디자인: docs/DESIGN.md
+import { ArrowRight, Circle, CircleDot, CircleHelp, CheckCircle2, Dot } from 'lucide-react';
 import type { Extra } from '../../../engine/src/extras.ts';
-import { INK, LOOK } from '../lib/view.ts';
+import { Card } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
 
-const LV = { look: ['var(--look-bg)', LOOK, '확인 필요'], note: ['var(--linen)', INK, '참고'], ok: ['var(--linen)', INK, '해당 없음'] } as const;
+const LV = { look: ['risk', '확인 필요'], note: ['soft', '참고'], ok: ['good', '해당 없음'] } as const;
+/** 항목 표시: 해당·확인·아님·모름·정보 (검진·접종은 권장·조건부) */
 const MARK = {
-  yes: ['●', LOOK, '해당'], maybe: ['◐', LOOK, '확인'], no: ['○', '#9aa096', '아님'], unknown: ['?', 'var(--slate)', '모름'], info: ['·', 'var(--slate)', ''],
+  yes: [CheckCircle2, 'text-risk', '해당'], maybe: [CircleDot, 'text-warn', '확인'], no: [Circle, 'text-ash', '아님'], unknown: [CircleHelp, 'text-ink-soft', '모름'], info: [Dot, 'text-ink-soft', ''],
 } as const;
-const CHECK = { yes: ['●', INK, '권장'], maybe: ['◐', INK, '조건부'], no: ['○', '#9aa096', ''], unknown: ['?', 'var(--slate)', ''], info: ['·', 'var(--slate)', ''] } as const;
+const CHECK = { yes: [CheckCircle2, 'text-brand', '권장'], maybe: [CircleDot, 'text-brand', '조건부'], no: [Circle, 'text-ash', ''], unknown: [CircleHelp, 'text-ink-soft', ''], info: [Dot, 'text-ink-soft', ''] } as const;
 
-/** 생활·검진으로 보는 추가 체크 카드 (engine/src/extras.ts) */
 const LEAD = '새 질문 없이 지금 답으로 공식 기준과 검증된 점수를 적용했어요. 대부분 확률이 아니라 기준에 해당하는지예요. ‘모름’은 낮다는 뜻이 아니에요.';
 export function ExtraCards({ xs, title = '생활·검진으로 보는 체크', lead = LEAD }: { xs: Extra[]; title?: string; lead?: string }) {
   if (!xs.length) return null;
   return (
     <>
-      <h2 className="h2">{title}</h2>
-      <p className="lead" style={{ marginTop: -6, fontSize: 13, color: 'var(--slate)' }}>{lead}</p>
+      <h2 className="mx-1 mt-3 text-[19px] font-medium">{title}</h2>
+      <p className="mx-1 -mt-2 text-body-sm text-ink-soft">{lead}</p>
       {xs.map((x) => {
-        const [bg, fg, tag] = LV[x.level], M = x.id === 'checkup' ? CHECK : MARK;
+        const [variant, tag] = LV[x.level], M = x.id === 'checkup' ? CHECK : MARK;
         return (
-          <section key={x.id} className="card" aria-label={x.name} style={{ padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: 10 }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-              <b style={{ fontSize: 15, color: 'var(--obsidian)' }}>{x.name}</b>
-              <span className="tag" style={{ background: bg, color: fg, flexShrink: 0 }}>{x.tag ?? tag}</span>
-            </div>
-            <b style={{ fontSize: 19, fontWeight: 900, letterSpacing: '-0.03em', lineHeight: 1.35, color: x.level === 'look' ? LOOK : 'var(--obsidian)' }}>{x.head}</b>
-            <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 6 }}>
+          <Card key={x.id} aria-label={x.name} className="flex flex-col gap-3 p-5">
+            <div className="flex items-center justify-between gap-2"><b className="text-body font-medium">{x.name}</b><Badge variant={variant}>{x.tag ?? tag}</Badge></div>
+            <b className={cn('text-[19px] leading-snug font-medium', x.level === 'look' ? 'text-risk' : 'text-ink')}>{x.head}</b>
+            <ul className="flex flex-col gap-1.5">
               {x.items.map((it) => {
-                const [m, c, w] = M[it.s];
+                const [Ic, c, w] = M[it.s];
                 return (
-                  <li key={it.t} style={{ display: 'grid', gridTemplateColumns: '16px 1fr auto', gap: 8, alignItems: 'baseline', fontSize: 13, lineHeight: 1.45 }}>
-                    <span aria-hidden style={{ color: c, fontSize: 11 }}>{m}</span>
-                    <span style={{ color: it.s === 'no' ? 'var(--slate)' : 'var(--obsidian)' }}>{it.t}{it.sub && <span style={{ display: 'block', fontSize: 12, color: 'var(--slate)' }}>{it.sub}</span>}</span>
-                    {w && <span style={{ fontSize: 11, fontWeight: 700, color: c, whiteSpace: 'nowrap' }}>{w}</span>}
+                  <li key={it.t} className="grid grid-cols-[18px_1fr_auto] items-start gap-2 text-body-sm">
+                    <Ic className={cn('mt-0.5 size-4', c)} />
+                    <span className={it.s === 'no' ? 'text-ink-soft' : 'text-ink'}>{it.t}{it.sub && <span className="block text-caption text-ink-soft">{it.sub}</span>}</span>
+                    {w && <span className={cn('whitespace-nowrap text-[11px] font-medium', c)}>{w}</span>}
                   </li>
                 );
               })}
             </ul>
-            <div style={{ padding: '10px 12px', borderRadius: 12, background: x.level === 'look' ? 'var(--look-bg)' : 'var(--bg)', color: x.level === 'look' ? LOOK : 'var(--charcoal)', fontSize: 13, fontWeight: x.level === 'look' ? 700 : 500, lineHeight: 1.5 }}>→ {x.action}</div>
-            <details><summary style={{ fontSize: 12, color: 'var(--slate)' }}>근거</summary><p style={{ margin: '6px 0 0', fontSize: 12, lineHeight: 1.5, color: 'var(--slate)' }}>{x.source}</p></details>
-          </section>
+            <div className={cn('flex items-start gap-1.5 rounded-btn px-3.5 py-2.5 text-body-sm', x.level === 'look' ? 'bg-risk-bg font-medium text-risk' : 'bg-sand-soft text-ink')}><ArrowRight className="mt-0.5 size-4 shrink-0" />{x.action}</div>
+            <details><summary className="text-caption text-ink-soft">근거</summary><p className="mt-1.5 text-caption text-ink-soft">{x.source}</p></details>
+          </Card>
         );
       })}
     </>
