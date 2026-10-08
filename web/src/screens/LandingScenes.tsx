@@ -245,7 +245,7 @@ export function LabsLive({ id, sex }: { id?: string; sex: 'M' | 'F' }) {
     const ra = a.getBoundingClientRect(), rb = b.getBoundingClientRect();
     const f = document.createElement('span');
     f.className = 'ls-fly'; f.textContent = a.textContent;
-    f.style.left = ra.left + 'px'; f.style.top = ra.top + 'px';
+    f.style.left = ra.left + scrollX + 'px'; f.style.top = ra.top + scrollY + 'px';   // 문서 좌표: 날아가는 중에 스크롤돼도 제자리
     document.body.appendChild(f);
     f.animate([{ transform: 'translate(0,0) scale(1)', opacity: 1 }, { transform: `translate(${rb.right - ra.right}px, ${rb.top - ra.top + (rb.height - ra.height) / 2}px) scale(1.5)`, opacity: 1 }],
       { duration: 650, easing: 'cubic-bezier(.3,.7,.2,1)' }).finished.then(() => f.remove());

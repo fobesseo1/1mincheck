@@ -1,0 +1,9 @@
+# Vercel 업로드에서 빼는 것 (빌드에는 web·engine·src·analysis만 필요)
+brag-output
+videos
+docs
+_backup
+design
+**/node_modules
+web/dist
+.git
