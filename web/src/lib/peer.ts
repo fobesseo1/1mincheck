@@ -16,8 +16,14 @@ export type PeerCard =
   | { id: ItemId; name: string; kind: 'count'; n: number; word: string; high: boolean; pct: string; peer: string; who: string; group: string }
   | { id: ItemId; name: string; kind: 'status'; word: string; note: string; group: string };
 
-/** 백분위 → 한 단어: 아래 1/3 낮은 편, 가운데 중간쯤, 위 1/3 높은 편 */
-export const rankWord = (rank: number) => (rank <= 33 ? '또래보다 낮은 편' : rank >= 67 ? '또래보다 높은 편' : '또래 중간쯤');
+/**
+ * 백분위(낮은 쪽에서 몇 번째, 1–99) → '100명 중 N번째로 위험/좋음'.
+ * 위쪽 절반은 위험한 쪽에서 세고(92 → 9번째로 위험), 아래쪽 절반은 좋은 쪽에서 센다(20 → 20번째로 좋음).
+ */
+export function standing(rank: number): { n: number; side: '위험' | '좋음' } {
+  return rank > 50 ? { n: 101 - rank, side: '위험' } : { n: rank, side: '좋음' };
+}
+export const rankWord = (rank: number) => { const s = standing(rank); return `${s.n}번째로 ${s.side}`; };
 const RATIO_WORD: Record<string, string> = { 낮음: '또래보다 낮은 편', 비슷: '또래와 비슷', 높음: '또래보다 높은 편', '매우 높음': '또래보다 높은 편' };
 const STATUS_WORD: Record<string, string> = { managed: '진단받아 관리 중', criteria: '검진 수치가 기준 이상', measured: '검진 수치로 확인', excluded: '간 수치 검사로 확인해요', na: '대상 아님', needs_input: '답하면 볼 수 있어요' };
 

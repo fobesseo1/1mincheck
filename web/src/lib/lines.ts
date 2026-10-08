@@ -94,3 +94,20 @@ export function futureEffects(i: Input, dw: number, dwa: number): { effects: Eff
   if (!ageOk) hints.push('미래 위험 계산식은 40–69세 연구로 만들어서, 지금은 기준선만 보여드려요.');
   return { effects, hints };
 }
+
+// ── v2.1 끌어서 바꾸는 막대 (몸무게는 kg, 허리는 cm 그대로) ──
+export interface Track { min: number; max: number; zones: { from: number; to: number; name: string; tone: Tone }[]; normal?: [number, number]; cut?: number }
+/** 몸무게 막대: BMI 구간을 내 키에 맞춰 kg 로. 표준 몸무게 = BMI 18.5–22.9 */
+export function weightTrack(i: Input): Track {
+  const hm2 = (i.heightCm / 100) ** 2;
+  const min = Math.max(30, Math.min(Math.floor(16.5 * hm2), Math.floor(i.weightKg - 5))), max = Math.max(Math.ceil(35 * hm2), Math.ceil(i.weightKg + 10));
+  return { min, max, zones: BMI_ZONES.map((z) => ({ from: Math.max(min, z.from * hm2), to: Math.min(max, z.to * hm2), name: z.name, tone: z.tone })).filter((z) => z.to > z.from),
+    normal: [Math.ceil(18.5 * hm2), Math.floor(23 * hm2 - 0.05)] };
+}
+/** 허리 막대: 복부비만 기준(남 90·여 85cm) 앞뒤 */
+export function waistTrack(i: Input): Track | null {
+  if (i.waistCm == null) return null;
+  const c = waistCut(i.sex), min = Math.floor(Math.min(c - 20, i.waistCm - 8)), max = Math.ceil(Math.max(c + 20, i.waistCm + 8));
+  return { min, max, cut: c, zones: waistZones(i.sex).map((z) => ({ from: Math.max(min, z.from), to: Math.min(max, z.to), name: z.name, tone: z.tone })) };
+}
+export const toneAt = (t: Track, v: number) => (t.zones.find((z) => v >= z.from && v < z.to) ?? (v < t.min ? t.zones[0] : t.zones[t.zones.length - 1]));

@@ -77,7 +77,9 @@ export const MEANING: Partial<Record<ItemId, string>> = {
 export const PEER_NOTE: Partial<Record<ItemId, string>> = {
   nafld: '지방간 평균은 연령대 구분 없이 같은 성별 성인 전체 비율이에요.',
 };
-export const DISCLAIMER = '논문과 국가 통계를 바탕으로 한 수학적 추정이에요. 진단이 아니며, 실제 판정은 반드시 의사가 해요.';
+/** 결과 화면 맨 아래 한 줄. '진단이 아니에요'는 자주 묻는 질문·맨 아래(랜딩)와 진료용 요약에 남긴다 */
+export const DISCLAIMER = '논문과 국가 통계를 바탕으로 한 예측';
+export const NOT_DIAGNOSIS = '진단이 아니며, 실제 판정은 의사가 해요.';
 
 export const HOW: Record<ItemId, string> = {
   dm: '나이·가족력·고혈압·허리둘레·흡연·음주에 논문 계수를 더해 확률로 바꿔요(개발 9,602명, 검증 8,391명). 상대 오차 ±약 25%.',

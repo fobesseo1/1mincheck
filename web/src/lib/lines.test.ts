@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import type { AppInput } from '../state.ts';
 import { samples } from '../../../src/sampleData.ts';
-import { kgToLowerZone, cmToWaistOk, minWeightDelta, bmiGauge, waistGauge, futureEffects } from './lines.ts';
-import { peerCards, rankWord } from './peer.ts';
+import { kgToLowerZone, cmToWaistOk, minWeightDelta, bmiGauge, waistGauge, futureEffects, weightTrack, waistTrack, toneAt } from './lines.ts';
+import { peerCards, rankWord, standing } from './peer.ts';
 
 const base: AppInput = { age: 49, sex: 'F', heightCm: 160, weightKg: 62, waistCm: 81.3, smoke: 'never', alcohol: 'none', famDM: false,
   dx: { htn: false, dm: false, chol: false }, bp: 'normal', exercise: true, meno: null };
@@ -31,6 +31,23 @@ describe('기준선까지 거리', () => {
     const g = bmiGauge(base, -4);
     expect([g.now, g.nowZone.name, g.after, g.afterZone.name]).toEqual([24.2, '비만 전단계', 22.7, '정상']);
     expect(waistGauge(base, 5)!.afterZone.name).toBe('복부비만');
+  });
+});
+
+describe('끌어서 바꾸는 막대 (kg·cm)', () => {
+  it('몸무게: BMI 구간을 키에 맞춰 kg 로, 표준 몸무게 = BMI 18.5–22.9', () => {
+    const t = weightTrack(base);   // 160cm
+    expect(t.normal).toEqual([48, 58]);
+    expect(toneAt(t, 62).name).toBe('비만 전단계');
+    expect(toneAt(t, 55).tone).toBe('ok');
+    expect(toneAt(t, 66).name).toBe('1단계 비만');
+    expect(t.min).toBeLessThan(48); expect(t.max).toBeGreaterThanOrEqual(72);
+  });
+  it('허리: 기준선(여 85cm) 아래 기준 아래 · 이상 복부비만', () => {
+    const t = waistTrack(base)!;
+    expect(t.cut).toBe(85);
+    expect(toneAt(t, 84).name).toBe('기준 아래'); expect(toneAt(t, 85).name).toBe('복부비만');
+    expect(waistTrack({ ...base, waistCm: null })).toBeNull();
   });
 });
 
@@ -75,6 +92,13 @@ describe('또래 100명 중 나', () => {
     }
     const c = peerCards(base);
     expect(c.filter((x) => x.kind === 'rank').length).toBeGreaterThan(0);
+  });
+  it('100명 중 N번째로 위험 / 좋음: 위쪽 절반은 위험한 쪽에서, 아래쪽 절반은 좋은 쪽에서 센다', () => {
+    expect(standing(92)).toEqual({ n: 9, side: '위험' });
+    expect(standing(51)).toEqual({ n: 50, side: '위험' });
+    expect(standing(50)).toEqual({ n: 50, side: '좋음' });
+    expect(standing(20)).toEqual({ n: 20, side: '좋음' });
+    expect(rankWord(99)).toBe('2번째로 위험');
   });
   it('진단받은 항목은 그림 대신 상태', () => {
     const c = peerCards({ ...base, dx: { htn: true, dm: false, chol: false } }).find((x) => x.id === 'htn')!;

@@ -145,7 +145,7 @@ export function All() {
         </ul>
       </Card>
       <Button asChild variant="outline" size="lg" className="w-full"><a href="#/result">결과 카드 3장으로 돌아가기</a></Button>
-      <Help>{DISCLAIMER} 모든 계산은 이 기기 안에서만 했어요.</Help>
+      <Help>{DISCLAIMER}</Help>
     </AppShell>
   );
 }

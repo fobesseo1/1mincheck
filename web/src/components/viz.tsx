@@ -52,9 +52,25 @@ export function Dots({ rank, n, hot, tone, cols = 20 }: { rank?: number; n?: num
     <div className="grid gap-x-1 gap-y-[5px] px-1 py-1.5" style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }} aria-hidden="true">
       {Array.from({ length: 100 }, (_, k) => {
         const isMe = rank != null && k === rank - 1, on = n != null && k < n, meCls = me;
-        return <i key={k} className={cn('block aspect-square rounded-full animate-dot-in', isMe ? cn('animate-dot-me ring-2 ring-offset-2', meCls) : on ? 'bg-brand' : 'bg-sand')}
+        return <i key={k} className={cn('block aspect-square rounded-full animate-dot-in', isMe ? cn('relative z-10 animate-dot-me ring-2 ring-offset-2', meCls) : on ? 'bg-brand' : 'bg-sand')}
           style={{ animationDelay: isMe ? undefined : `${Math.min(k, rank ?? n ?? 0) * 8}ms` } as CSSProperties} />;
       })}
     </div>
   );
+}
+
+/** 숫자가 이전 값에서 새 값으로 세어지며 바뀐다(영상의 '줄이면?' 장면). 'a–b%' 같은 범위나 글자는 그대로 */
+export function CountTo({ text, className }: { text: string; className?: string }) {
+  const m = /^(\d+(?:\.\d+)?)%$/.exec(text), target = m ? parseFloat(m[1]) : null;
+  const [v, setV] = useState(target);
+  useEffect(() => {
+    if (target == null) return;
+    if (reduced() || v == null) { setV(target); return; }
+    const from = v, t0 = performance.now(), dur = 700;
+    let raf = 0;
+    const step = (t: number) => { const k = Math.min(1, (t - t0) / dur), e = 1 - (1 - k) ** 3; setV(from + (target - from) * e); if (k < 1) raf = requestAnimationFrame(step); };
+    raf = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(raf);
+  }, [target]);   // eslint-disable-line react-hooks/exhaustive-deps
+  return <span className={className}>{target == null || v == null ? text : `${(Math.round(v * 10) / 10).toFixed(1)}%`}</span>;
 }

@@ -1,22 +1,22 @@
 // v2 결과: 카드 3장 — ① 지금 내 상태(판정) ② 또래 100명 중 나 ③ 이대로면 vs 바꾸면(기준선).
 // 나머지 자세한 내용은 '모든 항목 보기'(All.tsx). 계산·판정은 view.ts·verdict.ts·lines.ts·peer.ts 그대로. 디자인: docs/DESIGN.md
 import { useMemo, useState, type ReactNode } from 'react';
-import { ChevronDown, ChevronRight, FileText, Bookmark, Share2, ClipboardList, LayoutList, RotateCcw } from 'lucide-react';
+import { ChevronDown, ChevronRight, FileText, Bookmark, Share2, ClipboardList, LayoutList, RotateCcw, TriangleAlert, TrendingDown } from 'lucide-react';
 import type { Input } from '../../../engine/src/engine.ts';
 import { useStore, Nav, Crisis, AppShell, Help } from '../ui.tsx';
 import { toInput, suggestScenario, saveRecords, today, type AppInput } from '../state.ts';
 import { viewResults } from '../lib/view.ts';
 import { verdict, type Verdict } from '../lib/verdict.ts';
 import { DISCLAIMER } from '../lib/content.ts';
-import { peerCards, type PeerCard } from '../lib/peer.ts';
-import { bmiGauge, waistGauge, futureEffects, kgToLowerZone, cmToWaistOk, minWeightDelta, waistCut, type Gauge } from '../lib/lines.ts';
+import { peerCards, standing, type PeerCard } from '../lib/peer.ts';
+import { bmiGauge, waistGauge, futureEffects, weightTrack, waistTrack, toneAt, type Gauge, type Track } from '../lib/lines.ts';
 import { shareApp } from '../lib/share.ts';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Slider } from '@/components/ui/slider';
+import { ZoneSlider } from '@/components/ui/zone-slider';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
-import { ZoneGauge, Dots, TONE_TEXT, type Tone } from '@/components/viz';
+import { ZoneGauge, Dots, CountTo, TONE_TEXT, type Tone } from '@/components/viz';
 import { cn } from '@/lib/utils';
 
 export { Dots };
@@ -73,10 +73,14 @@ function VerdictCard({ v, gap }: { v: Verdict; gap: string }) {
   );
 }
 
-/** 또래 결과의 뜻 색: 높음(또래 평균의 1.25배 이상) 위험 · 위쪽 1/3 주의 · 아래쪽 1/3 좋음 · 가운데 잉크 */
-const peerTone = (c: PeerCard): Tone | null => (c.kind === 'status' ? null : c.high ? 'high' : c.kind === 'rank' ? (c.rank >= 67 ? 'mid' : c.rank <= 33 ? 'ok' : null) : null);
+/** 또래 결과의 뜻 색: 위험한 쪽 1/3 = 위험(또래 평균보다 크게 높으면) 또는 주의, 좋은 쪽 1/3 = 좋음, 가운데 = 잉크 */
+const peerTone = (c: PeerCard): Tone | null => {
+  if (c.kind === 'status') return null;
+  if (c.kind === 'count') return c.high ? 'high' : null;
+  return c.rank >= 67 ? (c.high ? 'high' : 'mid') : c.rank <= 33 ? 'ok' : null;
+};
 
-/** ② 또래 100명 중 나 */
+/** ② 또래 100명 중 나: '100명 중'(작게) + 'N번째로 위험/좋음'(크게) */
 function PeerCardView({ cs }: { cs: PeerCard[] }) {
   return (
     <Card aria-label="또래 100명 중 나" className="p-5">
@@ -86,33 +90,44 @@ function PeerCardView({ cs }: { cs: PeerCard[] }) {
       </div>
       <Tabs defaultValue={cs[0].id}>
         <TabsList aria-label="항목">{cs.map((x) => <TabsTrigger key={x.id} value={x.id}>{x.name}</TabsTrigger>)}</TabsList>
-        {cs.map((c) => (
-          <TabsContent key={c.id} value={c.id} className="flex flex-col gap-3">
-            <b className="text-subheading font-medium text-ink">{c.name} · <span className={peerTone(c) ? TONE_TEXT[peerTone(c)!] : 'text-ink'}>{c.word}</span></b>
-            {c.kind === 'rank' && (<>
-              <Dots rank={c.rank} hot={c.high} tone={peerTone(c) ?? undefined} />
-              <div className="flex justify-between text-[11px] text-ink-soft"><span>위험 낮은 사람부터</span><span>위험 높은 사람까지</span></div>
-              <span className="text-body">{c.group} 100명을 위험이 낮은 순서로 세우면 <b className="text-brand">나는 {c.rank}번째</b>예요.</span>
-            </>)}
-            {c.kind === 'count' && (<>
-              <Dots n={c.n} hot={c.high} tone={peerTone(c) ?? undefined} />
-              <span className="text-body">나와 비슷한 조건 100명 중 <b className="text-brand">약 {c.n}명</b>이 해당하는 수준이에요.</span>
-            </>)}
-            {c.kind === 'status' && <span className="text-body-sm text-ink-soft">{c.note}</span>}
-            {c.kind !== 'status' ? (
-              <a href={`#/detail/${c.id}`} className="flex items-center justify-between gap-3 rounded-btn bg-blush/70 px-3.5 py-3 text-body-sm text-ink-soft no-underline">
-                <span>지금 {c.name} 가능성 추정 <b className="text-ink">{c.pct}%</b> · 또래 평균 {c.peer}%<span className="mt-0.5 block text-[11px]">앞으로가 아니라 지금 검사하면 기준에 해당할 가능성 · {c.who} 기준</span></span>
-                <ChevronRight className="size-5 shrink-0 text-brand" />
-              </a>
-            ) : <a href={`#/detail/${c.id}`} className="text-body-sm font-medium text-brand">자세히 보기</a>}
-          </TabsContent>
-        ))}
+        {cs.map((c) => {
+          const t = peerTone(c), col = t ? TONE_TEXT[t] : 'text-ink';
+          return (
+            <TabsContent key={c.id} value={c.id} className="flex flex-col gap-3">
+              {c.kind === 'rank' && (() => { const st = standing(c.rank); return (<>
+                <div className="flex flex-col">
+                  <span className="text-body-sm text-ink-soft">{c.name} · {c.group} 100명 중</span>
+                  <b className={cn('text-heading font-medium', col)}>{st.n}번째로 {st.side}</b>
+                </div>
+                <Dots rank={c.rank} hot={c.high} tone={t ?? undefined} />
+                <div className="flex justify-between text-[11px] text-ink-soft"><span>좋은 사람</span><span>위험한 사람</span></div>
+              </>); })()}
+              {c.kind === 'count' && (<>
+                <div className="flex flex-col">
+                  <span className="text-body-sm text-ink-soft">{c.name} · 나와 비슷한 조건 100명 중</span>
+                  <b className={cn('text-heading font-medium', col)}>약 {c.n}명</b>
+                </div>
+                <Dots n={c.n} hot={c.high} tone={t ?? undefined} />
+              </>)}
+              {c.kind === 'status' && (<>
+                <b className="text-subheading font-medium">{c.name} · {c.word}</b>
+                <span className="text-body-sm text-ink-soft">{c.note}</span>
+              </>)}
+              {c.kind !== 'status' ? (
+                <a href={`#/detail/${c.id}`} className="flex items-center justify-between gap-3 rounded-btn bg-sand-soft px-3.5 py-3 text-body-sm text-ink-soft no-underline">
+                  <span>지금 {c.name} 가능성 <b className="text-ink">{c.pct}%</b> · 또래 평균 {c.peer}%<span className="mt-0.5 block text-[11px]">지금 검사하면 기준에 해당할 가능성 · {c.who} 기준</span></span>
+                  <ChevronRight className="size-5 shrink-0 text-brand" />
+                </a>
+              ) : <a href={`#/detail/${c.id}`} className="text-body-sm font-medium text-brand">자세히 보기</a>}
+            </TabsContent>
+          );
+        })}
       </Tabs>
     </Card>
   );
 }
 
-/** 기준선 막대 (shadcn Progress 위에 기준선): 지금(빈 점) → 바꾸면(채운 점) */
+/** 기준선 막대 (shadcn Progress 위에 기준선): 랜딩 예시 등에서 쓴다 */
 export function LineBar({ g, changed, delay }: { g: Gauge; changed: boolean; delay?: number }) {
   const p = (v: number) => Math.max(0, Math.min(1, (v - g.min) / (g.max - g.min)));
   const fmt = (v: number) => (g.key === 'bmi' ? v.toFixed(1) : `${v}cm`);
@@ -131,51 +146,80 @@ export function LineBar({ g, changed, delay }: { g: Gauge; changed: boolean; del
   );
 }
 
-/** ③ 이대로면 vs 바꾸면: 몸무게·허리 슬라이더 → 기준선 막대와 미래 위험(원문 점수표·기간 그대로) */
-function ChangeCard({ inp }: { inp: Input }) {
-  const [dw, setDw] = useState(0), [dwa, setDwa] = useState(0);
-  const minW = minWeightDelta(inp.heightCm, inp.weightKg);
-  const bg = bmiGauge(inp, dw), wg = waistGauge(inp, dwa), { effects, hints } = futureEffects(inp, dw, dwa);
-  const changed = dw !== 0 || dwa !== 0;
-  const k = kgToLowerZone(inp.heightCm, inp.weightKg), cm = inp.waistCm != null ? cmToWaistOk(inp.sex, inp.waistCm) : null;
-  const chips: [string, () => void][] = [];
-  if (k && -k.kg >= minW) chips.push([`BMI ${k.line} 아래로 (−${k.kg}kg)`, () => setDw(-k.kg)]);
-  if (cm != null && cm <= 15) chips.push([`허리 ${waistCut(inp.sex)}cm 아래로 (−${cm}cm)`, () => setDwa(-cm)]);
-  const sign = (n: number, u: string) => (n === 0 ? '그대로' : `${n > 0 ? '+' : '−'}${Math.abs(n)}${u}`);
-  const dirText = { down: 'text-good', up: 'text-risk', same: 'text-ink' } as const;
-  const dirBg = { down: 'bg-good-bg', up: 'bg-risk-bg', same: 'bg-sand-soft' } as const;
+const BADGE_OF = { ok: 'good', low: 'info', mid: 'warn', high: 'risk', urgent: 'risk' } as const;
+/** 막대 하나 = 손잡이 하나. 큰 숫자(kg·cm)와 구간 이름이 내 구간 색으로 바뀐다 */
+function DragBar({ title, unit, now, value, onChange, track, sub }: { title: string; unit: string; now: number; value: number; onChange: (v: number) => void; track: Track; sub?: string }) {
+  const z = toneAt(track, value), d = Math.round((value - now) * 10) / 10;
   return (
-    <Card id="change" aria-label="이대로면 vs 바꾸면" className="flex scroll-mt-3 flex-col gap-4 p-5">
-      <div>
-        <h2 className="text-[19px] font-medium">이대로면 <span className="text-brand">vs</span> 바꾸면</h2>
-        <span className="text-caption text-ink-soft">몸무게·허리를 움직이면 기준선을 넘는지 바로 보여드려요</span>
+    <div className="flex flex-col gap-1">
+      <div className="flex items-end justify-between gap-3">
+        <div className="flex flex-col">
+          <span className="text-body-sm text-ink-soft">{title}</span>
+          <b className="text-heading font-medium leading-none">{value}<small className="ml-0.5 text-body font-normal text-ink-soft">{unit}</small>
+            {d !== 0 && <span className={cn('ml-2 text-body font-medium', d < 0 ? 'text-good' : 'text-risk')}>{d > 0 ? '+' : '−'}{Math.abs(d)}{unit}</span>}</b>
+        </div>
+        <div className="flex flex-col items-end gap-1">
+          <Badge variant={BADGE_OF[z.tone]}>{z.name}</Badge>
+          {sub && <span className="text-[11px] text-ink-soft">{sub}</span>}
+        </div>
       </div>
-      <LineBar g={bg} changed={dw !== 0} />
-      <div>
-        <div className="flex justify-between text-body-sm"><span>몸무게 <b className="text-ink">{Math.round((inp.weightKg + dw) * 10) / 10}kg</b></span><span className="text-ink-soft">{sign(dw, 'kg')}</span></div>
-        <Slider fill={false} aria-label="몸무게 바꿔보기" min={minW} max={5} step={1} value={[dw]} onValueChange={([x]) => setDw(x)} />
-      </div>
-      {wg ? (<>
-        <LineBar g={wg} changed={dwa !== 0} />
+      <ZoneSlider label={`${title} 바꿔보기`} min={track.min} max={track.max} value={value} onChange={onChange} zones={track.zones} now={now} normal={track.normal} cut={track.cut} tone={z.tone} />
+    </div>
+  );
+}
+
+type Row = { k: string; name: string; b: string; a: string; dir: 'down' | 'up' | 'same' };
+/** 나쁜 정도: 정상 0 · 저체중 1 · 비만 전단계 2 · 1–3단계 비만 3–5 (색이 같아도 단계가 오르면 나빠짐) */
+const ZRANK: Record<string, number> = { 정상: 0, '기준 아래': 0, 저체중: 1, '비만 전단계': 2, '1단계 비만': 3, '2단계 비만': 4, '3단계 비만': 5, 복부비만: 3 };
+/** ③ 이대로면 vs 바꾸면 (홍보영상의 '만약 … 줄이면?' 장면): 막대를 끌면 아래 숫자가 이전 값 → 새 값으로 세어진다 */
+function ChangeCard({ inp }: { inp: Input }) {
+  const [w, setW] = useState(inp.weightKg), [wa, setWa] = useState(inp.waistCm ?? 0);
+  const wt = weightTrack(inp), wat = waistTrack(inp);
+  const dw = Math.round((w - inp.weightKg) * 10) / 10, dwa = inp.waistCm == null ? 0 : Math.round((wa - inp.waistCm) * 10) / 10;
+  const changed = dw !== 0 || dwa !== 0;
+  const bg = bmiGauge(inp, dw), wg = waistGauge(inp, dwa), { effects, hints } = futureEffects(inp, dw, dwa);
+  const parts = [dwa && `허리 ${dwa > 0 ? '+' : '−'}${Math.abs(dwa)}cm`, dw && `체중 ${dw > 0 ? '+' : '−'}${Math.abs(dw)}kg`].filter(Boolean) as string[];
+  const verb = dw <= 0 && dwa <= 0 ? '줄이면?' : dw >= 0 && dwa >= 0 ? '늘리면?' : '바꾸면?';
+  const zdir = (b: string, a: string): Row['dir'] => (ZRANK[a] < ZRANK[b] ? 'down' : ZRANK[a] > ZRANK[b] ? 'up' : 'same');
+  // 영상처럼: 항목 이름 · 이전 값(줄 긋기) → 새 값(크게). 좋아지면 라임, 나빠지면 위험색
+  const rows: Row[] = [
+    { k: 'bmi', name: '체형', b: bg.nowZone.name, a: bg.afterZone.name, dir: zdir(bg.nowZone.name, bg.afterZone.name) },
+    ...(wg ? [{ k: 'waist', name: '복부비만', b: wg.nowZone.tone === 'high' ? '해당' : '아님', a: wg.afterZone.tone === 'high' ? '해당' : '아님', dir: zdir(wg.nowZone.name, wg.afterZone.name) }] : []),
+    ...effects.map((e): Row => ({ k: e.id, name: e.id === 'dm10' ? '10년 안에 당뇨' : '4년 안에 고혈압', b: e.before, a: e.after, dir: e.dir })),
+  ];
+  const worse = rows.some((r) => r.dir === 'up'), better = rows.some((r) => r.dir === 'down');
+  const reset = () => { setW(inp.weightKg); setWa(inp.waistCm ?? 0); };
+  return (
+    <Card id="change" aria-label="이대로면 vs 바꾸면" className="flex scroll-mt-3 flex-col gap-5 p-5">
+      <div className="flex items-start justify-between gap-2">
         <div>
-          <div className="flex justify-between text-body-sm"><span>허리 <b className="text-ink">{wg.after}cm</b></span><span className="text-ink-soft">{sign(dwa, 'cm')}</span></div>
-          <Slider fill={false} aria-label="허리둘레 바꿔보기" min={-15} max={5} step={1} value={[dwa]} onValueChange={([x]) => setDwa(x)} />
+          <h2 className="text-[19px] font-medium">이대로면 vs 바꾸면</h2>
+          <span className="text-caption text-ink-soft">막대를 끌어 몸무게·허리를 바꿔 보세요</span>
         </div>
-      </>) : <a href="#/info" className="text-body-sm font-medium text-brand">허리둘레를 넣으면 복부비만 기준선도 볼 수 있어요</a>}
-      {(chips.length > 0 || changed) && (
-        <div className="flex flex-wrap gap-1.5">
-          {chips.map(([t, f]) => <Button key={t} variant="outline" size="sm" className="rounded-full" onClick={f}>{t}</Button>)}
-          {changed && <Button variant="ghost" size="sm" className="rounded-full text-ink-soft" onClick={() => { setDw(0); setDwa(0); }}><RotateCcw /> 처음 값으로</Button>}
+        {changed && <Button variant="ghost" size="icon" className="size-9 shrink-0 bg-sand-soft" aria-label="처음 값으로" onClick={reset}><RotateCcw /></Button>}
+      </div>
+      <DragBar title="몸무게" unit="kg" now={inp.weightKg} value={w} onChange={setW} track={wt} sub={`BMI ${bg.after.toFixed(1)}`} />
+      {wat ? <DragBar title="허리둘레" unit="cm" now={inp.waistCm!} value={wa} onChange={setWa} track={wat} />
+        : <a href="#/info" className="text-body-sm font-medium text-brand">허리둘레를 넣으면 복부비만 기준선도 볼 수 있어요</a>}
+
+      <div className="flex flex-col gap-3 rounded-card bg-brand p-5 text-white">
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[19px] font-medium">
+          만약 <span className={cn('rounded-full px-3 py-0.5 text-body font-medium text-brand', verb === '늘리면?' ? 'bg-[#ff9db0]' : 'bg-lime')}>{parts.length ? parts.join(' · ') : '막대를 움직여 보세요'}</span> {verb}
         </div>
-      )}
-      {!changed && <span className="rounded-btn bg-sand-soft px-3.5 py-3 text-body-sm">{[bg.gap, wg?.gap].filter(Boolean).join(' · ')}</span>}
-      {effects.map((e) => (
-        <div key={e.id} className={cn('flex flex-col gap-1 rounded-btn px-4 py-3.5', dirBg[e.dir])}>
-          <b className="text-body-sm font-medium">{e.title}</b>
-          <span className="text-body">이대로면 <b className="text-ink">{e.before}</b>{changed && <> <ChevronRight className="inline size-4 text-ink-soft" /> 바꾸면 <b className={cn('text-subheading font-medium', dirText[e.dir])}>{e.after}</b></>}</span>
-          <span className="text-caption text-ink-soft">{changed ? e.note : e.id === 'dm10' ? `비슷한 위험 점수였던 사람 중 10년 안에 당뇨가 생긴 비율이에요. 허리 ${waistCut(inp.sex)}cm 기준선에서 바뀌어요.` : '비슷한 점수였던 사람 중 4년 안에 고혈압이 생긴 비율이에요. BMI 25·30 기준선에서 바뀌어요.'}</span>
-        </div>
-      ))}
+        {rows.map((r) => (
+          <div key={r.k} className={cn('flex items-center justify-between gap-3 rounded-btn px-4 py-3 transition-colors', changed && r.dir === 'down' ? 'bg-white/15' : changed && r.dir === 'up' ? 'bg-risk-dot/30' : 'bg-white/5')}>
+            <span className="text-body-sm text-white/85">{r.name}</span>
+            <span className="flex items-baseline gap-2 whitespace-nowrap">
+              {changed && r.b !== r.a && <><s className="text-body-sm text-white/45">{r.b}</s><ChevronRight className="size-4 self-center text-white/45" /></>}
+              <CountTo text={changed ? r.a : r.b} className={cn('text-subheading font-medium', !changed || r.dir === 'same' ? 'text-white' : r.dir === 'down' ? 'text-lime' : 'text-[#ff9db0]')} />
+            </span>
+          </div>
+        ))}
+        {changed && worse && <span className="flex items-center gap-1.5 self-start rounded-full bg-risk px-3 py-1.5 text-body-sm font-medium text-white"><TriangleAlert className="size-4" /> 이렇게 되면 위험이 커져요</span>}
+        {changed && !worse && better && <span className="flex items-center gap-1.5 self-start rounded-full bg-lime px-3 py-1.5 text-body-sm font-medium text-brand"><TrendingDown className="size-4" /> 기준선 안쪽으로 들어왔어요</span>}
+        {changed && !worse && !better && <span className="text-caption text-white/70">아직 기준선을 넘지 않아 결과가 그대로예요. 조금 더 움직여 보세요.</span>}
+        {effects.some((e) => e.before.includes('–')) && <span className="text-[11px] text-white/60">혈압을 몰라 당뇨 위험은 범위로 보여드려요.</span>}
+      </div>
       {hints.map((h) => <span key={h} className="text-caption text-ink-soft">{h}</span>)}
       <span className="text-[11px] leading-normal text-ink-soft">기준선은 대한비만학회 기준, 미래 위험은 한국인 추적 연구의 점수표(기간 그대로)예요. 참고값이며 실제로 줄였을 때의 치료 효과를 보장하지 않아요.</span>
     </Card>
@@ -222,7 +266,7 @@ export function Results() {
         <LinkRow onClick={save} icon={<Bookmark />} title="이 기기에 기록 저장" sub="몇 달 뒤 다시 체크하면 달라진 만큼 비교해요" />
       </Card>
       <Button variant="outline" size="lg" className="w-full" onClick={() => shareApp(toast)}><Share2 /> 친구에게도 알려주기</Button>
-      <Help className="mt-1">{DISCLAIMER} 모든 계산은 이 기기 안에서만 했어요.</Help>
+      <Help className="mt-1">{DISCLAIMER}</Help>
     </AppShell>
   );
 }

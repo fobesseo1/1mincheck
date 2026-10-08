@@ -1,4 +1,4 @@
-// shadcn Button (Jeton 토큰): 주 = 주황 바탕 흰 글자, 보조 = 주황 테두리, 그 밖에 잉크·옅은 바탕·고스트
+// shadcn Button: 주 = 라임 바탕 진초록 글자(1분체크), 진초록 = 진초록 바탕 흰 글자, 보조 = 진초록 테두리, 그 밖에 옅은 바탕·고스트
 import * as React from 'react';
 import { Slot } from '@radix-ui/react-slot';
 import { cva, type VariantProps } from 'class-variance-authority';
@@ -9,8 +9,9 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: 'bg-brand text-white hover:bg-brand-tint',
-        outline: 'border border-brand text-brand bg-white hover:bg-brand/5',
+        default: 'bg-lime text-brand hover:bg-[#8fdc5e]',
+        brand: 'bg-brand text-white hover:bg-brand-tint',
+        outline: 'border-[1.5px] border-brand text-brand bg-white hover:bg-blush',
         ink: 'bg-ink text-white hover:bg-ink/90',
         soft: 'bg-blush text-ink hover:bg-brand/10',
         ghost: 'text-ink hover:bg-sand-soft',

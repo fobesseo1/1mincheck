@@ -76,23 +76,27 @@ try {
   console.log('결과 3장');
   const tr = await text();
   ok(['지금 내 상태', '또래 100명 중 나', '이대로면 vs 바꾸면'].every((l) => tr.includes(l.replace('지금 내 상태', '')) ) && !!(await p.$('section[aria-label="지금 내 상태"]')) && !!(await p.$('[aria-label="또래 100명 중 나"]')) && !!(await p.$('#change')), '카드 3장');
-  ok(/나는 \d+번째/.test(tr), '또래 중 내 자리 (n번째)');
+  ok(/100명 중\s*\d+번째로 (위험|좋음)/.test(tr) && !/세우면/.test(tr), '또래: 100명 중 N번째로 위험/좋음');
   ok(!/배예요|\d배\)/.test(tr), '결과 첫 화면에 몇 배 표현 없음');
   ok(await p.evaluate(() => getComputedStyle(document.querySelector('section[aria-label="지금 내 상태"] h2')).fontSize === '28px'), '판정 제목 28px (Jeton 글자 크기)');
   ok(await p.evaluate(() => getComputedStyle(document.body).letterSpacing === '-0.08px' || getComputedStyle(document.body).letterSpacing.startsWith('-0.0')), '본문 자간 -0.5%');
-  ok(tr.includes('3cm 줄이면 복부비만 기준(90cm) 아래예요'), '허리 기준선까지 거리');
-  ok(tr.includes('10년 안에 당뇨가 생길 가능성') && tr.includes('이대로면 23.4%'), '이대로면 10년 당뇨 23.4%');
+  ok(tr.includes('표준 ') && tr.includes('기준 90cm'), '몸무게 표준 구간·허리 기준선 표시');
+  ok(!tr.includes('아래로 (−'), '바로가기 버튼(−2kg 등) 없음');
+  ok(tr.includes('10년 안에 당뇨') && tr.includes('23.4%'), '이대로면 10년 당뇨 23.4%');
   const h = await p.evaluate(() => document.documentElement.scrollHeight);
   ok(h <= 844 * 3.2, `결과 화면 길이 ${h}px (화면 약 ${(h / 844).toFixed(1)}장)`);
   await shot('result');
   await tab('고혈압'); ok((await p.evaluate(() => document.querySelector('[role=tabpanel]:not([hidden])')?.innerText || '')).includes('고혈압 ·'), '또래 탭 전환');
-  await click('허리 90cm 아래로'); await wait(600);
+  await slide('허리둘레 바꿔보기', -3); await wait(1100);
   const tc = await p.evaluate(() => document.getElementById('change').innerText);
-  ok(tc.includes('89cm 기준 아래') && tc.includes('바꾸면 8.9%'), '허리 −3cm: 기준선 아래, 10년 당뇨 23.4% → 8.9%');
+  ok(tc.includes('허리 −3cm') && tc.includes('줄이면?') && tc.includes('8.9%') && tc.includes('기준선 안쪽으로'), '허리 −3cm: 만약 줄이면? · 10년 당뇨 23.4% → 8.9% (세어짐)');
+  ok(await p.evaluate(() => !!document.querySelector('#change s')), '이전 값은 줄 긋기');
   await slide('몸무게 바꿔보기', -4); await wait(500);
-  ok((await p.evaluate(() => document.getElementById('change').innerText)).includes('78kg'), '몸무게 슬라이더');
+  ok((await p.evaluate(() => document.getElementById('change').innerText)).includes('78kg'), '몸무게 막대 끌기');
+  await slide('몸무게 바꿔보기', 14); await wait(900);
+  ok((await p.evaluate(() => document.getElementById('change').innerText)).includes('위험이 커져요'), '늘리면 경고');
   await p.evaluate(() => document.getElementById('change').scrollIntoView()); await shot('result-change');
-  await click('처음 값으로'); ok(!(await p.evaluate(() => document.getElementById('change').innerText)).includes('바꾸면 8.9%'), '처음 값으로');
+  await click('처음 값으로'); await wait(300); ok((await p.evaluate(() => document.getElementById('change').innerText)).includes('막대를 움직여 보세요'), '처음 값으로');
   await click('체중을 줄이세요').catch(() => {}); await wait(300);
 
   console.log('기록 저장');
@@ -110,7 +114,7 @@ try {
   await shot('labs-result');
   await click('이 숫자를 반영한 내 결과 보기');
   const tr2 = await text();
-  ok(tr2.includes('4년 안에 고혈압이 생길 가능성'), '검진 혈압 반영 → 4년 고혈압 기준선 비교 등장');
+  ok(tr2.includes('4년 안에 고혈압'), '검진 혈압 반영 → 4년 고혈압 기준선 비교 등장');
 
   console.log('모든 항목 · 상세');
   await p.evaluate(() => { location.hash = '#/all'; }); await wait(400);

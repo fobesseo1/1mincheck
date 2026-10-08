@@ -8,7 +8,7 @@ import { suggestScenario, today, ALC_LABEL, type AppInput } from '../state.ts';
 import { viewResults, labOf } from '../lib/view.ts';
 import { verdictB, scopeOf, B_NAME, probB } from '../lib/b.ts';
 import { LABS } from '../lib/labs.ts';
-import { DISCLAIMER } from '../lib/content.ts';
+import { DISCLAIMER, NOT_DIAGNOSIS } from '../lib/content.ts';
 import { useInput, NeedInput } from './Results.tsx';
 
 const th: React.CSSProperties = { textAlign: 'left', padding: '6px 8px', borderBottom: '1px solid #e7dcdb', fontSize: 12, color: '#6b4a45', fontWeight: 500 };
@@ -77,7 +77,7 @@ export function Summary() {
         {scope.dx.length > 0 && (<><H>진단받아 관리 중인 항목</H><p style={{ margin: 0, fontSize: 13 }}>{scope.dx.join(', ')} — 가능성을 다시 추정하지 않았어요.</p></>)}
 
         <p style={{ margin: '18px 0 0', paddingTop: 10, borderTop: '1px solid #e7dcdb', fontSize: 11, color: '#6b4a45' }}>
-          {DISCLAIMER} 체형은 입력한 키·몸무게로 계산했어요(BMI {ob.v} · {ob.cat}). 1분체크에서 만든 요약이에요.
+          {DISCLAIMER}이에요. {NOT_DIAGNOSIS} 체형은 입력한 키·몸무게로 계산했어요(BMI {ob.v} · {ob.cat}). 1분체크에서 만든 요약이에요.
         </p>
       </article>
     </div>

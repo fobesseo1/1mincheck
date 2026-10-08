@@ -1,18 +1,20 @@
-/* 1분체크 디자인 토큰 (docs/DESIGN.md · Jeton 스타일, 글꼴만 프리텐다드 · 자간 -0.5%) */
+/* 1분체크 디자인 토큰 (docs/DESIGN.md · Jeton 구성 + 1분체크 초록, 글꼴 프리텐다드 · 자간 -0.5%) */
 @import "tailwindcss";
 @import "tw-animate-css";
 
 @theme {
   --font-sans: 'Pretendard Variable', Pretendard, -apple-system, system-ui, 'Noto Sans KR', sans-serif;
 
-  --color-brand: #f73b20;
-  --color-brand-tint: #f84d35;
-  --color-ink: #360802;
-  --color-ink-soft: #6b4a45;
+  --color-brand: #163300;
+  --color-brand-tint: #2f6b12;
+  --color-lime: #9fe870;
+  --color-lime-soft: #cdf5b2;
+  --color-ink: #0e0f0c;
+  --color-ink-soft: #5d605c;
   --color-ash: #ababab;
-  --color-sand: #e7dcdb;
-  --color-sand-soft: #f3ecea;
-  --color-blush: #fdedea;
+  --color-sand: #e0e3dd;
+  --color-sand-soft: #f2f4f0;
+  --color-blush: #e2f6d5;
   --color-citrus: #f5ffbb;
   --color-mint: #bcffbb;
   --color-canvas: #ffffff;
@@ -51,8 +53,8 @@
   --radius-btn: 12px;
   --radius-nav: 84px;
 
-  --shadow-card: 0 -4px 16px 0 rgba(0, 0, 0, 0.05), 0 1px 2px 0 rgba(54, 8, 2, 0.04);
-  --shadow-float: 0 8px 24px 0 rgba(247, 59, 32, 0.10), 0 2px 8px 0 rgba(247, 59, 32, 0.05);
+  --shadow-card: 0 -4px 16px 0 rgba(0, 0, 0, 0.05), 0 1px 2px 0 rgba(22, 51, 0, 0.05);
+  --shadow-float: 0 8px 24px 0 rgba(22, 51, 0, 0.12), 0 2px 8px 0 rgba(22, 51, 0, 0.06);
 
   --animate-dot-in: dot-in .3s ease-out both;
   --animate-dot-me: dot-me .5s .9s ease-out both;
