@@ -87,3 +87,12 @@
   .no-print { display: none !important; }
   html, body { background: #fff !important; }
 }
+
+/* 한글 제목 비율 (애플 코리아 실측: 굵기 600 · 줄간격 1.15–1.25 · 가장 큰 제목 PC 96px). docs/jeton-analysis-2026-10-08.md */
+@utility kr-display { font-weight: 600; line-height: 1.12; font-size: clamp(44px, 6.4vw, 96px); }
+@utility kr-h1 { font-weight: 600; line-height: 1.15; font-size: clamp(38px, 5.4vw, 80px); }
+@utility kr-h2 { font-weight: 600; line-height: 1.18; font-size: clamp(30px, 4vw, 60px); }
+@utility kr-h3 { font-weight: 600; line-height: 1.25; font-size: clamp(21px, 1.9vw, 28px); }
+@utility kr-word { font-weight: 600; line-height: 1.1; font-size: clamp(48px, 7vw, 104px); }
+@utility kr-lead { font-weight: 500; line-height: 1.5; font-size: clamp(18px, 1.55vw, 22px); }
+@utility kr-body { font-weight: 400; line-height: 1.6; font-size: 17px; }

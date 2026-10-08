@@ -172,7 +172,7 @@ type Row = { k: string; name: string; b: string; a: string; dir: 'down' | 'up' |
 /** 나쁜 정도: 정상 0 · 저체중 1 · 비만 전단계 2 · 1–3단계 비만 3–5 (색이 같아도 단계가 오르면 나빠짐) */
 const ZRANK: Record<string, number> = { 정상: 0, '기준 아래': 0, 저체중: 1, '비만 전단계': 2, '1단계 비만': 3, '2단계 비만': 4, '3단계 비만': 5, 복부비만: 3 };
 /** ③ 이대로면 vs 바꾸면 (홍보영상의 '만약 … 줄이면?' 장면): 막대를 끌면 아래 숫자가 이전 값 → 새 값으로 세어진다 */
-function ChangeCard({ inp }: { inp: Input }) {
+export function ChangeCard({ inp }: { inp: Input }) {
   const [w, setW] = useState(inp.weightKg), [wa, setWa] = useState(inp.waistCm ?? 0);
   const wt = weightTrack(inp), wat = waistTrack(inp);
   const dw = Math.round((w - inp.weightKg) * 10) / 10, dwa = inp.waistCm == null ? 0 : Math.round((wa - inp.waistCm) * 10) / 10;

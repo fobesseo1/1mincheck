@@ -1,76 +1,37 @@
-// 랜딩 (jeton.com 메인 구성을 따라 · 1분체크 초록 · docs/DESIGN.md)
-//  1 꽉 찬 첫 화면(입체 원반 + 왼쪽 아래 큰 제목 + 오른쪽 아래 버튼) · 아래 가운데 떠 있는 메뉴 알약
-//  2 가운데 큰 문장 + 둘레에 떠다니는 작은 결과 카드  3 큰 낱말 세 개(또래 중 나 · 줄이면? · 검진 풀이)
-//  4 진초록 꽉 찬 띠(미니 체험 + 01–05 단계)  5 휴대폰 화면  6 가운데 질문 문장 + 줄이면 예시
-//  7 검진 풀이  8 100명 점 + 떠다니는 원  9 소개 영상  10 자주 묻는 질문  11 마지막 큰 문장 · 큰 글자 바닥글
-// 예시 숫자는 모두 앱과 같은 함수(lines.ts·peer.ts·labZones.ts)로 계산한다.
+// 랜딩: jeton.com 메인의 '붙잡힌 장면' 구조를 1분체크로 (docs/jeton-analysis-2026-10-08.md · docs/DESIGN.md)
+// 화면이 고정된 채 스크롤 진행도(0–1)로 장면이 움직인다. 부드러운 스크롤은 Lenis, 움직임은 motion.
+// 움직임 줄이기 설정이면 고정 없이 완성된 모습만 보여준다. 예시 숫자는 앱과 같은 함수로 계산한다.
 import type React from 'react';
-import { useEffect, useRef, useState } from 'react';
-import { ArrowRight, ArrowDown, Check, FileText, Users, TrendingDown, Play, MessageCircleQuestion, Lock, Smartphone, BarChart3, LineChart } from 'lucide-react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
+import Lenis from 'lenis';
+import { motion, useScroll, useTransform, useReducedMotion, useMotionValue, useMotionValueEvent, type MotionValue } from 'motion/react';
+import { ArrowRight, Check, FileText, Users, TrendingDown, MessageCircleQuestion, Play, Tv, MessageSquare, ClipboardList } from 'lucide-react';
 import { useStore } from '../ui.tsx';
 import { MiniTrial, loadMini, miniDraft, MINI_CTA } from './MiniTrial.tsx';
 import { toInput, type AppInput } from '../state.ts';
-import { LineBar } from './Results.tsx';
+import { ChangeCard } from './Results.tsx';
 import { LabCardView } from './Labs.tsx';
 import { peerCards, standing } from '../lib/peer.ts';
-import { bmiGauge, waistGauge, futureEffects } from '../lib/lines.ts';
+import { futureEffects } from '../lib/lines.ts';
 import { labCards } from '../lib/labZones.ts';
 import { PRIVACY_LINE } from '../lib/share.ts';
 import { NOT_DIAGNOSIS } from '../lib/content.ts';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from '@/components/ui/accordion';
 import { Dialog, DialogTrigger, DialogContent, DialogTitle } from '@/components/ui/dialog';
 import { Dots } from '@/components/viz';
 import { cn } from '@/lib/utils';
 
-const reduced = () => typeof matchMedia !== 'undefined' && matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-/** 미니 체험 결과(탭 세션)를 구독: 없으면 null */
-function useMini() {
-  const [m, setM] = useState(loadMini);
-  useEffect(() => { const on = () => setM(loadMini()); window.addEventListener('mini-change', on); return () => window.removeEventListener('mini-change', on); }, []);
-  return m;
-}
-/** '체크 시작' 버튼. 미니에 넣은 값이 있으면 그 값을 가지고 이어서(문구도 미니 결과 단계에 맞춤). 이미 결과가 있으면 결과로 */
-function StartBtn({ kind, className, label, variant = 'default', size = 'lg' }: { kind: 'nav' | 'main' | 'text'; className?: string; label: string; variant?: 'default' | 'white' | 'outline' | 'brand'; size?: 'lg' | 'sm' | 'pill' }) {
-  const m = useMini(), { setDraft, draft } = useStore();
-  if (kind === 'text' && toInput(draft)) return <Button asChild variant={variant} size={size} className={className}><a href="#/result">내 결과 보기 <ArrowRight /></a></Button>;
-  const set = !m ? null : m.tone != null ? MINI_CTA[m.tone] : MINI_CTA.partial;
-  const text = !set ? label : set[kind === 'nav' ? 'nav' : 'main'];
-  const go = (e: React.MouseEvent) => { if (!m) return; e.preventDefault(); setDraft((d) => ({ ...d, ...miniDraft(m) })); location.hash = '#/info'; };
-  return <Button asChild variant={variant} size={size} className={cn('h-auto min-h-12 whitespace-normal text-center', className)}><a href="#/start" onClick={go}>{text} {kind !== 'nav' && <ArrowRight />}</a></Button>;
-}
-
-/** 화면에 들어오면 한 번 true (나타나는 움직임용) */
-function useInView<T extends HTMLElement>(threshold = 0.3) {
-  const ref = useRef<T>(null), [on, setOn] = useState(reduced());
-  useEffect(() => {
-    const el = ref.current; if (!el || on || typeof IntersectionObserver === 'undefined') return;
-    const io = new IntersectionObserver(([e]) => { if (e.isIntersecting) { setOn(true); io.disconnect(); } }, { threshold });
-    io.observe(el); return () => io.disconnect();
-  }, [on, threshold]);
-  return [ref, on] as const;
-}
-/** 요소가 화면을 지나가는 정도(-1 ~ 1): 떠다니는 카드의 시차 움직임 */
-function useScrollProgress<T extends HTMLElement>() {
-  const ref = useRef<T>(null), [p, setP] = useState(0);
-  useEffect(() => {
-    if (reduced()) return;
-    let raf = 0;
-    const f = () => { cancelAnimationFrame(raf); raf = requestAnimationFrame(() => { const r = ref.current?.getBoundingClientRect(); if (r) setP(Math.max(-1, Math.min(1, (innerHeight / 2 - (r.top + r.height / 2)) / innerHeight))); }); };
-    f(); addEventListener('scroll', f, { passive: true }); return () => { removeEventListener('scroll', f); cancelAnimationFrame(raf); };
-  }, []);
-  return [ref, p] as const;
-}
+// ── 이미지 (src/assets/landing/ 에 넣으면 그걸 쓰고, 없으면 자리 표시) ──
+const ART = import.meta.glob('../assets/landing/*.{jpg,jpeg,png,webp}', { eager: true, import: 'default' }) as Record<string, string>;
+const art = (name: string) => Object.entries(ART).find(([k]) => k.includes(`/${name}.`))?.[1];
 
 // ── 예시 (영상과 같은 장면). 52세 남성 · 172cm · 82kg · 허리 92cm · 혈압 정상 · 운동 안 함 ──
 const EX: AppInput = { age: 52, sex: 'M', heightCm: 172, weightKg: 82, waistCm: 92, smoke: 'never', alcohol: 'lt1', famDM: false, dx: { htn: false, dm: false, chol: false }, bp: 'normal', exercise: false, meno: null };
 const EX_PEER = peerCards(EX).find((c) => c.id === 'htn')!;
-const EX_ST = EX_PEER.kind === 'rank' ? standing(EX_PEER.rank) : null;
-const EX_DW = -4, EX_DWA = -3;
-const EX_FX = futureEffects(EX, EX_DW, EX_DWA).effects.find((e) => e.id === 'dm10')!;
+const EX_ST = EX_PEER.kind === 'rank' ? standing(EX_PEER.rank) : { n: 3, side: '위험' as const };
+const EX_FX = futureEffects(EX, -4, -3).effects.find((e) => e.id === 'dm10')!;
 const EX_LAB = labCards({ glu: 108 }, 'M')[0];
 const FAQ = [
   ['검사 없이 건강 상태를 알 수 있나요?', `간단한 몸 정보와 생활습관으로 지금 건강을 가늠해 볼 수 있어요. 국가 건강통계와 한국인 연구로 계산한 예측이에요. ${NOT_DIAGNOSIS} 실제 질환 여부는 검사와 진료로 확인해요.`],
@@ -80,16 +41,394 @@ const FAQ = [
   ['앱을 설치해야 하나요?', '설치 없이 웹에서 바로 쓸 수 있어요. 휴대폰 홈 화면에 추가하면 다음에 더 편하게 열 수 있어요.'],
 ];
 
-/** 첫 화면의 입체 원반 더미 (jeton 첫 화면의 겹친 원반을 초록으로). 천천히 떠오른다 */
-function Discs({ className }: { className?: string }) {
+/** 미니 체험 결과(탭 세션)를 구독: 없으면 null */
+function useMini() {
+  const [m, setM] = useState(loadMini);
+  useEffect(() => { const on = () => setM(loadMini()); window.addEventListener('mini-change', on); return () => window.removeEventListener('mini-change', on); }, []);
+  return m;
+}
+/** '체크 시작' 버튼. 미니에 넣은 값이 있으면 그 값을 가지고 이어서. 이미 결과가 있으면 결과로 */
+function StartBtn({ kind, className, label, variant = 'default', size = 'lg' }: { kind: 'nav' | 'main' | 'text'; className?: string; label: string; variant?: 'default' | 'white' | 'outline' | 'brand'; size?: 'lg' | 'sm' | 'pill' }) {
+  const m = useMini(), { setDraft, draft } = useStore();
+  if (kind === 'text' && toInput(draft)) return <Button asChild variant={variant} size={size} className={className}><a href="#/result">내 결과 보기 <ArrowRight /></a></Button>;
+  const set = !m ? null : m.tone != null ? MINI_CTA[m.tone] : MINI_CTA.partial;
+  const text = !set ? label : set[kind === 'nav' ? 'nav' : 'main'];
+  const go = (e: React.MouseEvent) => { if (!m) return; e.preventDefault(); setDraft((d) => ({ ...d, ...miniDraft(m) })); location.hash = '#/info'; };
+  return <Button asChild variant={variant} size={size} className={cn('h-auto min-h-12 whitespace-normal text-center', className)}><a href="#/start" onClick={go}>{text} {kind !== 'nav' && <ArrowRight />}</a></Button>;
+}
+
+/** 붙잡힌 장면: 높이(h)만큼 스크롤하는 동안 화면을 고정하고, 진행도(0–1)를 넘긴다. 움직임 줄이기면 고정 없이 still 시점 */
+/** 화면 폭 조건 (pcOnly 장면: 휴대폰에서는 고정하지 않는다) */
+function useWide() {
+  const q = '(min-width: 768px)', [w, setW] = useState(() => typeof matchMedia === 'undefined' || matchMedia(q).matches);
+  useEffect(() => { const m = matchMedia(q), f = () => setW(m.matches); m.addEventListener('change', f); return () => m.removeEventListener('change', f); }, []);
+  return w;
+}
+function Pinned({ h, still = 1, className, inner, pcOnly, children }: { h: string; still?: number; className?: string; inner?: string; pcOnly?: boolean; children: (p: MotionValue<number>) => ReactNode }) {
+  const ref = useRef<HTMLElement>(null), wide = useWide(), reduce = useReducedMotion() || (pcOnly && !wide);
+  const { scrollYProgress } = useScroll({ target: ref, offset: ['start start', 'end end'] });
+  // 진행도를 한 번 거쳐서 쓴다: 스크롤에 바로 묶인 투명도는 브라우저 가속 경로로 넘어가 실제 스크롤을 따라오지 않는 경우가 있다
+  const prog = useTransform(scrollYProgress, (v) => v);
+  const fixed = useMotionValue(still);
   return (
-    <div className={cn('pointer-events-none absolute [perspective:1400px]', className)} aria-hidden>
-      {Array.from({ length: 11 }, (_, k) => (
-        <i key={k} className="absolute left-0 block size-[min(52vw,620px)] rounded-full motion-safe:animate-[float_7s_ease-in-out_infinite]"
-          style={{ top: `${k * 5.2}%`, transform: `rotateX(68deg) rotateZ(-24deg) translateX(${k * 2.2}%)`, animationDelay: `${-k * 0.45}s`,
-            background: `radial-gradient(circle at 35% 30%, #e9ffd8 0%, #b8f38f ${18 + k}%, #6fcf45 ${46 + k}%, #2f7a12 100%)`,
-            boxShadow: '0 -6px 0 rgba(255,255,255,.55) inset, 0 30px 60px rgba(10,40,0,.35)' }} />
-      ))}
+    <section ref={ref} className={cn('relative', className)} style={{ height: reduce ? undefined : h }}>
+      <div className={cn(reduce ? 'relative min-h-svh' : 'sticky top-0 h-svh', 'overflow-hidden', inner)}>{children(reduce ? fixed : prog)}</div>
+    </section>
+  );
+}
+
+// ── 결과 조각 (실제 앱 화면을 작게) ──
+const Frag = ({ children, className }: { children: ReactNode; className?: string }) => <div className={cn('rounded-card bg-white p-4 text-ink shadow-float', className)}>{children}</div>;
+const FRAGS: { x: number; y: number; fx: number; fy: number; w: string; body: ReactNode }[] = [
+  { x: -62, y: -40, fx: -30, fy: -24, w: 'w-[220px]', body: <><Badge variant="warn">비만 전단계</Badge><b className="mt-2 block text-[26px] font-semibold">BMI 24.2</b><span className="text-caption text-ink-soft">표준 몸무게 55–67kg</span></> },
+  { x: 60, y: -44, fx: 28, fy: -26, w: 'w-[250px]', body: <><span className="text-caption text-ink-soft">고혈압 · 100명 중</span><b className="block text-[26px] font-semibold text-risk">{EX_ST.n}번째로 {EX_ST.side}</b>{EX_PEER.kind === 'rank' && <Dots rank={EX_PEER.rank} hot tone="high" cols={20} />}</> },
+  { x: -66, y: 34, fx: -28, fy: 22, w: 'w-[270px]', body: <div className="-m-4 rounded-card bg-brand p-4 text-white"><b className="text-body-sm font-semibold">만약 <span className="rounded-full bg-lime px-2 text-brand">허리 −3cm</span> 줄이면?</b><div className="mt-2 flex justify-between text-body-sm"><span className="text-white/80">10년 안에 당뇨</span><span><s className="mr-1.5 text-white/50">{EX_FX.before}</s><b className="font-semibold text-lime">{EX_FX.after}</b></span></div></div> },
+  { x: 64, y: 40, fx: 30, fy: 24, w: 'w-[230px]', body: <><span className="text-caption text-ink-soft">공복혈당</span><b className="block text-[26px] font-semibold text-warn">108 <small className="text-body-sm font-normal">당뇨 전 단계</small></b><div className="mt-2 h-2 rounded-full bg-[linear-gradient(90deg,#bfeccd_0_33%,#f8e2a6_33%_66%,#fcc4cf_66%)]" /></> },
+  { x: 0, y: -62, fx: -4, fy: -36, w: 'w-[200px]', body: <><Badge variant="good"><Check /> 잘하고 있어요</Badge><b className="mt-2 block text-body font-semibold">운동을 꾸준히 해요</b></> },
+  { x: 4, y: 64, fx: 6, fy: 35, w: 'w-[210px]', body: <><span className="text-caption text-ink-soft">허리둘레</span><b className="block text-[26px] font-semibold">89cm <small className="text-body-sm font-normal text-good">기준 아래</small></b></> },
+];
+function FlyFrag({ f, p }: { f: (typeof FRAGS)[number]; p: MotionValue<number> }) {
+  // 바깥에서 날아와 제목 둘레에 자리 잡고 그대로 머문다 (단위 vw·vh)
+  const xv = useTransform(p, [0, 0.55], [f.x, f.fx]), yv = useTransform(p, [0, 0.55], [f.y, f.fy]);
+  const x = useTransform(xv, (v) => `${v}vw`), y = useTransform(yv, (v) => `${v}vh`);
+  const o = useTransform(p, [0, 0.3], [0, 1]);
+  const s = useTransform(p, [0, 0.55], [0.85, 1]);
+  return <motion.div style={{ x, y, opacity: o, scale: s }} className={cn('absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 hidden sm:block', f.w)}><Frag>{f.body}</Frag></motion.div>;
+}
+
+/** 큰 낱말 하나: 자기 차례에 가운데 크게, 마지막엔 목록처럼 겹쳐 쌓인다 */
+const WORDS = [
+  { icon: Users, word: '또래 중 나', color: '#163300', sub: '같은 나이·성별 100명 중 몇 번째로 위험·좋음', href: '#peer' },
+  { icon: TrendingDown, word: '줄이면?', color: '#477ee9', sub: '몸무게·허리를 끌면 앞으로의 위험이 바로 바뀌어요', href: '#change' },
+  { icon: FileText, word: '검진 풀이', color: '#c98a12', sub: '결과지 숫자 하나하나를 쉬운 말로', href: '#labs' },
+];
+function Word({ w, i, p }: { w: (typeof WORDS)[number]; i: number; p: MotionValue<number> }) {
+  const a = i * 0.24, b = a + 0.22;   // 내 차례 [a, b]
+  const c = (v: number) => Math.max(0, Math.min(1, v));   // 스크롤 진행도는 0–1 밖을 쓸 수 없다
+  const yv = useTransform(p, [c(a - 0.08), a + 0.04, b - 0.04, b + 0.04, 0.8, 0.92], [i ? 55 : 0, 0, 0, -55, -55, (i - 1) * 10]), y = useTransform(yv, (v) => `${v}vh`);
+  const o = useTransform(p, [c(a - 0.06), a + 0.02, b - 0.02, b + 0.04, 0.8, 0.9], [i ? 0 : 1, 1, 1, 0, 0, 1]);
+  const s = useTransform(p, [0.8, 0.92], [1, 0.62]);
+  const so = useTransform(p, [a, a + 0.04, b - 0.04, b], [0, 1, 1, 0]);
+  const Ic = w.icon;
+  return (
+    <motion.a href={w.href} style={{ y, opacity: o, scale: s }} className="kr-word absolute flex items-center gap-[0.3em] whitespace-nowrap no-underline" aria-label={w.word}>
+      <span className="flex size-[0.9em] items-center justify-center rounded-[0.22em] text-white" style={{ background: w.color }}><Ic className="size-[0.55em]" /></span>
+      <span style={{ color: w.color }}>{w.word}</span>
+      <motion.span style={{ opacity: so }} className="kr-lead absolute top-full left-1/2 mt-4 -translate-x-1/2 whitespace-nowrap text-ink-soft">{w.sub}</motion.span>
+    </motion.a>
+  );
+}
+
+// ── 휴대폰과 단계별 화면 (실제 앱 화면을 축소) ──
+function PhoneFrame({ children, className }: { children: ReactNode; className?: string }) {
+  return (
+    <div className={cn('relative w-[290px] rounded-[46px] border-[9px] border-[#0b1a00] bg-white p-3 shadow-[0_40px_90px_rgba(10,40,0,.45)]', className)}>
+      <i className="mx-auto mb-3 block h-6 w-24 rounded-full bg-[#0b1a00]" />
+      <div className="flex h-[480px] flex-col gap-2.5 overflow-hidden text-left text-ink">{children}</div>
+    </div>
+  );
+}
+const MiniCard = ({ children, className }: { children: ReactNode; className?: string }) => <div className={cn('rounded-[14px] bg-white p-3 shadow-card', className)}>{children}</div>;
+const SCREENS: { t: string; d: string; body: ReactNode }[] = [
+  { t: '기본정보', d: '성별·나이·키·몸무게·허리', body: <><b className="text-[18px] font-semibold">몸에 대한 숫자부터<br />알려주세요</b><div className="grid grid-cols-2 gap-2">{[['만 나이', '52'], ['키', '172']].map(([k, v]) => <MiniCard key={k}><span className="text-[11px] text-ink-soft">{k}</span><b className="block text-[26px] font-semibold">{v}</b></MiniCard>)}</div><MiniCard className="flex justify-around"><span><span className="block text-[11px] text-ink-soft">몸무게</span><b className="text-[28px] font-semibold">82</b>kg</span><span><span className="block text-[11px] text-ink-soft">허리둘레</span><b className="text-[28px] font-semibold">92</b>cm</span></MiniCard><div className="flex items-center justify-between rounded-[14px] bg-brand p-3 text-white"><span className="text-[12px]">1단계 비만</span><b className="text-[22px] font-semibold">BMI 27.7</b></div></> },
+  { t: '생활', d: '흡연·음주·운동·가족력·혈압', body: <><b className="text-[18px] font-semibold">요즘 생활은<br />어떠세요?</b>{[['담배를 피우나요?', ['안 피움', '예전에', '지금']], ['운동하나요?', ['네', '아니요']], ['최근 혈압은요?', ['모름', '정상', '높음']]].map(([q, o]) => <MiniCard key={q as string}><b className="text-[13px] font-semibold">{q as string}</b><div className="mt-2 flex gap-1.5">{(o as string[]).map((x, k) => <span key={x} className={cn('flex-1 rounded-lg py-2 text-center text-[12px]', k === 0 ? 'bg-ink text-white' : 'bg-sand-soft')}>{x}</span>)}</div></MiniCard>)}</> },
+  { t: '결과', d: '지금 내 상태 한 줄과 할 일 하나', body: <><MiniCard className="border-t-4 border-risk-dot"><Badge variant="risk">병원 확인</Badge><b className="mt-2 block text-[20px] leading-tight font-semibold text-risk">혈압 확인이<br />필요해요</b><span className="mt-1 block text-[11px] text-ink-soft">고혈압 가능성이 같은 나이·성별 평균보다 높아요</span></MiniCard><MiniCard className="flex gap-2.5"><span className="flex size-6 items-center justify-center rounded-md bg-risk-dot text-[12px] text-white">1</span><span className="text-[13px] font-semibold">가까운 내과에서 혈압 진료를 받으세요</span></MiniCard></> },
+  { t: '또래 중 나', d: '100명 중 몇 번째로 위험·좋음', body: <MiniCard><span className="text-[11px] text-ink-soft">고혈압 · 50대 남성 100명 중</span><b className="block text-[30px] leading-tight font-semibold text-risk">{EX_ST.n}번째로 {EX_ST.side}</b>{EX_PEER.kind === 'rank' && <Dots rank={EX_PEER.rank} hot tone="high" />}</MiniCard> },
+  { t: '줄이면?', d: '몸무게·허리를 끌면 바로 바뀌어요', body: <div className="flex flex-col gap-2 rounded-[14px] bg-brand p-3 text-white"><b className="text-[15px] font-semibold">만약 <span className="rounded-full bg-lime px-2 text-brand">허리 −3cm</span> 줄이면?</b>{[['체형', '1단계 비만', '1단계 비만'], ['복부비만', '해당', '아님'], ['10년 안에 당뇨', EX_FX.before, EX_FX.after]].map(([k, b, a]) => <div key={k} className="flex items-center justify-between rounded-lg bg-white/10 px-3 py-2.5 text-[12px]"><span className="text-white/80">{k}</span><span>{b !== a && <s className="mr-1.5 text-white/45">{b}</s>}<b className={cn('text-[17px] font-semibold', b !== a ? 'text-lime' : '')}>{a}</b></span></div>)}</div> },
+];
+
+function PhoneSteps({ p }: { p: MotionValue<number> }) {
+  const [at, setAt] = useState(0);
+  useMotionValueEvent(p, 'change', (v) => setAt(Math.min(SCREENS.length - 1, Math.max(0, Math.floor((v - 0.05) / 0.18)))));
+  return (
+    <div className="mx-auto grid h-full max-w-[1200px] items-center gap-10 px-6 md:grid-cols-[1fr_auto] md:px-12">
+      <div className="flex flex-col gap-6 text-white">
+        <h2 className="kr-h2">1분이면 끝나는<br /><span className="text-lime">다섯 걸음</span></h2>
+        <ol className="flex flex-col gap-1">
+          {SCREENS.map((s, k) => (
+            <li key={s.t} className={cn('flex items-baseline gap-4 rounded-btn px-4 py-3 transition-colors duration-300', k === at ? 'bg-white/12' : 'opacity-55')}>
+              <b className={cn('kr-h3 tabular-nums', k === at ? 'text-lime' : 'text-white')}>{String(k + 1).padStart(2, '0')}</b>
+              <span><b className="kr-h3 block">{s.t}</b>{k === at && <span className="kr-lead text-white/80">{s.d}</span>}</span>
+            </li>
+          ))}
+        </ol>
+      </div>
+      <PhoneFrame className="hidden md:block">
+        <motion.div key={at} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.35 }} className="flex flex-col gap-2.5">{SCREENS[at].body}</motion.div>
+      </PhoneFrame>
+    </div>
+  );
+}
+
+// ── 장면들 ──
+/** 1 첫 화면: 꽉 찬 이미지 + 왼쪽 아래 제목 + 오른쪽 아래 설명·버튼. 아래 장면이 올라와 덮는다 */
+function Hero() {
+  const img = art('hero'), imgM = art('hero-m');
+  return (
+    <section className="sticky top-0 h-svh overflow-hidden bg-brand text-white">
+      {img ? <picture><source media="(max-width: 767px)" srcSet={imgM ?? img} /><img src={img} alt="" className="absolute inset-0 size-full object-cover" /></picture>
+        : <div aria-hidden className="absolute inset-0 bg-[radial-gradient(60%_70%_at_78%_28%,#9fe870_0%,#4caf2a_28%,#1f5408_58%,#163300_100%)]" />}
+      <div className="absolute inset-0 bg-gradient-to-t from-[#0b1d00] via-[#0b1d00]/75 via-45% to-transparent to-75% md:bg-gradient-to-tr md:from-[#0d2200]/85 md:via-[#0d2200]/15 md:to-transparent" />
+      <header className="absolute inset-x-0 top-0 z-10 mx-auto flex max-w-[1440px] items-center justify-between px-5 py-5 md:px-10">
+        <a href="#/" className="flex items-center gap-2 no-underline"><span className="flex size-8 items-center justify-center rounded-[10px] bg-lime"><i className="size-3 rounded-full bg-brand" /></span><b className="text-[21px] font-semibold text-white">1분체크</b></a>
+        <div className="flex items-center gap-1"><a href="#/record" className="hidden rounded-full px-3 py-2 text-body-sm text-white/85 no-underline hover:bg-white/10 sm:block">지난 결과</a><StartBtn kind="nav" variant="white" size="sm" className="min-h-9 rounded-full px-4" label="시작하기" /></div>
+      </header>
+      <div className="absolute inset-x-0 bottom-0 mx-auto grid max-w-[1440px] gap-6 px-5 pb-24 md:grid-cols-[1.4fr_1fr] md:items-end md:px-10 md:pb-16">
+        <h1 className="kr-display">내 몸이 궁금할 때<br /><span className="text-lime">딱 1분.</span></h1>
+        <div className="flex flex-col gap-4 md:pb-2">
+          <p className="kr-lead text-white/95">숫자 몇 개면 또래 100명 중 내 자리가 보여요. 몸무게·허리를 줄이면 어떻게 되는지도요.</p>
+          <div className="flex flex-wrap gap-2.5">
+            <StartBtn kind="main" label="1분 건강 체크하기" />
+            <Button asChild variant="outline" size="lg" className="border-white/70 bg-transparent text-white hover:bg-white/10"><a href="#/labs"><FileText /> 검진 결과지 풀어보기</a></Button>
+          </div>
+          <span className="flex items-center gap-1.5 text-body-sm text-white/75"><Check className="size-4 text-lime" />설치·가입 없이 · {PRIVACY_LINE}</span>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/** 2 '숫자 몇 개면 충분해요' 붙잡고, 결과 조각이 바깥에서 모여든다 */
+function Gather() {
+  return (
+    <Pinned h="220vh" still={1} className="z-10 rounded-t-[32px] bg-white" inner="rounded-t-[32px] bg-white">
+      {(p) => <GatherInner p={p} />}
+    </Pinned>
+  );
+}
+function GatherInner({ p }: { p: MotionValue<number> }) {
+  const ho = useTransform(p, [0, 0.15], [0.4, 1]), hs = useTransform(p, [0, 0.55], [0.9, 1]);
+  const photo = art('photo');
+  return (
+    <div className="relative h-full">
+      {FRAGS.map((f, k) => <FlyFrag key={k} f={f} p={p} />)}
+      {photo && <PhotoFrag src={photo} p={p} />}
+      <motion.h2 style={{ opacity: ho, scale: hs }} className="kr-h1 absolute inset-0 flex items-center justify-center text-center text-brand">숫자 몇 개면<br />충분해요</motion.h2>
+    </div>
+  );
+}
+function PhotoFrag({ src, p }: { src: string; p: MotionValue<number> }) {
+  const xv = useTransform(p, [0, 0.55], [70, 38]), yv = useTransform(p, [0, 0.55], [-4, -1]), o = useTransform(p, [0, 0.3], [0, 1]);
+  const x = useTransform(xv, (v) => `${v}vw`), y = useTransform(yv, (v) => `${v}vh`);
+  return <motion.img src={src} alt="" style={{ x, y, opacity: o }} className="absolute top-1/2 left-1/2 hidden h-[200px] w-[150px] -translate-x-1/2 -translate-y-1/2 rounded-card object-cover shadow-float md:block" />;
+}
+
+/** 3 큰 낱말 셋 */
+function Words() {
+  return (
+    <Pinned h="320vh" still={0.95} className="z-10 bg-white" inner="flex items-center justify-center bg-white">
+      {(p) => <div className="relative flex h-full w-full items-center justify-center">{WORDS.map((w, i) => <Word key={w.word} w={w} i={i} p={p} />)}</div>}
+    </Pinned>
+  );
+}
+
+/** 4 초록이 아래에서 차오르며 '숫자 4개' → '10초면' + 미니 체험 */
+function GreenRise() {
+  return (
+    <Pinned h="200vh" still={1} pcOnly className="z-10 bg-white" inner="bg-white">
+      {(p) => <GreenRiseInner p={p} />}
+    </Pinned>
+  );
+}
+function GreenRiseInner({ p }: { p: MotionValue<number> }) {
+  const cv = useTransform(p, [0, 0.35], [100, 0]), clip = useTransform(cv, (v) => `inset(${v}% 0% 0% 0% round ${Math.min(32, v)}px)`);
+  const t1 = useTransform(p, [0.25, 0.4, 0.55, 0.62], [0, 1, 1, 0]), t2 = useTransform(p, [0.6, 0.72], [0, 1]);
+  const card = useTransform(p, [0.62, 0.8], [60, 0]), co = useTransform(p, [0.62, 0.78], [0, 1]);
+  return (
+    <motion.div id="try" style={{ clipPath: clip }} className="h-full min-h-svh bg-brand text-white">
+      <div className="mx-auto grid h-full min-h-svh max-w-[1200px] items-center gap-8 px-6 py-16 md:grid-cols-[1.1fr_1fr] md:px-12 md:py-0">
+        <div className="relative h-[2.5em] kr-h1">
+          <motion.h2 style={{ opacity: t1 }} className="absolute inset-0">숫자 4개면<br />충분해요</motion.h2>
+          <motion.h2 style={{ opacity: t2 }} className="absolute inset-0"><span className="text-lime">10초면</span><br />먼저 볼 수 있어요</motion.h2>
+        </div>
+        <motion.div style={{ y: card, opacity: co }}><MiniTrial /></motion.div>
+      </div>
+    </motion.div>
+  );
+}
+
+/** 5 휴대폰 + 01–05 단계 (초록 바탕 그대로 이어진다) */
+function Steps() {
+  return <Pinned h="320vh" still={0.6} className="z-10 bg-brand" inner="bg-brand">{(p) => <PhoneSteps p={p} />}</Pinned>;
+}
+
+/** 6 원형 터널이 커지며 휴대폰(결과 카드 3장)이 떠오른다 */
+function Tunnel() {
+  return <Pinned h="240vh" still={0.85} className="z-10 bg-white" inner="bg-[#0f2a1c]">{(p) => <TunnelInner p={p} />}</Pinned>;
+}
+function TunnelInner({ p }: { p: MotionValue<number> }) {
+  const ring = art('ring');
+  // 원형 터널은 커지면서 사라지고(밝은 가운데가 글자를 덮지 않게), 진초록 바탕 위에 휴대폰과 글이 남는다
+  const rs = useTransform(p, [0, 0.6], [0.7, 2.6]), ro = useTransform(p, [0.35, 0.6], [1, 0]);
+  const ps = useTransform(p, [0.2, 0.6], [0.5, 1]), po = useTransform(p, [0.2, 0.4], [0, 1]), py = useTransform(p, [0.2, 0.6], [160, 0]);
+  const to = useTransform(p, [0.55, 0.72], [0, 1]), tx = useTransform(p, [0.55, 0.72], [-40, 0]);
+  return (
+    <div className="relative h-full overflow-hidden text-white">
+      <motion.div style={{ scale: rs, opacity: ro }} className="absolute top-1/2 left-1/2 size-[min(120vw,1100px)] -translate-x-1/2 -translate-y-1/2">
+        {ring ? <img src={ring} alt="" className="size-full rounded-full object-cover" />
+          : <div aria-hidden className="size-full rounded-full bg-[repeating-radial-gradient(circle_at_center,#163300_0_22px,#2f6b12_22px_30px,#9fe870_30px_33px,#163300_33px_44px)] [mask-image:radial-gradient(circle,transparent_0_18%,#000_19%)]" />}
+      </motion.div>
+      <div className="relative mx-auto grid h-full max-w-[1200px] items-center gap-8 px-6 md:grid-cols-2 md:px-12">
+        <motion.div style={{ opacity: to, x: tx }} className="flex flex-col gap-5">
+          <h2 className="kr-h2">내 결과,<br /><span className="text-lime">카드 3장으로.</span></h2>
+          <p className="kr-lead text-white/85">지금 내 상태 한 줄 · 또래 100명 중 내 자리 · 줄이면 어떻게 되는지. 길게 읽지 않아도 돼요.</p>
+          <StartBtn kind="text" className="self-start" label="1분 건강 체크하기" />
+        </motion.div>
+        <motion.div style={{ scale: ps, opacity: po, y: py }} className="hidden justify-center md:flex"><PhoneFrame>{SCREENS[2].body}{SCREENS[3].body}</PhoneFrame></motion.div>
+      </div>
+    </div>
+  );
+}
+
+/** 7 '확인.' 문장 + 3D 오브젝트 + 실제 '이대로면 vs 바꾸면' (직접 끌어볼 수 있다) */
+function Check3() {
+  const obj = art('object'), ref = useRef<HTMLDivElement>(null);
+  const { scrollYProgress } = useScroll({ target: ref, offset: ['start end', 'center center'] });
+  const s = useTransform(scrollYProgress, (v) => 0.7 + 0.3 * v);
+  return (
+    <section id="change" className="relative z-10 scroll-mt-10 bg-white px-5 py-28 md:py-40">
+      <div className="mx-auto flex max-w-[1100px] flex-col items-center gap-14 text-center">
+        <h2 className="kr-h2 text-brand">또래 중 몇 번째? 확인.<br />허리를 줄이면 어떻게? 확인.<br />검진 숫자 뜻? 이것도 확인.</h2>
+        {obj && <motion.img ref={ref as never} src={obj} alt="" style={{ scale: s }} className="w-[min(560px,80vw)]" />}
+        {!obj && <div ref={ref} />}
+        <div className="grid w-full items-start gap-10 text-left md:grid-cols-[1fr_440px] md:gap-16">
+          <div className="flex flex-col gap-4 md:pt-6">
+            <Badge variant="soft" className="self-start"><TrendingDown /> 이대로면 vs 바꾸면</Badge>
+            <h3 className="kr-h2">직접 끌어 보세요</h3>
+            <p className="kr-lead text-ink-soft">예시는 52세 남성이에요. 허리를 90cm 아래로 줄이는 순간, 10년 안에 당뇨가 생길 가능성이 {EX_FX.before}에서 {EX_FX.after}로 바뀌어요. 기간은 한국인 추적 연구 그대로예요.</p>
+          </div>
+          <ChangeCard inp={EX} />
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/** 8 검진 풀이 */
+function Labs() {
+  return (
+    <section id="labs" className="relative z-10 scroll-mt-10 bg-white px-5 pb-28 md:pb-40">
+      <div className="mx-auto grid max-w-[1200px] items-center gap-10 md:grid-cols-2 md:gap-16">
+        <div className="flex flex-col gap-5">
+          <Badge variant="soft" className="self-start"><FileText /> 검진 풀이</Badge>
+          <h2 className="kr-h2">검진 결과지,<br /><span className="text-brand">숫자만 있고 뜻은 모르겠다면</span></h2>
+          <p className="kr-lead text-ink-soft">혈압·혈당·콜레스테롤·콩팥 수치를 넣으면 하나씩 ‘어느 구간인지 · 무슨 뜻인지 · 무엇을 하면 되는지’로 풀어 드려요.</p>
+          <Button asChild variant="brand" size="lg" className="self-start"><a href="#/labs">결과지 풀어보기 <ArrowRight /></a></Button>
+        </div>
+        <div className="rounded-[28px] bg-blush p-6 md:p-10"><LabCardView c={EX_LAB} k={0} /></div>
+      </div>
+    </section>
+  );
+}
+
+/** 9 100명 점이 가운데에서 흩어지며 '100명 중 나는 몇 번째?'가 드러난다 (jeton 의 국기 장면) */
+const SCAT = Array.from({ length: 64 }, (_, k) => { const a = (k / 64) * Math.PI * 2 * 3.1, r = 30 + ((k * 37) % 60); return { x: Math.cos(a) * r, y: Math.sin(a) * r * 0.75, s: 26 + ((k * 13) % 34), c: ['#9fe870', '#34c771', '#163300', '#cdf5b2', '#477ee9', '#e0a526', '#fb2d54', '#bcffbb'][k % 8] }; });
+function Scatter() {
+  return <Pinned h="220vh" still={0.9} className="z-10 bg-white" inner="bg-white">{(p) => <ScatterInner p={p} />}</Pinned>;
+}
+function ScatterDot({ d, p }: { d: (typeof SCAT)[number]; p: MotionValue<number> }) {
+  const xv = useTransform(p, [0.05, 0.6], [0, d.x]), yv = useTransform(p, [0.05, 0.6], [0, d.y]), sc = useTransform(p, [0.05, 0.3], [0.3, 1]);
+  const x = useTransform(xv, (v) => `${v}vw`), y = useTransform(yv, (v) => `${v}vh`);
+  return <motion.i aria-hidden style={{ x, y, scale: sc, width: d.s, height: d.s, background: d.c }} className="absolute top-1/2 left-1/2 -mt-4 -ml-4 block rounded-full" />;
+}
+function ScatterInner({ p }: { p: MotionValue<number> }) {
+  const co = useTransform(p, [0.35, 0.6], [0, 1]), cs = useTransform(p, [0.35, 0.6], [0.85, 1]);
+  return (
+    <div id="peer" className="relative flex h-full items-center justify-center px-5">
+      {SCAT.map((d, k) => <ScatterDot key={k} d={d} p={p} />)}
+      <motion.div style={{ opacity: co, scale: cs }} className="relative flex w-full max-w-[560px] flex-col items-center gap-6 rounded-[32px] bg-white/85 px-5 py-8 text-center backdrop-blur-md md:px-10">
+        <h2 className="kr-h2">100명 중,<br /><span className="text-brand">나는 몇 번째?</span></h2>
+        <div className="w-full rounded-card bg-white p-6 text-left shadow-float">
+          <span className="text-body-sm text-ink-soft">예시 · {EX_PEER.name} · {EX_PEER.group} 100명 중</span>
+          <b className="block text-[clamp(30px,3vw,40px)] leading-tight font-semibold text-risk">{EX_ST.n}번째로 {EX_ST.side}</b>
+          {EX_PEER.kind === 'rank' && <Dots rank={EX_PEER.rank} hot tone="high" />}
+        </div>
+        <StartBtn kind="text" variant="brand" label="내 자리 보기" />
+      </motion.div>
+    </div>
+  );
+}
+
+/** 10 사진 위 유리 카드 (후기 대신 '이럴 때 써요') */
+const SCENES: [typeof ClipboardList, string, string][] = [
+  [ClipboardList, '검진 결과지를 받은 날', '숫자만 가득한 결과지, 하나씩 쉬운 말로 풀어 봐요.'],
+  [Tv, 'TV 건강 프로를 보다가', '나도 해당될까 궁금할 때, 숫자 몇 개로 바로 가늠해요.'],
+  [MessageSquare, '단톡방에 링크가 왔을 때', '설치·가입 없이 눌러서 1분이면 끝나요.'],
+];
+function UseCases() {
+  const photo = art('photo'), ref = useRef<HTMLElement>(null);
+  const { scrollYProgress } = useScroll({ target: ref, offset: ['start end', 'end start'] });
+  const y = useTransform(scrollYProgress, (v) => 120 - 240 * v);
+  return (
+    <section ref={ref} className="relative z-10 bg-white px-3 md:px-6">
+      <div className="relative mx-auto flex min-h-[90vh] max-w-[1440px] items-end overflow-hidden rounded-[32px] bg-[#2b4a2a]">
+        {photo ? <img src={photo} alt="" className="absolute inset-0 size-full object-cover" /> : <div aria-hidden className="absolute inset-0 bg-[radial-gradient(70%_80%_at_30%_30%,#5e8c4f_0%,#2b4a2a_60%,#163300_100%)]" />}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-black/10 to-transparent" />
+        <div className="relative grid w-full gap-6 p-6 md:grid-cols-[1fr_420px] md:items-end md:p-12">
+          <h2 className="kr-h2 text-white">이럴 때<br />써요</h2>
+          <motion.div style={{ y }} className="flex flex-col gap-3">
+            {SCENES.map(([Ic, t, d]) => (
+              <div key={t} className="flex gap-3 rounded-card bg-white/14 p-4 text-white backdrop-blur-xl">
+                <span className="flex size-10 shrink-0 items-center justify-center rounded-btn bg-lime text-brand"><Ic className="size-5" /></span>
+                <span><b className="block text-body font-semibold">{t}</b><span className="text-body-sm text-white/85">{d}</span></span>
+              </div>
+            ))}
+          </motion.div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/** 11 소개 영상 · 자주 묻는 질문 · 비스듬한 초록 띠 · 큰 글자 바닥글 */
+function Closing() {
+  const base = import.meta.env.BASE_URL, ref = useRef<HTMLDivElement>(null);
+  const { scrollYProgress } = useScroll({ target: ref, offset: ['start end', 'end end'] });
+  const wy = useTransform(scrollYProgress, (v) => `${30 - 30 * v}%`);
+  return (
+    <div className="relative z-10 bg-white">
+      <section className="mx-auto grid max-w-[1200px] gap-8 px-5 py-28 md:grid-cols-[1fr_1.4fr] md:items-center md:gap-16 md:py-40">
+        <div className="flex flex-col gap-4"><h2 className="kr-h2">45초로 보는<br />1분체크</h2><p className="kr-lead text-ink-soft">숫자 몇 개 넣고, 100명 중 내 자리를 보고, 줄이면 어떻게 되는지까지.</p></div>
+        <Dialog>
+          <DialogTrigger asChild>
+            <button type="button" aria-label="1분체크 소개 영상 45초 보기 (소리 있음)" className="group relative block aspect-video w-full cursor-pointer overflow-hidden rounded-[24px] bg-brand shadow-float">
+              <img src={`${base}video/promo-poster.jpg`} alt="" loading="lazy" className="block size-full object-cover" />
+              <span className="absolute bottom-4 left-4 inline-flex items-center gap-2.5 rounded-full bg-white py-1.5 pr-4 pl-1.5 text-body-sm font-semibold text-ink shadow-card">
+                <span className="flex size-9 items-center justify-center rounded-full bg-lime text-brand transition-transform group-hover:scale-105"><Play className="size-4" fill="currentColor" /></span>소개 영상 보기 · 소리 있음
+              </span>
+            </button>
+          </DialogTrigger>
+          <DialogContent aria-describedby={undefined}>
+            <DialogTitle className="sr-only">1분체크 소개 영상 45초</DialogTitle>
+            <video className="block aspect-video w-full rounded-[20px] bg-black" src={`${base}video/promo-45s.mp4`} poster={`${base}video/promo-poster.jpg`} controls autoPlay playsInline preload="none" />
+          </DialogContent>
+        </Dialog>
+      </section>
+
+      <section id="faq" className="mx-auto grid max-w-[1200px] scroll-mt-10 gap-8 px-5 pb-28 md:grid-cols-[1fr_1.6fr] md:gap-16 md:pb-40">
+        <h2 className="kr-h2">자주 묻는 질문</h2>
+        <Accordion type="single" collapsible className="flex flex-col gap-3">
+          {FAQ.map(([q, a]) => <AccordionItem key={q} value={q}><AccordionTrigger>{q}</AccordionTrigger><AccordionContent>{a}</AccordionContent></AccordionItem>)}
+        </Accordion>
+      </section>
+
+      <section className="bg-brand pt-24 pb-28 text-center text-white [clip-path:polygon(0_10%,50%_0,100%_10%,100%_100%,0_100%)] md:pt-40 md:pb-36">
+        <div className="mx-auto flex max-w-[1000px] flex-col items-center gap-6 px-5">
+          <h2 className="kr-display">1분이면,<br /><span className="text-lime">내 몸이 보여요.</span></h2>
+          <p className="kr-lead text-white/85">몸 정보와 생활 질문 2쪽이면 끝나요.</p>
+          <StartBtn kind="main" label="1분 건강 체크하기" />
+        </div>
+      </section>
+
+      <footer ref={ref} className="overflow-hidden bg-white px-5 pt-14 pb-24 md:px-10">
+        <div className="mx-auto grid max-w-[1440px] gap-8 md:grid-cols-4">
+          <div className="flex flex-col gap-2 text-body-sm"><span className="text-caption text-ink-soft">시작</span><a href="#/start" className="text-ink no-underline">1분 건강 체크하기</a><a href="#/labs" className="text-ink no-underline">검진 풀이</a></div>
+          <div className="flex flex-col gap-2 text-body-sm"><span className="text-caption text-ink-soft">내 기록</span><a href="#/record" className="text-ink no-underline">지난 결과 비교</a><a href="#/result" className="text-ink no-underline">내 결과</a></div>
+          <div className="flex flex-col gap-2 text-body-sm"><span className="text-caption text-ink-soft">알아두기</span><a href="#faq" className="text-ink no-underline">자주 묻는 질문</a><a href="https://www.kdca.go.kr" target="_blank" rel="noreferrer" className="text-ink no-underline">질병관리청</a></div>
+          <p className="text-caption text-ink-soft">1분체크는 국가 건강통계와 연구를 바탕으로 한 예측 서비스예요. {NOT_DIAGNOSIS} 질환 여부는 검사와 진료로 확인해 주세요. © 2026 1분체크</p>
+        </div>
+        <motion.div aria-hidden style={{ y: wy }} className="mx-auto mt-12 max-w-[1440px] select-none text-center text-[23vw] leading-[0.85] font-semibold text-brand">1분체크</motion.div>
+      </footer>
     </div>
   );
 }
@@ -98,267 +437,45 @@ function Discs({ className }: { className?: string }) {
 function FloatingNav() {
   return (
     <>
-      <nav aria-label="주요 메뉴" className="fixed bottom-5 left-1/2 z-40 flex -translate-x-1/2 items-center gap-1 rounded-nav bg-brand p-1.5 pl-2 text-white shadow-float">
+      <nav aria-label="주요 메뉴" className="fixed bottom-5 left-1/2 z-40 flex -translate-x-1/2 items-center gap-1 rounded-nav bg-brand/95 p-1.5 pl-2 text-white shadow-float backdrop-blur">
         <a href="#/" aria-label="1분체크 처음으로" className="mr-1 flex size-9 items-center justify-center rounded-full bg-lime"><i className="size-3 rounded-full bg-brand" /></a>
-        {[['#peer', '또래 중 나'], ['#change', '줄이면?'], ['#labs', '검진 풀이']].map(([h, t]) => <a key={h} href={h} className="hidden rounded-full px-3.5 py-2 text-body-sm text-white no-underline hover:bg-white/10 sm:block">{t}</a>)}
+        {[['#peer', '또래 중 나'], ['#change', '줄이면?'], ['#labs', '검진 풀이']].map(([h, t]) => <a key={h} href={h} className="hidden rounded-full px-3.5 py-2 text-body-sm font-medium text-white no-underline hover:bg-white/10 sm:block">{t}</a>)}
         <StartBtn kind="nav" size="sm" className="min-h-9 rounded-full px-4" label="1분 체크 시작" />
       </nav>
-      <a href="#faq" className="fixed right-5 bottom-5 z-40 hidden items-center gap-2 rounded-full bg-white/90 px-4 py-2.5 text-body-sm text-ink no-underline shadow-float backdrop-blur md:flex"><MessageCircleQuestion className="size-4 text-brand" />자주 묻는 질문</a>
+      <a href="#faq" className="fixed right-5 bottom-5 z-40 hidden items-center gap-2 rounded-full bg-white/90 px-4 py-2.5 text-body-sm font-medium text-ink no-underline shadow-float backdrop-blur md:flex"><MessageCircleQuestion className="size-4 text-brand" />자주 묻는 질문</a>
     </>
   );
 }
 
-/** 2 가운데 큰 문장 + 둘레에 떠다니는 결과 조각 */
-function FloatingCards() {
-  const [ref, p] = useScrollProgress<HTMLElement>();
-  const chips: [string, React.ReactNode, number][] = [
-    ['left-[4%] top-[12%]', <><Badge variant="warn">비만 전단계</Badge><b className="mt-1 block text-subheading font-medium">BMI 24.2</b></>, -60],
-    ['right-[6%] top-[8%]', <><span className="text-caption text-ink-soft">고혈압 · 100명 중</span><b className="block text-subheading font-medium text-risk">{EX_ST ? `${EX_ST.n}번째로 ${EX_ST.side}` : ''}</b></>, -90],
-    ['left-[10%] bottom-[10%]', <><span className="text-caption text-ink-soft">10년 안에 당뇨</span><b className="block text-subheading font-medium"><s className="mr-1.5 text-body text-ash">{EX_FX.before}</s><span className="text-good">{EX_FX.after}</span></b></>, 70],
-    ['right-[8%] bottom-[14%]', <><span className="text-caption text-ink-soft">공복혈당 108</span><b className="block text-subheading font-medium text-warn">당뇨 전 단계</b></>, 50],
-  ];
-  return (
-    <section ref={ref} className="relative mx-auto flex min-h-[80vh] max-w-[1280px] items-center justify-center overflow-hidden px-5 py-24">
-      {chips.map(([pos, body, k], i) => (
-        <div key={i} className={cn('absolute hidden rounded-card bg-white px-4 py-3 shadow-float md:block', pos)} style={{ transform: `translateY(${p * k}px)` }}>{body}</div>
-      ))}
-      <h2 className="text-center text-[56px] leading-[0.95] font-medium text-brand md:text-[120px]">숫자 몇 개면<br />충분해요</h2>
-    </section>
-  );
-}
-
-/** 3 큰 낱말 하나 (화면에 들어오면 떠오른다) */
-function BigWord({ icon: Ic, word, color, href, sub }: { icon: typeof Users; word: string; color: string; href: string; sub: string }) {
-  const [ref, on] = useInView<HTMLAnchorElement>(0.5);
-  return (
-    <a ref={ref} href={href} className={cn('group flex min-h-[46vh] flex-col items-center justify-center gap-3 text-center no-underline transition-all duration-700', on ? 'translate-y-0 opacity-100' : 'translate-y-10 opacity-0')}>
-      <span className="flex items-center gap-4 text-[56px] leading-none font-medium md:text-[104px]" style={{ color }}>
-        <span className="flex size-12 items-center justify-center rounded-[14px] text-white md:size-20 md:rounded-[22px]" style={{ background: color }}><Ic className="size-7 md:size-11" /></span>{word}
-      </span>
-      <span className="text-body text-ink-soft md:text-subheading">{sub}</span>
-    </a>
-  );
-}
-
-/** 4 진초록 띠의 01–05 단계 (자동으로 넘어가고, 누르면 그 단계) */
-const STEPS = [['기본정보', '성별·나이·키·몸무게·허리'], ['생활', '흡연·음주·운동·가족력·혈압'], ['결과', '지금 내 상태 한 줄과 할 일 하나'], ['또래 중 나', '100명 중 몇 번째로 위험·좋음'], ['줄이면?', '몸무게·허리를 끌면 바로 바뀌어요']];
-function Steps() {
-  const [at, setAt] = useState(0);
-  useEffect(() => { if (reduced()) return; const t = setInterval(() => setAt((x) => (x + 1) % STEPS.length), 2600); return () => clearInterval(t); }, []);
-  return (
-    <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap gap-1.5">
-        {STEPS.map(([t], k) => (
-          <button key={t} type="button" onClick={() => setAt(k)} className={cn('flex cursor-pointer items-center gap-2 rounded-full px-3.5 py-2 text-body-sm transition-colors', k === at ? 'bg-lime text-brand' : 'bg-white/10 text-white/80 hover:bg-white/15')}>
-            <b className="font-medium">{String(k + 1).padStart(2, '0')}</b>{t}
-          </button>
-        ))}
-      </div>
-      <p key={at} className="text-subheading text-white animate-rise">{STEPS[at][1]}</p>
-    </div>
-  );
-}
-
-/** 5 휴대폰 화면 (결과 카드 모양을 그대로 축소) */
-function Phone() {
-  return (
-    <div className="relative mx-auto w-[300px] rounded-[48px] border-[10px] border-[#0b1a00] bg-white p-3 shadow-[0_40px_80px_rgba(10,40,0,.45)]">
-      <i className="mx-auto mb-3 block h-6 w-24 rounded-full bg-[#0b1a00]" />
-      <div className="flex flex-col gap-2.5 text-left">
-        <div className="rounded-[14px] border-t-4 border-risk-dot bg-white p-3 shadow-card"><Badge variant="risk">병원 확인</Badge><b className="mt-1.5 block text-[17px] leading-tight font-medium text-risk">혈압 확인이 필요해요</b><span className="text-[11px] text-ink-soft">고혈압 가능성이 같은 나이·성별 평균보다 높아요</span></div>
-        <div className="rounded-[14px] bg-white p-3 shadow-card"><span className="text-[11px] text-ink-soft">고혈압 · 100명 중</span><b className="block text-[22px] leading-tight font-medium text-risk">{EX_ST ? `${EX_ST.n}번째로 ${EX_ST.side}` : ''}</b>{EX_PEER.kind === 'rank' && <Dots rank={EX_PEER.rank} hot tone="high" />}</div>
-        <div className="rounded-[14px] bg-brand p-3 text-white"><b className="text-body-sm font-medium">만약 <span className="rounded-full bg-lime px-2 text-brand">허리 −3cm</span> 줄이면?</b><div className="mt-1.5 flex justify-between text-body-sm"><span className="text-white/80">10년 안에 당뇨</span><span><s className="mr-1 text-white/50">{EX_FX.before}</s><b className="font-medium text-lime">{EX_FX.after}</b></span></div></div>
-      </div>
-    </div>
-  );
-}
-
-/** '줄이면?' 예시: 이대로면 ↔ 바꾸면을 번갈아 보여준다(움직임 줄이기면 바꾼 뒤 그대로) */
-function ChangeDemo() {
-  const [on, setOn] = useState(reduced());
-  useEffect(() => { if (reduced()) return; const t = setInterval(() => setOn((x) => !x), 2600); return () => clearInterval(t); }, []);
-  const wg = waistGauge(EX, on ? EX_DWA : 0)!, bg = bmiGauge(EX, on ? EX_DW : 0);
-  return (
-    <Card className="flex w-full max-w-[460px] flex-col gap-4 p-6 text-left">
-      <div className="flex items-center justify-between gap-2">
-        <b className="text-body font-medium"><span className="mr-1.5 text-caption text-ink-soft">예시</span>52세 남성</b>
-        <Badge variant={on ? 'lime' : 'muted'} className="transition-colors">{on ? `허리 ${EX_DWA}cm · 체중 ${EX_DW}kg` : '이대로면'}</Badge>
-      </div>
-      <LineBar g={wg} changed={on} />
-      <LineBar g={bg} changed={on} />
-      <div className={cn('rounded-btn px-4 py-3.5 transition-colors', on ? 'bg-brand text-white' : 'bg-sand-soft')}>
-        <b className="text-body-sm font-medium">10년 안에 당뇨가 생길 가능성</b>
-        <div className="mt-0.5 text-body">{on ? <><s className="mr-1.5 opacity-60">{EX_FX.before}</s><b className="text-subheading font-medium text-lime">{EX_FX.after}</b></> : <b className="text-subheading font-medium">{EX_FX.before}</b>}</div>
-      </div>
-    </Card>
-  );
-}
-
-/** 8 100명 점 + 둘레에 떠다니는 원 (jeton 의 국기 원들 자리) */
-function FloatingDots() {
-  const [ref, p] = useScrollProgress<HTMLElement>();
-  const C = ['#9fe870', '#34c771', '#477ee9', '#e0a526', '#fb2d54', '#cdf5b2', '#163300', '#bcffbb'];
-  const dots = Array.from({ length: 26 }, (_, k) => ({ x: (k * 37) % 100, y: (k * 53) % 100, s: 28 + ((k * 13) % 46), c: C[k % C.length], d: ((k % 5) - 2) * 40 }));
-  return (
-    <section ref={ref} id="peer" className="relative scroll-mt-10 overflow-hidden px-5 py-24 md:py-36">
-      {dots.map((d, k) => <i key={k} aria-hidden className="absolute hidden rounded-full opacity-90 md:block" style={{ left: `${d.x}%`, top: `${d.y}%`, width: d.s, height: d.s, background: d.c, transform: `translateY(${p * d.d}px)` }} />)}
-      <div className="relative mx-auto flex max-w-[560px] flex-col items-center gap-6 text-center">
-        <Badge variant="soft"><Users /> 또래 100명 중 나</Badge>
-        <h2 className="text-[44px] leading-[1.02] font-medium md:text-heading-lg">100명 중,<br /><span className="text-brand">나는 몇 번째?</span></h2>
-        <Card className="flex w-full flex-col gap-3 p-6 text-left">
-          <span className="text-body-sm text-ink-soft">예시 · {EX_PEER.name} · {EX_PEER.group} 100명 중</span>
-          <b className="text-heading font-medium text-risk">{EX_ST ? `${EX_ST.n}번째로 ${EX_ST.side}` : ''}</b>
-          {EX_PEER.kind === 'rank' && <Dots rank={EX_PEER.rank} hot tone="high" />}
-          <div className="flex justify-between text-[11px] text-ink-soft"><span>좋은 사람</span><span>위험한 사람</span></div>
-        </Card>
-        <StartBtn kind="text" variant="brand" label="내 자리 보기" />
-      </div>
-    </section>
-  );
-}
-
-/** 9 소개 영상 (jeton 의 '고객 후기' 자리: 꽉 찬 그림 위 유리 카드) */
-function VideoBand() {
-  const base = import.meta.env.BASE_URL;
-  return (
-    <section className="px-3 md:px-6">
-      <div className="relative mx-auto flex min-h-[70vh] max-w-[1280px] items-end overflow-hidden rounded-[32px] bg-brand p-6 md:p-12">
-        <img src={`${base}video/promo-poster.jpg`} alt="" loading="lazy" className="absolute inset-0 size-full object-cover opacity-60" />
-        <div className="absolute inset-0 bg-gradient-to-t from-brand via-brand/40 to-transparent" />
-        <div className="relative flex w-full flex-col gap-5 md:flex-row md:items-end md:justify-between">
-          <h2 className="text-[40px] leading-[1.02] font-medium text-white md:text-heading-lg">45초로 보는<br />1분체크</h2>
-          <Dialog>
-            <DialogTrigger asChild>
-              <button type="button" className="flex max-w-[380px] cursor-pointer items-center gap-4 rounded-card bg-white/15 p-4 text-left text-white backdrop-blur-xl">
-                <span className="flex size-14 shrink-0 items-center justify-center rounded-full bg-lime text-brand"><Play className="size-6" fill="currentColor" /></span>
-                <span><b className="block text-body font-medium">소개 영상 보기</b><span className="text-body-sm text-white/80">숫자 몇 개 넣고, 100명 중 내 자리, 줄이면 어떻게 되는지까지 · 소리 있음</span></span>
-              </button>
-            </DialogTrigger>
-            <DialogContent aria-describedby={undefined}>
-              <DialogTitle className="sr-only">1분체크 소개 영상 45초</DialogTitle>
-              <video className="block aspect-video w-full rounded-[20px] bg-black" src={`${base}video/promo-45s.mp4`} poster={`${base}video/promo-poster.jpg`} controls autoPlay playsInline preload="none" />
-            </DialogContent>
-          </Dialog>
-        </div>
-      </div>
-    </section>
-  );
+/** 부드러운 스크롤 (랜딩에서만). 앱 화면으로 가면 끈다 */
+function useLenis() {
+  const reduce = useReducedMotion();
+  useEffect(() => {
+    if (reduce) return;
+    const lenis = new Lenis({ lerp: 0.11, smoothWheel: true });
+    let raf = 0; const loop = (t: number) => { lenis.raf(t); raf = requestAnimationFrame(loop); }; raf = requestAnimationFrame(loop);
+    return () => { cancelAnimationFrame(raf); lenis.destroy(); };
+  }, [reduce]);
 }
 
 export function Landing() {
+  useLenis();
   return (
     <div className="bg-white text-ink">
-      <style>{'@keyframes float{0%,100%{translate:0 0}50%{translate:0 -14px}}'}</style>
       <FloatingNav />
-
-      {/* 1 꽉 찬 첫 화면 */}
-      <section className="relative flex min-h-[100svh] overflow-hidden bg-[radial-gradient(130%_100%_at_80%_0%,#3d8f1c_0%,#1f5408_45%,#163300_100%)] text-white">
-        <Discs className="top-[-4%] right-[-38%] h-[46%] w-[95%] opacity-80 md:top-[-6%] md:right-[-4%] md:h-full md:w-[55%] md:opacity-100" />
-        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-[#0f2600]/85 via-transparent to-transparent" />
-        <header className="absolute inset-x-0 top-0 z-10 mx-auto flex max-w-[1280px] items-center justify-between px-5 py-5 md:px-8">
-          <a href="#/" className="flex items-center gap-2 no-underline"><span className="flex size-8 items-center justify-center rounded-[10px] bg-lime"><i className="size-3 rounded-full bg-brand" /></span><b className="text-[22px] font-medium text-white">1분체크</b></a>
-          <div className="flex items-center gap-2"><a href="#/record" className="hidden px-3 text-body-sm text-white/85 no-underline sm:block">지난 결과</a><StartBtn kind="nav" variant="white" size="sm" className="min-h-9 rounded-full px-4" label="시작하기" /></div>
-        </header>
-        <div className="relative mx-auto mt-auto grid w-full max-w-[1280px] gap-8 px-5 pt-32 pb-28 md:grid-cols-[1.5fr_1fr] md:items-end md:px-8 md:pb-24">
-          <h1 className="text-[64px] leading-[0.92] font-medium md:text-[clamp(88px,9vw,140px)]">내 몸이<br />궁금할 때<br /><span className="text-lime">딱 1분.</span></h1>
-          <div className="flex flex-col gap-4 md:pb-3">
-            <p className="text-subheading text-white/95">숫자 몇 개면 또래 100명 중 내 자리가 보여요. 몸무게·허리를 줄이면 어떻게 되는지도요.</p>
-            <div className="flex flex-wrap gap-2.5">
-              <StartBtn kind="main" label="1분 건강 체크하기" />
-              <Button asChild variant="outline" size="lg" className="border-white/70 bg-transparent text-white hover:bg-white/10"><a href="#/labs"><FileText /> 검진 결과지 풀어보기</a></Button>
-            </div>
-            <div className="flex flex-wrap gap-x-4 gap-y-1 text-body-sm text-white/80">{['설치·가입 없이', PRIVACY_LINE].map((t) => <span key={t} className="inline-flex items-center gap-1.5"><Check className="size-4 text-lime" />{t}</span>)}</div>
-          </div>
-        </div>
-        <span className="absolute bottom-7 left-5 hidden items-center gap-1.5 text-caption text-white/70 md:left-8 md:flex"><ArrowDown className="size-4 motion-safe:animate-bounce" />아래로</span>
-      </section>
-
-      {/* 2 큰 문장 + 떠다니는 조각 */}
-      <FloatingCards />
-
-      {/* 3 큰 낱말 세 개 */}
-      <section className="mx-auto max-w-[1280px] px-5">
-        <BigWord icon={Users} word="또래 중 나" color="#163300" href="#peer" sub="같은 나이·성별 100명 중 몇 번째로 위험·좋음" />
-        <BigWord icon={TrendingDown} word="줄이면?" color="#477ee9" href="#change" sub="몸무게·허리를 끌면 앞으로의 위험이 바로 바뀌어요" />
-        <BigWord icon={FileText} word="검진 풀이" color="#e0a526" href="#labs" sub="결과지 숫자 하나하나를 쉬운 말로" />
-      </section>
-
-      {/* 4 진초록 꽉 찬 띠: 직접 해보기 + 단계 */}
-      <section id="try" className="scroll-mt-6 px-3 md:px-6">
-        <div className="mx-auto grid max-w-[1280px] items-center gap-10 rounded-[32px] bg-brand px-6 py-14 text-white md:grid-cols-[1.1fr_1fr] md:gap-16 md:px-14 md:py-24">
-          <div className="flex flex-col gap-8">
-            <h2 className="text-[48px] leading-[0.98] font-medium md:text-[88px]">숫자 4개,<br /><span className="text-lime">10초면</span></h2>
-            <Steps />
-            <div className="grid grid-cols-2 gap-4 text-body-sm text-white/85">
-              {([[Smartphone, '설치·가입 없이 바로'], [Lock, '건강정보는 기기 안에서만'], [BarChart3, '국가 건강통계로 비교'], [LineChart, '한국인 추적 연구 점수표']] as const).map(([Ic, t]) => <span key={t} className="flex items-center gap-2"><Ic className="size-5 shrink-0 text-lime" />{t}</span>)}
-            </div>
-          </div>
-          <MiniTrial />
-        </div>
-      </section>
-
-      {/* 5 휴대폰 화면 */}
-      <section className="px-3 pt-6 md:px-6">
-        <div className="relative mx-auto grid max-w-[1280px] items-center gap-10 overflow-hidden rounded-[32px] bg-[radial-gradient(90%_120%_at_20%_100%,#0f6b5a_0%,#13423a_45%,#0e2a1f_100%)] px-6 py-14 text-white md:grid-cols-2 md:px-14 md:py-20">
-          <Discs className="top-[30%] left-[-30%] h-full w-[90%] opacity-50" />
-          <div className="relative flex flex-col gap-5">
-            <h2 className="text-[44px] leading-[1.0] font-medium md:text-heading-lg">내 결과,<br />카드 3장으로.</h2>
-            <p className="text-[18px] text-white/85">지금 내 상태 한 줄 · 또래 100명 중 내 자리 · 줄이면 어떻게 되는지. 길게 읽지 않아도 돼요.</p>
-            <StartBtn kind="text" className="self-start" label="1분 건강 체크하기" />
-          </div>
-          <div className="relative"><Phone /></div>
-        </div>
-      </section>
-
-      {/* 6 가운데 질문 문장 + 줄이면 예시 */}
-      <section id="change" className="mx-auto flex max-w-[1280px] scroll-mt-10 flex-col items-center gap-12 px-5 py-24 text-center md:py-36">
-        <Badge variant="soft"><TrendingDown /> 이대로면 vs 바꾸면</Badge>
-        <h2 className="text-[30px] leading-[1.15] font-medium text-brand md:text-heading">또래 중 몇 번째? 확인.<br />허리를 줄이면 어떻게? 확인.<br />검진 숫자 뜻? 이것도 확인.</h2>
-        <ChangeDemo />
-        <p className="max-w-[560px] text-body text-ink-soft">기준선(BMI 23·25, 허리 남 90·여 85cm)을 넘는 순간, 한국인 추적 연구 점수표로 앞으로의 위험이 바뀌어요. 기간은 연구 그대로(10년·4년)예요.</p>
-      </section>
-
-      {/* 7 검진 풀이 */}
-      <section id="labs" className="mx-auto grid max-w-[1280px] scroll-mt-10 items-center gap-10 px-5 pb-24 md:grid-cols-2 md:gap-16 md:px-8 md:pb-36">
-        <div className="flex flex-col gap-5">
-          <Badge variant="soft" className="self-start"><FileText /> 검진 풀이</Badge>
-          <h2 className="text-[40px] leading-[1.02] font-medium md:text-heading-lg">검진 결과지,<br /><span className="text-brand">숫자만 있고 뜻은 모르겠다면</span></h2>
-          <p className="max-w-[480px] text-[18px] leading-relaxed text-ink-soft">혈압·혈당·콜레스테롤·콩팥 수치를 넣으면 하나씩 ‘어느 구간인지 · 무슨 뜻인지 · 무엇을 하면 되는지’로 풀어 드려요.</p>
-          <Button asChild variant="brand" size="lg" className="self-start"><a href="#/labs">결과지 풀어보기 <ArrowRight /></a></Button>
-        </div>
-        <div className="rounded-[28px] bg-blush p-6 md:p-10"><LabCardView c={EX_LAB} k={0} /></div>
-      </section>
-
-      {/* 8 100명 점 */}
-      <FloatingDots />
-
-      {/* 9 소개 영상 */}
-      <VideoBand />
-
-      {/* 10 자주 묻는 질문 */}
-      <section id="faq" className="mx-auto grid max-w-[1280px] scroll-mt-10 gap-8 px-5 py-24 md:grid-cols-[1fr_1.6fr] md:gap-16 md:px-8 md:py-32">
-        <h2 className="text-[36px] leading-[1.05] font-medium md:text-heading">자주 묻는 질문</h2>
-        <Accordion type="single" collapsible className="flex flex-col gap-3">
-          {FAQ.map(([q, a]) => <AccordionItem key={q} value={q}><AccordionTrigger>{q}</AccordionTrigger><AccordionContent>{a}</AccordionContent></AccordionItem>)}
-        </Accordion>
-      </section>
-
-      {/* 11 마지막 큰 문장 */}
-      <section className="mx-auto flex max-w-[1280px] flex-col items-center gap-6 px-5 pb-24 text-center">
-        <h2 className="text-[52px] leading-[0.95] font-medium text-brand md:text-[140px]">1분이면,<br />내 몸이 보여요.</h2>
-        <p className="text-[18px] text-ink-soft">몸 정보와 생활 질문 2쪽이면 끝나요.</p>
-        <StartBtn kind="main" label="1분 건강 체크하기" />
-      </section>
-
-      <footer className="mx-auto max-w-[1280px] px-5 pt-12 pb-28 md:px-8">
-        <div className="grid gap-8 border-t border-sand-soft pt-10 md:grid-cols-4">
-          <div className="flex flex-col gap-2 text-body-sm"><span className="text-caption text-ink-soft">시작</span><a href="#/start" className="text-ink no-underline">1분 건강 체크하기</a><a href="#/labs" className="text-ink no-underline">검진 풀이</a></div>
-          <div className="flex flex-col gap-2 text-body-sm"><span className="text-caption text-ink-soft">내 기록</span><a href="#/record" className="text-ink no-underline">지난 결과 비교</a><a href="#/result" className="text-ink no-underline">내 결과</a></div>
-          <div className="flex flex-col gap-2 text-body-sm"><span className="text-caption text-ink-soft">알아두기</span><a href="#faq" className="text-ink no-underline">자주 묻는 질문</a><a href="https://www.kdca.go.kr" target="_blank" rel="noreferrer" className="text-ink no-underline">질병관리청</a></div>
-          <p className="text-caption text-ink-soft">1분체크는 국가 건강통계와 연구를 바탕으로 한 예측 서비스예요. {NOT_DIAGNOSIS} 질환 여부는 검사와 진료로 확인해 주세요. © 2026 1분체크</p>
-        </div>
-        <div aria-hidden className="mt-10 select-none text-center text-[26vw] leading-[0.8] font-medium text-brand md:text-[22vw]">1분체크</div>
-      </footer>
+      <div className="relative">
+        <Hero />
+        <Gather />
+      </div>
+      <Words />
+      <GreenRise />
+      <Steps />
+      <Tunnel />
+      <Check3 />
+      <Labs />
+      <Scatter />
+      <UseCases />
+      <Closing />
     </div>
   );
 }
