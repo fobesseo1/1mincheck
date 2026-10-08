@@ -4,7 +4,7 @@ import { type Draft, emptyDraft, loadDraft, saveDraft, loadRecords, fromInput, t
 import { Intro, Info, Life, Modules, Sleep, Mind, Digest, Diet } from './screens/Inputs.tsx';
 import { Results } from './screens/Results.tsx';
 import { All } from './screens/All.tsx';
-import { Checkup } from './screens/Checkup.tsx';
+import { LabsInput, LabsResult } from './screens/Labs.tsx';
 import { Detail } from './screens/Detail.tsx';
 import { WhatIf } from './screens/WhatIf.tsx';
 import { Record } from './screens/Record.tsx';
@@ -22,7 +22,7 @@ const MOD_PATH: Record<string, ModKey | undefined> = { '/sleep': 'sleep', '/mind
 
 const APP: Record<string, () => JSX.Element> = {
   '/start': () => <div />, '/intro': Intro, '/info': Info, '/life': Life, '/modules': Modules,
-  '/sleep': Sleep, '/mind': Mind, '/digest': Digest, '/diet': Diet, '/checkup': Checkup,
+  '/sleep': Sleep, '/mind': Mind, '/digest': Digest, '/diet': Diet,
 };
 
 export function App() {
@@ -56,6 +56,8 @@ export function App() {
   else if (APP[route]) { const S = APP[route]; screen = <div className="app"><S /></div>; }
   else if (route === '/result') screen = <Results />;
   else if (route === '/all') screen = <All />;
+  else if (route === '/labs' || route === '/checkup') screen = <LabsInput />;   // 예전 '검진 수치 넣기' 주소도 검진 풀이로
+  else if (route === '/labs/result') screen = <LabsResult />;
   else if (route === '/whatif') screen = <WhatIf key={JSON.stringify(draft)} />;
   else if (route === '/record') screen = <Record />;
   else if (route === '/summary') screen = <div className="app"><div className="page fade"><Summary /></div></div>;
