@@ -10,6 +10,7 @@ import { ALC_LABEL, type AppInput } from '../state.ts';
 import { labOf, xfmt, f1, viewResults, type Scenario } from './view.ts';
 import { verdict, type Verdict } from './verdict.ts';
 import type { ItemId } from './content.ts';
+import { modOn } from './features.ts';
 
 type R = ReturnType<typeof viewResults>;
 export type ProbRow = R['prob'][number];
@@ -107,7 +108,7 @@ const BP_ANS = { unknown: '모름', normal: '정상', elevated: '주의(120–13
 export function scopeOf(inp: AppInput) {
   const L = labOf(inp);
   const labs = LAB_NAME.filter(([k]) => L[k] != null).map(([, n]) => n);
-  const mods = ([['sleep', '수면'], ['mind', '마음'], ['gerd', '소화'], ['diet', '식생활']] as const).map(([k, n]) => ({ k, name: n, done: !!inp[k] }));
+  const mods = ([['sleep', '수면'], ['mind', '마음'], ['gerd', '소화'], ['diet', '식생활']] as const).filter(([k]) => modOn(k)).map(([k, n]) => ({ k, name: n, done: !!inp[k] }));
   const dx = ([['htn', '고혈압'], ['dm', '당뇨'], ['chol', '고지혈증']] as const).filter(([k]) => inp.dx[k]).map(([, n]) => n);
   return {
     body: `${inp.age}세 ${inp.sex === 'F' ? '여성' : '남성'} · 키 ${inp.heightCm}cm · 몸무게 ${inp.weightKg}kg · 허리 ${inp.waistCm != null ? inp.waistCm + 'cm' : '모름'}`,

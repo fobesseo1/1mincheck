@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { samples } from '../../../src/sampleData.ts';
 import { viewResults, viewDetail, viewRecord, whatIfRows, applyScenario } from './view.ts';
 import { toInput, fromInput, suggestScenario, emptyDraft, basicError, type AppInput } from '../state.ts';
+import { modOn } from './features.ts';
 
 const S = Object.fromEntries(samples.map((s) => [s.id, s]));
 
@@ -200,10 +201,12 @@ describe('음주·허리 입력', () => {
 describe('입력 변환', () => {
   it('Input → 화면 답변 → Input 이 그대로 돌아온다', () => {
     // 예시에는 음주 원답이 없어 대표 답(alc)이 붙는다. 엔진 Input 부분은 그대로 돌아와야 한다
-    for (const s of samples) { const { alc: _a, ...back } = toInput(fromInput(s.input))!; expect(back).toEqual(s.input); }
+    // 숨긴 분야(lib/features.ts)의 답은 계산에 넣지 않으므로 비교에서 뺀다
+    const vis = (i: AppInput) => Object.fromEntries(Object.entries(i).filter(([k]) => !(['sleep', 'mind', 'gerd', 'diet'] as const).some((m) => m === k && !modOn(m)))) as AppInput;
+    for (const s of samples) { const { alc: _a, ...back } = toInput(fromInput(s.input))!; expect(back).toEqual(vis(s.input)); }
     // 원답이 있는 기록은 그대로 복원된다
     const rec: AppInput = { ...samples[0].input, alcohol: 'd1_4', alc: { freq: 'w3_4', amt: { soju: 0.5, beer: 2, wine: 0 } } };
-    expect(toInput(fromInput(rec))).toEqual(rec);
+    expect(toInput(fromInput(rec))).toEqual(vis(rec));
   });
   it('19세 미만은 막는다', () => {
     expect(basicError({ ...emptyDraft(), age: '17' })).toBe('under19');

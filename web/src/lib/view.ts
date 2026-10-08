@@ -9,6 +9,7 @@ import { calibrate, peerOf, CAL_IDS, type CalId } from '../../../engine/src/cali
 import { rankOf } from '../../../engine/src/percentile.ts';
 import { adjustNumeric, adjustGluAge, isNum } from '../../../engine/src/numeric.ts';
 import GM from '../../../engine/src/glucose_model.json';
+import { shown } from './features.ts';
 
 /** 보정 전 엔진 값(개발자 모드에서 함께 보여준다) */
 export type ViewResult = Result & { raw?: number; rawPeer?: number | null };
@@ -349,7 +350,7 @@ export function viewDetail(id: ItemId, inp: Input, sc: Scenario) {
 /** 기록 비교 */
 export function viewRecord(prev: Input, cur: Input) {
   const Pv = byId(runAll(prev)), N = byId(runAll(cur));
-  const ids: ItemId[] = ['nafld', 'htn', 'chol', 'dm', 'dep', 'osteo', 'obesity', 'isi', 'osa', 'gad', 'gerd', 'diet'];
+  const ids = (['nafld', 'htn', 'chol', 'dm', 'dep', 'osteo', 'obesity', 'isi', 'osa', 'gad', 'gerd', 'diet'] as ItemId[]).filter(shown);   // 숨긴 분야 제외
   const rows: { id: ItemId; name: string; b: string; a: string; delta: string; better: boolean; y1: number; y2: number; why: string }[] = [];
   const same: string[] = []; let down = 0;
   ids.forEach((id) => {

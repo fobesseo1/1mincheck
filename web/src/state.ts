@@ -2,6 +2,7 @@
 import type { Input, Alcohol, Bp } from '../../engine/src/engine.ts';
 import { ALCOHOL_G, type Drink, type Lab } from '../../engine/src/extras.ts';
 import { parseLab, labError, bpOf, type LabDraft } from './lib/labs.ts';
+import { modOn } from './lib/features.ts';
 
 type YN = boolean | null;
 type Pick4 = number | null;
@@ -58,7 +59,7 @@ export const emptyDraft = (): Draft => ({
   age: '', sex: null, height: '', weight: '', waist: '', waistUnknown: false, waistUnit: 'in',
   smoke: null, alcFreq: null, alcAmt: emptyAmt(), exercise: null, meno: null, famDM: null,
   dx: { htn: false, dm: false, chol: false, none: false }, bp: null,
-  modules: { sleep: true, mind: false, gerd: true, diet: true },
+  modules: { sleep: modOn('sleep'), mind: false, gerd: modOn('gerd'), diet: modOn('diet') },
   sleep: { snore: null, tired: null, apnea: null, neck: null, insGate: null, isi: Array(7).fill(null) },
   mind: { phq: Array(9).fill(null), gad: [null, null] },
   gerd: { gate: null, gq: Array(6).fill(null) },
@@ -133,16 +134,17 @@ export function toInput(d: Draft): AppInput | null {
     inp.lab = lab;
     if (lab.sbp != null) inp.bp = bpOf(lab.sbp, lab.dbp!);   // 혈압 숫자가 있으면 범주는 숫자로 정한다
   }
-  if (d.modules.sleep && !sleepError(d)) {
+  // 숨긴 분야(lib/features.ts)는 답이 남아 있어도 계산에 넣지 않는다
+  if (modOn('sleep') && d.modules.sleep && !sleepError(d)) {
     const s = d.sleep;
     inp.sleep = { snore: !!s.snore, tired: !!s.tired, apnea: !!s.apnea, neck: !!s.neck, insGate: !!s.insGate, ...(s.insGate ? { isi: s.isi as number[] } : {}) };
   }
-  if (d.modules.mind && !mindError(d)) {
+  if (modOn('mind') && d.modules.mind && !mindError(d)) {
     const full = done(d.mind.phq);
     inp.mind = { phq: (full ? d.mind.phq : d.mind.phq.slice(0, 2)) as number[], gad: d.mind.gad as number[] };
   }
-  if (d.modules.gerd && !gerdError(d)) inp.gerd = d.gerd.gate ? { gate: true, gq: d.gerd.gq as number[] } : { gate: false };
-  if (d.modules.diet && !dietError(d)) inp.diet = d.diet as number[];
+  if (modOn('gerd') && d.modules.gerd && !gerdError(d)) inp.gerd = d.gerd.gate ? { gate: true, gq: d.gerd.gq as number[] } : { gate: false };
+  if (modOn('diet') && d.modules.diet && !dietError(d)) inp.diet = d.diet as number[];
   return inp;
 }
 

@@ -4,44 +4,24 @@ import { LABS, parseLab, bpOf } from '../lib/labs.ts';
 import type { LabKey } from '../../../engine/src/extras.ts';
 import { LabField } from './Checkup.tsx';
 import { loadMini } from './MiniTrial.tsx';
+import { modOn, anyModOn } from '../lib/features.ts';
 import { type Draft, type DrinkKey, basicError, lifeError, sleepError, mindError, gerdError, dietError, menoShown, phq2Sum, emptyDraft, ALC_FREQ, DRINKS, ALC_LABEL, alcCalc } from '../state.ts';
 
 // ── 흐름: 기본정보 → 생활 → 관심 분야 → (고른 모듈만) → 결과 ──
 type Step = 'info' | 'life' | 'modules' | 'sleep' | 'mind' | 'gerd' | 'diet';
 const MOD: [keyof Draft['modules'], string][] = [['gerd', '/digest'], ['diet', '/diet'], ['sleep', '/sleep'], ['mind', '/mind']];
-function flow(d: Draft): Step[] { return ['info', 'life', 'modules', ...MOD.filter(([k]) => d.modules[k]).map(([k]) => k as Step)]; }
+// 숨긴 분야(lib/features.ts)는 흐름에서 빠지고, 켜진 분야가 하나도 없으면 '관심 분야' 화면도 건너뛴다
+function flow(d: Draft): Step[] { return ['info', 'life', ...(anyModOn() ? ['modules' as Step] : []), ...MOD.filter(([k]) => modOn(k) && d.modules[k]).map(([k]) => k as Step)]; }
 const ROUTE: Record<Step, string> = { info: '/info', life: '/life', modules: '/modules', sleep: '/sleep', mind: '/mind', gerd: '/digest', diet: '/diet' };
 const nextOf = (d: Draft, s: Step) => { const f = flow(d), i = f.indexOf(s); return i >= 0 && i < f.length - 1 ? ROUTE[f[i + 1]] : '/result'; };
 const lastLabel = (d: Draft, s: Step) => (nextOf(d, s) === '/result' ? '결과 보기' : '다음');
-const prevOf = (d: Draft, s: Step) => { const f = flow(d), i = f.indexOf(s); return i > 0 ? ROUTE[f[i - 1]] : '/intro'; };
+const prevOf = (d: Draft, s: Step) => { const f = flow(d), i = f.indexOf(s); return i > 0 ? ROUTE[f[i - 1]] : '/'; };
 function Head({ s, title }: { s: Step; title: string }) {
   const { draft } = useStore(); const f = flow(draft), i = Math.max(0, f.indexOf(s));
   return (<><Nav back={prevOf(draft, s)} title={title} right={<div className="side">{i + 1}/{f.length}</div>} /><Progress step={i + 1} total={f.length} /></>);
 }
 
 // ── 온보딩 ──
-export function Start() {
-  const { reset } = useStore();
-  const dots = Array.from({ length: 100 }, (_, k) => k < 3);
-  return (
-    <div className="page fade" style={{ gap: 18 }}>
-      <a href="#/" style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8, textDecoration: 'none' }}>
-        <span style={{ width: 22, height: 22, borderRadius: 7, background: 'var(--ink)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><i style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--lime)' }} /></span>
-        <b style={{ fontSize: 17, fontWeight: 800, letterSpacing: '-0.03em', color: 'var(--ink)' }}>1분체크</b>
-      </a>
-      <h1 className="h1" style={{ fontSize: 36, margin: 0 }}>내 몸이 궁금할 때<b>딱 1분.</b></h1>
-      <div className="grow" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <div className="card" style={{ width: 300, padding: '26px 24px 22px', borderRadius: 32, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(10, 14px)', gap: 8 }} aria-hidden="true">{dots.map((on, k) => <i key={k} style={{ width: 14, height: 14, borderRadius: '50%', background: on ? 'var(--ink)' : '#e3e6e0' }} />)}</div>
-          <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--slate)' }}>나와 비슷한 100명 중 몇 명일까요?</div>
-        </div>
-      </div>
-      <p className="lead" style={{ fontSize: 16 }}>질문 몇 개에 답하면 나이·성별이 같은 한국인 통계와 비교해 12가지 건강 항목을 보여드려요.</p>
-      <button className="cta" onClick={() => { reset(); go('/intro'); }}>시작하기</button>
-      <a className="link" href="#/record">이전 기록 보기</a>
-    </div>
-  );
-}
 export function Intro() {
   const rules = [
     ['01', '이 기기 안에서만 계산해요', '답한 내용은 서버로 보내지 않아요. 기록 저장도 원할 때만, 이 기기에만 해요.'],
@@ -111,6 +91,7 @@ export function Info() {
       <Head s="info" title="기본정보" />
       <MiniBridge />
       <H1 a="몸에 대한 숫자부터" b="알려주세요" />
+      <p className="help" style={{ margin: '-6px 4px 0' }}>답한 내용은 이 기기 안에서만 계산해요 · 진단이 아닌 참고 정보예요 · 만 19세 이상</p>
       <Choice q="성별" value={d.sex} onChange={(v) => set({ sex: v })} options={[{ v: 'M' as const, t: '남성' }, { v: 'F' as const, t: '여성' }]} />
       <div className="grid2">
         <div className="card" style={{ padding: '18px 20px' }}><NumField id="age" label="만 나이" unit="세" value={d.age} onChange={(v) => set({ age: v })} /></div>
@@ -195,7 +176,7 @@ export function Life() {
       <Optional label="최근 공복혈당을 알면 (선택)" keys={['glu']} />
       <a href="#/checkup" style={{ alignSelf: 'center', fontSize: 13, fontWeight: 700, color: 'var(--ink)' }}>건강검진 결과지가 있으면 더 정확하게 →</a>
       <div className="grow" />
-      <Next error={lifeError(d)} to={nextOf(d, 'life')} label="다음: 관심 분야 고르기" />
+      <Next error={lifeError(d)} to={nextOf(d, 'life')} label={nextOf(d, 'life') === '/result' ? '결과 보기' : '다음: 관심 분야 고르기'} />
     </div>
   );
 }
@@ -248,12 +229,13 @@ function Drinks() {
 // ── 3. 관심 분야 ──
 export function Modules() {
   const { draft: d, setDraft } = useStore();
-  const M: [keyof Draft['modules'], string, string, string, string][] = [
+  const M0: [keyof Draft['modules'], string, string, string, string][] = [
     ['gerd', '소화', '가슴쓰림·신물 올라옴', '1문항 · 증상 있으면 +6', 'M8 3v6a4 4 0 0 0 8 0V3M12 13v8'],
     ['diet', '식생활', '아침·잡곡·과일·채소·짠 음식·단 음료', '7문항 · 참고 지표', 'M4 11h16a8 8 0 0 1-16 0zM9 7c0-2 2-2 2-4M14 7c0-2 2-2 2-4'],
     ['sleep', '수면', '코골이·숨멈춤·낮 졸림, 잠드는 어려움', '5문항 · 증상 있으면 +7', 'M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z'],
     ['mind', '마음', '최근 2주 기분과 걱정 · 원할 때만', '4문항 · 필요하면 +7', 'M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z'],
   ];
+  const M = M0.filter(([k]) => modOn(k));
   const n = 12 + (d.modules.sleep ? 5 : 0) + (d.modules.mind ? 4 : 0) + (d.modules.gerd ? 1 : 0) + (d.modules.diet ? 7 : 0);
   return (
     <div className="page fade">

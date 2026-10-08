@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { freqOf, peerLine, probB, reasonOf, scopeOf, verdictB, goodHabits, normalLabs } from './b.ts';
 import { B_PROFILES, draftOf } from './bProfiles.ts';
 import { toInput, suggestScenario, type AppInput } from '../state.ts';
+import { modOn } from './features.ts';
 import { viewResults } from './view.ts';
 import { verdict } from './verdict.ts';
 
@@ -63,7 +64,8 @@ describe('B 표시: 이유·확인 범위·칭찬은 실제 입력만', () => {
     expect(scopeOf(P.P1).labLine).toBe('반영한 검진값: 없음');
     expect(scopeOf(P.P9).labs).toEqual(['총콜레스테롤']);
     const m = scopeOf(P.P10).mods;
-    expect(m.filter((x) => x.done).map((x) => x.name)).toEqual(['수면', '마음']);
+    // 숨긴 분야(lib/features.ts)는 목록에 나오지 않는다
+    expect(m.filter((x) => x.done).map((x) => x.name)).toEqual((['수면', '마음'] as const).filter((n) => modOn(n === '수면' ? 'sleep' : 'mind')));
   });
   it('칭찬: 검진값이 없으면 검진 얘기를 하지 않고, 정상인 검진값만 이름으로', () => {
     const { vb } = res(P.P1);
