@@ -110,3 +110,23 @@ details summary::-webkit-details-marker { display: none; }
   .app { max-width: none; }
   .summary article { padding: 0 !important; border-radius: 0 !important; }
 }
+
+/* v2 결과: 또래 100명 점 그림 (낮은 순서로 줄 세움, 내 자리) */
+.dots100 { display: grid; grid-template-columns: repeat(20, minmax(0, 1fr)); gap: 5px 4px; padding: 6px 4px; }
+.dots100 i { display: block; aspect-ratio: 1; border-radius: 50%; background: #dfe2dc; animation: dot-in .3s ease-out both; }
+.dots100 i.on { background: var(--ink); }
+.dots100 i.me { background: var(--ink); box-shadow: 0 0 0 2px var(--lime), 0 0 0 4px var(--ink); transform: scale(1.4); animation: dot-me .5s .9s ease-out both; }
+@keyframes dot-in { from { opacity: 0; transform: scale(.4); } to { opacity: 1; } }
+@keyframes dot-me { 0% { transform: scale(.4); opacity: 0; } 60% { transform: scale(2); opacity: 1; } 100% { transform: scale(1.4); } }
+/* v2 결과: 기준선 막대 */
+.linebar { position: relative; height: 16px; border-radius: 9999px; background: var(--fog); overflow: visible; }
+.linebar .zone { position: absolute; top: 0; bottom: 0; display: block; }
+.linebar .zone:first-child { border-radius: 9999px 0 0 9999px; }
+.linebar .zone:last-of-type { border-radius: 0 9999px 9999px 0; }
+.linebar s { position: absolute; top: -4px; bottom: -4px; width: 2px; margin-left: -1px; background: var(--obsidian); opacity: .55; display: block; }
+.linebar .dot { position: absolute; top: 50%; width: 22px; height: 22px; margin: -11px 0 0 -11px; border-radius: 50%; transition: left .45s cubic-bezier(.2, .8, .2, 1); }
+.linebar .dot.now { background: #fff; border: 3px solid #9aa096; }
+.linebar .dot.after { background: var(--ink); border: 3px solid var(--lime); box-shadow: 0 2px 6px rgba(0, 0, 0, .2); }
+.chip { height: 34px; padding: 0 12px; border-radius: 9999px; border: 1.5px solid var(--ink); background: #fff; color: var(--ink); font-size: 13px; font-weight: 700; }
+.chip.ghost { border-color: var(--line2); color: var(--slate); }
+@media (prefers-reduced-motion: reduce) { .dots100 i, .dots100 i.me { animation: none; } .linebar .dot { transition: none; } }

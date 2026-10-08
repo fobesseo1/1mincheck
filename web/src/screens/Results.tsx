@@ -1,23 +1,19 @@
-import { useMemo, type ReactNode } from 'react';
+// v2 결과: 카드 3장 — ① 지금 내 상태(판정) ② 또래 100명 중 나 ③ 이대로면 vs 바꾸면(기준선).
+// 나머지 자세한 내용은 '모든 항목 보기'(All.tsx). 계산·판정은 view.ts·verdict.ts·lines.ts·peer.ts 그대로.
+import { useMemo, useState, type CSSProperties } from 'react';
 import type { Input } from '../../../engine/src/engine.ts';
-import { useStore, Nav, TabBar, Ring, Gauge, Icon, Crisis } from '../ui.tsx';
-import type { AppInput } from '../state.ts';
-import { probB, reasonOf, scopeOf, goodHabits, B_NAME, type ProbRow } from '../lib/b.ts';
-import { toInput, suggestScenario, saveRecords, today, drinkOf } from '../state.ts';
-import { runExtras } from '../../../engine/src/extras.ts';
-import { ExtraCards } from './Extras.tsx';
-import { DevNote } from './DevNote.tsx';
-import { viewResults, labOf, xfmt, INK, LOOK } from '../lib/view.ts';
+import { useStore, Nav, TabBar, Icon, Crisis } from '../ui.tsx';
+import { toInput, suggestScenario, saveRecords, today, type AppInput } from '../state.ts';
+import { viewResults } from '../lib/view.ts';
+import { verdict, type Verdict } from '../lib/verdict.ts';
+import { DISCLAIMER } from '../lib/content.ts';
+import { peerCards, type PeerCard } from '../lib/peer.ts';
+import { bmiGauge, waistGauge, futureEffects, kgToLowerZone, cmToWaistOk, minWeightDelta, waistCut, type Gauge, type Tone } from '../lib/lines.ts';
+import { shareApp } from '../lib/share.ts';
+
 /** 또래의 2배 이상·기준 이상 같은 강한 위험 신호 색 */
 const RED = '#cb272f';   // 디자인 Alarm Red
-import { labCount } from '../lib/labs.ts';
-import { MODULE_OF, DISCLAIMER, MEANING, type ItemId } from '../lib/content.ts';
-import { verdict, type Verdict } from '../lib/verdict.ts';
-import { riskView, SEV_COLOR } from '../lib/risk.ts';
 
-const f1 = (x: number) => (Math.round(x * 10) / 10).toFixed(1);
-
-const MOD_ROUTE = { sleep: '/sleep', mind: '/mind', gerd: '/digest', diet: '/diet' };
 /** 마지막 글자 받침에 맞는 조사 */
 export const josa = (w: string, a: string, b: string) => { const c = w.charCodeAt(w.length - 1) - 0xac00; return c >= 0 && c <= 11171 && c % 28 ? a : b; };
 
@@ -27,57 +23,47 @@ export function NeedInput() {
   return (
     <div className="page fade" style={{ justifyContent: 'center', textAlign: 'center' }}>
       <h1 className="h1">아직 답한 내용이<b>없어요</b></h1>
-      <p className="lead">기본정보 12문항에 답하면 결과를 볼 수 있어요. 약 1분이면 돼요.</p>
+      <p className="lead">몸 정보와 생활 질문에 답하면 결과를 볼 수 있어요. 약 1분이면 돼요.</p>
       <a className="cta" href="#/start" style={{ marginTop: 20 }}>체크 시작하기</a>
       <a className="link" href="#/record">저장한 기록 보기</a>
     </div>
   );
 }
 
-/** 한눈에 보기의 한 줄 묶음 */
-function Group({ label, col, children }: { label: string; col: string; children: ReactNode }) {
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: '12px 0', borderTop: '1px solid var(--line)' }}>
-      <span style={{ fontSize: 12, fontWeight: 800, color: col }}>{label}</span>
-      {children}
-    </div>
-  );
-}
-const Chips = ({ items }: { items: { id: ItemId; name: string }[] }) => (
-  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-    {items.map((x) => <a key={x.id + x.name} href={`#/detail/${x.id}`} className="pill" style={{ background: 'var(--bg)', color: 'var(--obsidian)', textDecoration: 'none' }}>{x.name}</a>)}
-  </div>
-);
-
-
 /**
  * 단계별 색: 위험은 빨강(Alarm Red), 관리·습관은 차분한 회색·연초록, 건강은 라임.
- * 숲색(진한 초록)은 '잘 관리되고 있다'로 읽혀 위험 표시에 쓰지 않는다.
  *  ① 지금 바로·오늘 확인 = 빨강 꽉 찬 카드, ② 병원 확인 = 흰 카드 + 빨강 띠·제목
  */
-type Tone = { bg: string; fg: string; sub: string; tagBg: string; tagFg: string; numBg: string; numFg: string; top?: string };
-const TONE: Record<Verdict['tier'], Tone> = {
+type ToneSet = { bg: string; fg: string; sub: string; tagBg: string; tagFg: string; numBg: string; numFg: string; top?: string };
+const TONE: Record<Verdict['tier'], ToneSet> = {
   1: { bg: RED, fg: '#fff', sub: 'rgba(255,255,255,.88)', tagBg: '#fff', tagFg: RED, numBg: RED, numFg: '#fff' },
   2: { bg: '#fff', fg: RED, sub: 'var(--charcoal)', tagBg: RED, tagFg: '#fff', numBg: RED, numFg: '#fff', top: `6px solid ${RED}` },
   5: { bg: 'var(--fog)', fg: 'var(--obsidian)', sub: 'var(--charcoal)', tagBg: 'var(--charcoal)', tagFg: '#fff', numBg: 'var(--charcoal)', numFg: '#fff' },
   3: { bg: 'var(--linen)', fg: 'var(--ink)', sub: 'var(--charcoal)', tagBg: 'var(--ink)', tagFg: 'var(--lime)', numBg: 'var(--ink)', numFg: 'var(--lime)' },
   4: { bg: 'var(--lime)', fg: 'var(--ink)', sub: 'var(--ink)', tagBg: 'var(--ink)', tagFg: 'var(--lime)', numBg: 'var(--ink)', numFg: 'var(--lime)' },
 };
-function VerdictCard({ v }: { v: Verdict }) {
+const scrollToChange = () => document.getElementById('change')?.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' });
+
+/** ① 지금 내 상태: 한 줄 + 할 일. 급한 안내(①)와 병원 확인(②)은 할 일을 모두, 나머지는 하나만 */
+function VerdictCard({ v, gap }: { v: Verdict; gap: string }) {
   const t = TONE[v.tier];
+  const acts = (v.tier === 1 || v.tier === 2 ? v.actions : v.actions.slice(0, 1))
+    // 체중·허리 할 일은 아래 '이대로면 vs 바꾸면' 카드로 (지금 가능성 % 변화 대신 기준선까지 거리)
+    .map((a) => (a.href === '#/whatif' ? { ...a, d: gap, href: undefined, change: true } : { ...a, change: false }));
   return (
     <section className="card" aria-label="지금 내 상태" style={{ padding: '20px 18px', display: 'flex', flexDirection: 'column', gap: 12, background: t.bg, borderTop: t.top, boxShadow: 'var(--card-shadow)' }}>
       <span className="tag" style={{ alignSelf: 'flex-start', background: t.tagBg, color: t.tagFg }}>{v.tag}</span>
       <h2 style={{ margin: 0, fontSize: 26, lineHeight: 1.3, fontWeight: 900, letterSpacing: '-0.03em', color: t.fg }}>{v.title}</h2>
       <p style={{ margin: 0, fontSize: 14, lineHeight: 1.55, color: t.sub }}>{v.sub}</p>
       <ol style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: 8 }}>
-        {v.actions.map((a, k) => {
+        {acts.map((a, k) => {
           const body = (<>
             <span style={{ width: 26, height: 26, flexShrink: 0, borderRadius: 9, background: t.numBg, color: t.numFg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 800 }}>{k + 1}</span>
-            <span><b style={{ fontSize: 16, color: 'var(--obsidian)' }}>{a.t}</b>{a.d && <span style={{ display: 'block', fontSize: 13, lineHeight: 1.5, marginTop: 2, color: 'var(--charcoal)' }}>{a.d}</span>}</span>
+            <span className="grow" style={{ textAlign: 'left' }}><b style={{ fontSize: 16, color: 'var(--obsidian)' }}>{a.t}</b>{a.d && <span style={{ display: 'block', fontSize: 13, lineHeight: 1.5, marginTop: 2, color: 'var(--charcoal)' }}>{a.d}</span>}</span>
+            {(a.href || a.change) && <span style={{ alignSelf: 'center', color: 'var(--ink)' }}>{a.change ? Icon.down : Icon.right}</span>}
           </>);
-          const st = { display: 'flex', gap: 12, padding: '12px 12px', borderRadius: 14, background: '#fff', textDecoration: 'none', color: 'inherit', border: v.tier === 1 ? 0 : '1px solid var(--line2)' } as const;
-          return <li key={a.t}>{a.href ? <a href={a.href} style={st}>{body}</a> : <div style={st}>{body}</div>}</li>;
+          const st: CSSProperties = { display: 'flex', gap: 12, width: '100%', padding: '12px 12px', borderRadius: 14, background: '#fff', textDecoration: 'none', color: 'inherit', font: 'inherit', border: v.tier === 1 ? 0 : '1px solid var(--line2)' };
+          return <li key={a.t}>{a.change ? <button type="button" onClick={scrollToChange} style={st}>{body}</button> : a.href ? <a href={a.href} style={st}>{body}</a> : <div style={st}>{body}</div>}</li>;
         })}
       </ol>
       {v.also && <span style={{ fontSize: 13, color: t.sub }}>{v.also}</span>}
@@ -85,174 +71,168 @@ function VerdictCard({ v }: { v: Verdict }) {
   );
 }
 
-/** 확률 항목 한 줄: 이름 → 현재 가능성 추정 % → 100명 중 몇 명 → 또래 평균 비교 → (필요하면) 확인 안내 */
-function ProbRowB({ p, inp }: { p: ProbRow; inp: Input }) {
-  const b = probB(p, inp as AppInput), reason = reasonOf(p.id, inp as AppInput, p), L = labOf(inp);
-  const small = b.kind === 'estimate' && p.cmp!.me < 1;   // 배수는 커도 가능성 자체가 1% 미만이면 빨간 강조를 하지 않는다(판정은 그대로)
-  const warn = (b.kind === 'estimate' && b.high && p.cmp!.me >= 1) || b.kind === 'criteria' || b.kind === 'excluded';
-  const glu = p.id === 'dm' && b.kind === 'estimate' && L.glu != null;
+/** 100명 점 그림. rank 가 있으면 낮은 순서로 세운 줄에서 내 자리, 없으면 n명 칠하기 */
+function Dots({ rank, n, hot }: { rank?: number; n?: number; hot: boolean }) {
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 4, padding: '14px 0', borderTop: '1px solid var(--line)' }}>
-      <a href={`#/detail/${p.id}`} style={{ display: 'flex', flexDirection: 'column', gap: 4, textDecoration: 'none', color: 'inherit' }}>
-        <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-          <b style={{ fontSize: 16, color: 'var(--obsidian)' }}>{B_NAME[p.id] ?? p.title}</b>
-          <span style={{ fontSize: 12, color: 'var(--slate)', textAlign: 'right' }}>{glu ? '현재 가능성 추정 · 공복혈당 반영' : b.label}</span>
-        </span>
-        <b style={{ fontSize: 26, lineHeight: 1.15, fontWeight: 800, letterSpacing: '-0.02em', color: warn ? RED : 'var(--obsidian)' }}>{b.big}</b>
-        {(b.kind === 'estimate' || b.kind === 'range') && <span style={{ fontSize: 14, lineHeight: 1.5, color: 'var(--obsidian)' }}>{b.freq}</span>}
-        {b.kind === 'estimate' && <span style={{ fontSize: 13, lineHeight: 1.5, color: b.high && !small ? RED : 'var(--charcoal)', fontWeight: b.high && !small ? 700 : 500 }}>{b.peer}</span>}
-        {b.kind === 'range' && <span style={{ fontSize: 13, lineHeight: 1.5 }}>{b.note}</span>}
-        {b.kind !== 'estimate' && b.kind !== 'range' && b.note && <span style={{ fontSize: 13, lineHeight: 1.55, color: warn ? RED : 'var(--charcoal)' }}>{b.note}</span>}
-        {glu && <span style={{ fontSize: 13, lineHeight: 1.5, padding: '8px 10px', borderRadius: 10, background: 'var(--bg)' }}>입력한 공복혈당 {L.glu}mg/dL · {L.glu! >= 100 ? '공복혈당장애 범위(100–125)예요' : '정상 범위(100 미만)예요. 당뇨는 당화혈색소로도 진단해서 공복혈당만으로 없다고 할 수는 없어요'}</span>}
-        {b.kind === 'estimate' && b.high && p.cmp?.action && <span style={{ fontSize: 13, lineHeight: 1.5, fontWeight: 700, color: 'var(--obsidian)' }}>→ {p.cmp.action}</span>}
-      </a>
-      {reason && (
-        <details>
-          <summary style={{ fontSize: 12, fontWeight: 700, color: 'var(--ink)', cursor: 'pointer' }}>왜 이렇게 나왔나요?</summary>
-          <p style={{ margin: '6px 0 0', fontSize: 12, lineHeight: 1.6, color: 'var(--charcoal)' }}>{reason}. 계산에 들어간 정보이며, 각 정보가 얼마나 영향을 줬는지는 따로 계산하지 않았어요.</p>
-        </details>
-      )}
+    <div className="dots100" aria-hidden="true">
+      {Array.from({ length: 100 }, (_, k) => {
+        const me = rank != null && k === rank - 1, on = n != null && k < n;
+        return <i key={k} className={me ? 'me' : on ? 'on' : ''} style={{ animationDelay: `${Math.min(k, rank ?? n ?? 0) * 8}ms`, ...(me && hot ? { background: RED } : {}) } as CSSProperties} />;
+      })}
     </div>
   );
 }
 
-const MODNAME = { sleep: '수면', mind: '마음', gerd: '소화', diet: '식생활' } as const;
-const FUTURE = ['dm10', 'htn4', 'chd10'];
+/** ② 또래 100명 중 나 */
+function PeerCardView({ cs }: { cs: PeerCard[] }) {
+  const [at, setAt] = useState(0);
+  const c = cs[at];
+  return (
+    <section className="card" aria-label="또래 100명 중 나" style={{ padding: '18px 18px 16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8 }}>
+        <b style={{ fontSize: 17, color: 'var(--obsidian)' }}>또래 100명 중 나</b>
+        <span className="cap">{c.group}</span>
+      </div>
+      <div className="seg" role="tablist" aria-label="항목">
+        {cs.map((x, k) => <button key={x.id} type="button" role="tab" aria-selected={k === at} aria-pressed={k === at} onClick={() => setAt(k)}>{x.name}</button>)}
+      </div>
+      <div key={c.id} className="fade" style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <b style={{ fontSize: 24, lineHeight: 1.25, fontWeight: 900, letterSpacing: '-0.03em', color: c.kind !== 'status' && c.high ? RED : 'var(--ink)' }}>{c.name} · {c.word}</b>
+        {c.kind === 'rank' && (<>
+          <Dots rank={c.rank} hot={c.high} />
+          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--slate)' }}><span>← 위험 낮은 사람부터</span><span>위험 높은 사람까지 →</span></div>
+          <span style={{ fontSize: 15, lineHeight: 1.5, color: 'var(--obsidian)' }}>{c.group} 100명을 위험이 낮은 순서로 세우면 <b>나는 {c.rank}번째</b>예요.</span>
+        </>)}
+        {c.kind === 'count' && (<>
+          <Dots n={c.n} hot={c.high} />
+          <span style={{ fontSize: 15, lineHeight: 1.5, color: 'var(--obsidian)' }}>나와 비슷한 조건 100명 중 <b>약 {c.n}명</b>이 해당하는 수준이에요.</span>
+        </>)}
+        {c.kind === 'status' && <span style={{ fontSize: 14, lineHeight: 1.55 }}>{c.note}</span>}
+        {c.kind !== 'status' && (
+          <a href={`#/detail/${c.id}`} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, padding: '10px 12px', borderRadius: 12, background: 'var(--bg)', textDecoration: 'none', color: 'var(--charcoal)', fontSize: 13, lineHeight: 1.45 }}>
+            <span>지금 {c.name} 가능성 추정 <b style={{ color: 'var(--obsidian)' }}>{c.pct}%</b> · 또래 평균 {c.peer}%<span style={{ display: 'block', fontSize: 11, color: 'var(--slate)' }}>앞으로가 아니라 지금 검사하면 기준에 해당할 가능성 · {c.who} 기준</span></span>
+            <span style={{ color: 'var(--ink)' }}>{Icon.right}</span>
+          </a>
+        )}
+        {c.kind === 'status' && <a href={`#/detail/${c.id}`} style={{ fontSize: 13, fontWeight: 700 }}>자세히 보기 →</a>}
+      </div>
+    </section>
+  );
+}
+
+const ZONE_BG: Record<Tone, string> = { low: '#e3edf3', ok: 'var(--linen)', mid: '#fbeec9', high: '#fbe1df' };
+const ZONE_FG: Record<Tone, string> = { low: 'var(--look)', ok: 'var(--ink)', mid: '#7a5a00', high: RED };
+/** 기준선 막대: 구간 색 + 기준선 + 지금(빈 점) → 바꾸면(채운 점). 점은 부드럽게 미끄러진다 */
+export function LineBar({ g, changed }: { g: Gauge; changed: boolean }) {
+  const pos = (v: number) => `${Math.max(0, Math.min(100, ((v - g.min) / (g.max - g.min)) * 100))}%`;
+  const fmt = (v: number) => (g.key === 'bmi' ? v.toFixed(1) : `${v}cm`);
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8 }}>
+        <b style={{ fontSize: 14, color: 'var(--obsidian)' }}>{g.title}</b>
+        <span style={{ fontSize: 13, textAlign: 'right' }}>
+          <span style={{ color: changed ? 'var(--slate)' : ZONE_FG[g.nowZone.tone], fontWeight: 700 }}>{fmt(g.now)} {g.nowZone.name}</span>
+          {changed && <> → <b style={{ color: ZONE_FG[g.afterZone.tone] }}>{fmt(g.after)} {g.afterZone.name}</b></>}
+        </span>
+      </div>
+      <div className="linebar">
+        {g.zones.map((z) => <i key={z.name} className="zone" style={{ left: pos(z.from), width: `calc(${pos(Math.min(z.to, g.max))} - ${pos(z.from)})`, background: ZONE_BG[z.tone] }} />)}
+        {g.lines.filter((l) => l > g.min && l < g.max).map((l) => <s key={l} style={{ left: pos(l) }} />)}
+        {changed && <b className="dot now" style={{ left: pos(g.now) }} />}
+        <b className="dot after" style={{ left: pos(changed ? g.after : g.now) }} />
+      </div>
+      <div style={{ position: 'relative', height: 14 }}>
+        {g.lines.filter((l) => l > g.min && l < g.max).map((l) => <span key={l} style={{ position: 'absolute', left: pos(l), transform: 'translateX(-50%)', fontSize: 10, color: 'var(--slate)' }}>{l}</span>)}
+      </div>
+    </div>
+  );
+}
+
+/** ③ 이대로면 vs 바꾸면: 몸무게·허리 슬라이더 → 기준선 막대와 미래 위험(원문 점수표·기간 그대로) */
+function ChangeCard({ inp }: { inp: Input }) {
+  const [dw, setDw] = useState(0), [dwa, setDwa] = useState(0);
+  const minW = minWeightDelta(inp.heightCm, inp.weightKg);
+  const bg = bmiGauge(inp, dw), wg = waistGauge(inp, dwa), { effects, hints } = futureEffects(inp, dw, dwa);
+  const changed = dw !== 0 || dwa !== 0;
+  const k = kgToLowerZone(inp.heightCm, inp.weightKg), cm = inp.waistCm != null ? cmToWaistOk(inp.sex, inp.waistCm) : null;
+  const chips: [string, () => void][] = [];
+  if (k && -k.kg >= minW) chips.push([`BMI ${k.line} 아래로 (−${k.kg}kg)`, () => setDw(-k.kg)]);
+  if (cm != null && cm <= 15) chips.push([`허리 ${waistCut(inp.sex)}cm 아래로 (−${cm}cm)`, () => setDwa(-cm)]);
+  const sign = (n: number, u: string) => (n === 0 ? '그대로' : `${n > 0 ? '+' : '−'}${Math.abs(n)}${u}`);
+  return (
+    <section id="change" className="card" aria-label="이대로면 vs 바꾸면" style={{ padding: '18px 18px 16px', display: 'flex', flexDirection: 'column', gap: 14, scrollMarginTop: 12 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+        <b style={{ fontSize: 17, color: 'var(--obsidian)' }}>이대로면 vs 바꾸면</b>
+        <span style={{ fontSize: 12, color: 'var(--slate)' }}>몸무게·허리를 움직이면 기준선을 넘는지 바로 보여드려요</span>
+      </div>
+      <LineBar g={bg} changed={dw !== 0} />
+      <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+        <span style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}><span>몸무게 <b style={{ color: 'var(--obsidian)' }}>{Math.round((inp.weightKg + dw) * 10) / 10}kg</b></span><span style={{ color: 'var(--slate)' }}>{sign(dw, 'kg')}</span></span>
+        <input type="range" aria-label="몸무게 바꿔보기" min={minW} max={5} step={1} value={dw} onChange={(e) => setDw(Number(e.target.value))} />
+      </label>
+      {wg ? (<>
+        <LineBar g={wg} changed={dwa !== 0} />
+        <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+          <span style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}><span>허리 <b style={{ color: 'var(--obsidian)' }}>{wg.after}cm</b></span><span style={{ color: 'var(--slate)' }}>{sign(dwa, 'cm')}</span></span>
+          <input type="range" aria-label="허리둘레 바꿔보기" min={-15} max={5} step={1} value={dwa} onChange={(e) => setDwa(Number(e.target.value))} />
+        </label>
+      </>) : <a href="#/info" style={{ fontSize: 13, fontWeight: 700 }}>허리둘레를 넣으면 복부비만 기준선도 볼 수 있어요 →</a>}
+      {(chips.length > 0 || changed) && (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+          {chips.map(([t, f]) => <button key={t} type="button" className="chip" onClick={f}>{t}</button>)}
+          {changed && <button type="button" className="chip ghost" onClick={() => { setDw(0); setDwa(0); }}>처음 값으로</button>}
+        </div>
+      )}
+      {!changed && <span style={{ fontSize: 13, lineHeight: 1.5, padding: '10px 12px', borderRadius: 12, background: 'var(--bg)' }}>{[bg.gap, wg?.gap].filter(Boolean).join(' · ')}</span>}
+      {effects.map((e) => (
+        <div key={e.id} style={{ display: 'flex', flexDirection: 'column', gap: 4, padding: '12px 14px', borderRadius: 14, background: e.dir === 'down' ? 'var(--linen)' : e.dir === 'up' ? '#fdecea' : 'var(--bg)' }}>
+          <b style={{ fontSize: 14, color: 'var(--obsidian)' }}>{e.title}</b>
+          <span style={{ fontSize: 15 }}>이대로면 <b style={{ color: 'var(--obsidian)' }}>{e.before}</b>{changed && <> → 바꾸면 <b style={{ fontSize: 20, color: e.dir === 'down' ? 'var(--ink)' : e.dir === 'up' ? RED : 'var(--obsidian)' }}>{e.after}</b></>}</span>
+          <span style={{ fontSize: 12, lineHeight: 1.5, color: 'var(--slate)' }}>{changed ? e.note : e.id === 'dm10' ? `비슷한 위험 점수였던 사람 중 10년 안에 당뇨가 생긴 비율이에요. 허리 ${waistCut(inp.sex)}cm 기준선에서 바뀌어요.` : '비슷한 점수였던 사람 중 4년 안에 고혈압이 생긴 비율이에요. BMI 25·30 기준선에서 바뀌어요.'}</span>
+        </div>
+      ))}
+      {hints.map((h) => <span key={h} style={{ fontSize: 12, lineHeight: 1.5, color: 'var(--slate)' }}>· {h}</span>)}
+      <span style={{ fontSize: 11, lineHeight: 1.5, color: 'var(--slate)' }}>기준선은 대한비만학회 기준, 미래 위험은 한국인 추적 연구의 점수표(기간 그대로)예요. 참고값이며 실제로 줄였을 때의 치료 효과를 보장하지 않아요.</span>
+    </section>
+  );
+}
 
 export function Results() {
-  const { records, setRecords, toast, setDraft } = useStore();
+  const { records, setRecords, toast } = useStore();
   const inp = useInput();
   if (!inp) return <NeedInput />;
-  const sc = suggestScenario(inp), r = viewResults(inp, sc), extras = runExtras(inp, drinkOf(inp), labOf(inp));
-  const v = verdict(inp, r, sc), scope = scopeOf(inp), good = goodHabits(inp);
+  const sc = suggestScenario(inp), r = viewResults(inp, sc), v = verdict(inp as AppInput, r, sc);
+  const bg = bmiGauge(inp, 0), wg = waistGauge(inp, 0);
+  const gap = (v.actions.find((a) => a.href === '#/whatif')?.t.includes('허리') ? wg?.gap : bg.gap) ?? bg.gap;
   const save = () => {
     const next = [...records, { id: String(Date.now()), date: today(), input: inp }];
     if (saveRecords(next)) { setRecords(next); toast('이 기기에 기록을 저장했어요'); } else toast('이 브라우저에서는 저장할 수 없어요');
   };
-  // 서비스 소개와 앱 주소만 공유한다(개인 결과는 보내지 않음)
-  const share = async () => {
-    const text = '간단한 내 몸 정보로 1분 만에 건강을 가늠해 봤어요.';
-    try { if (navigator.share) await navigator.share({ title: '1분체크', text, url: location.href.split('#')[0] }); else { await navigator.clipboard.writeText(location.href.split('#')[0]); toast('앱 주소를 복사했어요'); } } catch { /* 취소 */ }
-  };
-  const ob = r.score.find((x) => x.id === 'obesity')!;
-  const doneScores = r.score.filter((x) => x.id !== 'obesity' && x.status === 'ok' && x.v !== '–');
-  const future = extras.filter((x) => FUTURE.includes(x.id)), checks = extras.filter((x) => !FUTURE.includes(x.id));
-  const probs = r.prob.filter((p) => p.status !== 'na');
-  const osteoNa = r.prob.some((p) => p.id === 'osteo' && p.status === 'na');
   return (
     <div className="app">
       <div className="page fade">
-        <Nav title="내 결과" sub={`${today()} · ${r.who}`} right={<button className="circle" aria-label="공유" onClick={share}>{Icon.share}</button>} />
-        <button type="button" onClick={save} className="pill" style={{ alignSelf: 'center', marginTop: -8, height: 34, padding: '0 14px', border: 0, background: '#fff', boxShadow: 'var(--card-shadow)', gap: 6, color: 'var(--ink)' }}>{Icon.save} 이 기기에 기록 저장</button>
+        <Nav title="내 결과" sub={`${today()} · ${r.who}`} right={<button className="circle" aria-label="친구에게 알려주기" onClick={() => shareApp(toast)}>{Icon.share}</button>} />
         {r.crisis && <Crisis />}
+        <VerdictCard v={v} gap={gap} />
+        <PeerCardView cs={peerCards(inp)} />
+        <ChangeCard inp={inp} />
 
-        {/* 1. 상태 한 줄 + 할 일 (판정 카드) */}
-        <VerdictCard v={v} />
-        {v.tier !== 1 && v.tier !== 4 && good.length > 0 && <span style={{ margin: '-4px 4px 0', fontSize: 13, lineHeight: 1.55, padding: '8px 12px', borderRadius: 12, background: 'var(--linen)', color: 'var(--ink)' }}><b>잘하고 있는 점</b> · {good.join(' · ')}</span>}
-
-        {/* 2. 주요 결과의 숫자와 뜻 */}
-        <section className="card" aria-label="주요 결과" style={{ padding: '6px 18px 14px' }}>
-          <div style={{ padding: '12px 0 8px', display: 'flex', flexDirection: 'column', gap: 2 }}>
-            <b style={{ fontSize: 17, color: 'var(--obsidian)' }}>주요 결과</b>
-            <span style={{ fontSize: 12, lineHeight: 1.5, color: 'var(--slate)' }}>지금 이 상태일 가능성을 추정한 값이에요. 앞으로 생길 확률이 아니에요. 또래 평균은 {r.group} 기준이에요.</span>
-          </div>
-          {probs.map((p) => <ProbRowB key={p.id} p={p} inp={inp} />)}
-          <a href="#/detail/obesity" style={{ display: 'flex', flexDirection: 'column', gap: 2, padding: '14px 0', borderTop: '1px solid var(--line)', textDecoration: 'none', color: 'inherit' }}>
-            <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}><b style={{ fontSize: 16, color: 'var(--obsidian)' }}>체형</b><span style={{ fontSize: 12, color: 'var(--slate)' }}>입력한 키·몸무게·허리로 계산</span></span>
-            <span style={{ fontSize: 15, color: 'var(--obsidian)' }}><b>BMI {ob.v}</b> · {ob.cat}{inp.waistCm != null ? (inp.waistCm >= (inp.sex === 'F' ? 85 : 90) ? ' · 복부비만 기준 해당' : ' · 허리둘레 기준 아래') : ' · 허리둘레 모름'}</span>
-          </a>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, padding: '14px 0 4px', borderTop: '1px solid var(--line)' }}>
-            <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}><b style={{ fontSize: 16, color: 'var(--obsidian)' }}>설문 결과</b><span style={{ fontSize: 12, color: 'var(--slate)' }}>점수와 등급 · 확률이 아니에요</span></span>
-            {doneScores.length > 0 ? (
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                {doneScores.map((x) => <a key={x.id} href={`#/detail/${x.id}`} className="pill" style={{ background: x.col === LOOK ? '#fdecea' : 'var(--bg)', color: x.col === LOOK ? RED : 'var(--charcoal)', fontWeight: 700, textDecoration: 'none' }}>{x.name} · {x.cat}</a>)}
-              </div>
-            ) : <span style={{ fontSize: 13 }}>선택 설문은 아직 하지 않았어요.</span>}
-            {scope.mods.some((m) => !m.done) && (
-              <span style={{ fontSize: 13, lineHeight: 1.7 }}>아직 체크하지 않음: {scope.mods.filter((m) => !m.done).map((m, k) => (
-                <span key={m.k}>{k ? ' · ' : ''}<a href={'#' + MOD_ROUTE[m.k]} onClick={() => setDraft((x) => ({ ...x, modules: { ...x.modules, [m.k]: true } }))}>{MODNAME[m.k]}</a></span>))}
-                <span style={{ display: 'block', fontSize: 12, color: 'var(--slate)' }}>체크하지 않은 분야는 낮거나 정상이라는 뜻이 아니에요.</span></span>
-            )}
-          </div>
-          <p style={{ margin: '10px 0 0', fontSize: 12, lineHeight: 1.55, color: 'var(--slate)' }}>추정 가능성이 낮아도 질환이 없다는 뜻은 아니에요.{osteoNa ? ' 골다공증은 50세 이상부터 계산해요.' : ''}</p>
-        </section>
-
-        {/* 3. 이번 결과에 반영한 정보 */}
-        <section className="card" aria-label="이번 결과에 반영한 정보" style={{ padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <b style={{ fontSize: 16, color: 'var(--obsidian)' }}>이번 결과에 반영한 정보</b>
-          <span style={{ fontSize: 13, lineHeight: 1.6 }}>{scope.body}</span>
-          <span style={{ fontSize: 13, lineHeight: 1.6 }}>{scope.life}{scope.dx.length ? ` · 진단받은 질환 ${scope.dx.join('·')}` : ''}</span>
-          <span style={{ fontSize: 13, lineHeight: 1.6 }}><b style={{ color: 'var(--obsidian)' }}>{scope.labLine}</b> · {scope.restLine}</span>
-          <a href="#/checkup" style={{ fontSize: 13, fontWeight: 700 }}>{scope.labs.length ? '검진 수치 고치기·더 넣기' : '검진 수치 넣기 (선택)'} →</a>
-          {!scope.labs.length && <span style={{ fontSize: 12, lineHeight: 1.5, color: 'var(--slate)' }}>검진 수치가 없어도 괜찮아요. 넣으면 혈압·공복혈당·총콜레스테롤은 측정값 기준과 함께 보여드려요.</span>}
-        </section>
-
-        {/* 진료용 결과 요약 (기록이 없어도) */}
-        <a className="card" href="#/summary" style={{ padding: '16px 18px', display: 'flex', alignItems: 'center', gap: 12, textDecoration: 'none', color: 'inherit' }}>
-          <span className="grow"><b style={{ fontSize: 15, color: 'var(--obsidian)' }}>진료용 결과 요약 저장</b><span style={{ display: 'block', fontSize: 12, lineHeight: 1.5, color: 'var(--slate)' }}>진료 때 보여줄 수 있게 인쇄하거나 PDF로 저장해요. 서버로 보내지 않아요.</span></span>
-          <span style={{ color: INK }}>{Icon.right}</span>
+        <a className="card" href="#/labs" style={{ padding: '16px 18px', display: 'flex', alignItems: 'center', gap: 12, textDecoration: 'none', color: 'inherit', background: 'var(--ink)' }}>
+          <span className="grow"><b style={{ fontSize: 16, color: '#fff' }}>검진 결과지가 있나요?</b><span style={{ display: 'block', fontSize: 13, lineHeight: 1.5, color: '#d8e8cf' }}>숫자를 넣으면 하나씩 쉽게 풀어 드려요. 결과도 더 정확해져요.</span></span>
+          <span style={{ color: 'var(--lime)' }}>{Icon.right}</span>
         </a>
-
-        {/* 6. 상세 비교 · 나머지 항목 · 근거 */}
-        <details className="more">
-          <summary className="card" style={{ padding: '16px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, cursor: 'pointer', listStyle: 'none' }}>
-            <span><b style={{ fontSize: 15, color: 'var(--obsidian)' }}>자세히 보기</b><span style={{ display: 'block', fontSize: 12, color: 'var(--slate)' }}>또래 비교 · 바꿔보기 · 앞으로의 발생 위험 · 생활·검진 체크 · 점수 · 읽는 법</span></span>
-            <span style={{ color: INK }}>{Icon.down}</span>
-          </summary>
-          <div className="more-body" style={{ marginTop: 14 }}>
-            <div className="card" style={{ padding: '18px 16px', display: 'flex', flexDirection: 'column', gap: 14 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}><b style={{ fontSize: 15, color: 'var(--obsidian)' }}>또래 평균과 비교 (몇 배)</b><span className="cap">{r.group}</span></div>
-              <div className="grid3">
-                {r.rings.map((g) => (
-                  <a key={g.id} href={`#/detail/${g.id}`} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, textDecoration: 'none' }}>
-                    <span className="cap" style={{ color: 'var(--obsidian)' }}>{g.name}</span>
-                    <Ring f={g.f} label={g.idx} col={g.col} />
-                    <span style={{ fontSize: 12, fontWeight: 700, color: g.col, textAlign: 'center' }}>{g.label}</span>
-                  </a>
-                ))}
-              </div>
-              <span style={{ fontSize: 12, lineHeight: 1.5, color: 'var(--slate)' }}>배수는 내 추정값과 또래 평균을 함께 볼 때 의미가 있어요. 예를 들어 0.3%와 0.1%도 3배예요.</span>
-            </div>
-            {r.hasManage ? (
-              <div className="card" style={{ padding: 18, display: 'flex', flexDirection: 'column', gap: 12 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}><b style={{ fontSize: 15, color: 'var(--obsidian)' }}>바꿔 입력하면 추정이 이렇게 달라져요</b><span className="tag" style={{ background: 'var(--linen)', color: INK }}>{r.scenarioText}</span></div>
-                {r.manage.slice(0, 2).map((m) => <span key={m.id} style={{ fontSize: 14 }}>{B_NAME[m.id] ?? m.name}: 현재 가능성 추정 {m.a}% → <b>{m.b}%</b></span>)}
-                <span style={{ fontSize: 12, lineHeight: 1.5, color: 'var(--slate)' }}>입력을 바꿨을 때의 계산이에요. 실제 치료 효과나 질병 감소를 보장하지 않아요.</span>
-                <a className="cta" href="#/whatif" style={{ height: 48, fontSize: 15 }}>직접 바꿔보기</a>
-              </div>
-            ) : (
-              <a className="card" href="#/whatif" style={{ padding: 18, display: 'flex', alignItems: 'center', gap: 12, textDecoration: 'none', color: 'inherit' }}>
-                <span className="grow"><b style={{ fontSize: 15, color: 'var(--obsidian)' }}>바꿔보기</b><span style={{ display: 'block', fontSize: 13 }}>몸 정보나 생활습관을 바꿔 입력하면 추정 결과가 어떻게 달라지는지 볼 수 있어요.</span></span>{Icon.right}
-              </a>
-            )}
-            <ExtraCards xs={future} title="앞으로 N년 안의 발생 위험" lead="위의 ‘현재 가능성’과 다른 값이에요. 연구에서 추적한 기간(4년·10년) 그대로 보여드려요. 40–69세 연구로 만든 계산식이에요." />
-            <ExtraCards xs={checks} />
-            <h2 className="h2">설문 점수</h2>
-            <p className="lead" style={{ marginTop: -6, fontSize: 13, color: 'var(--slate)' }}>검증된 설문 점수와 등급이에요. 확률로 바꾸지 않았어요.</p>
-            <div className="grid2">
-              {r.score.map((s) => (
-                <a key={s.id} href={`#/detail/${s.id}`} className="card" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4, padding: '16px 14px 18px', textDecoration: 'none', color: 'inherit' }}>
-                  <div style={{ alignSelf: 'stretch', display: 'flex', alignItems: 'center', gap: 6 }}><i style={{ width: 8, height: 8, borderRadius: '50%', background: s.col }} /><span className="cap" style={{ color: 'var(--obsidian)' }}>{s.name}</span></div>
-                  <div style={{ marginTop: 6 }}><Gauge f={s.frac} v={s.v} col={s.col} /></div>
-                  <span style={{ fontSize: 11, color: 'var(--slate)' }}>{s.unit}</span>
-                  <span style={{ fontSize: 13, fontWeight: 800, color: s.col, textAlign: 'center' }}>{s.status === 'needs_input' ? '아직 체크하지 않음' : s.cat}</span>
-                  <span style={{ fontSize: 11, lineHeight: 1.45, color: 'var(--slate)', textAlign: 'center' }}>{s.note}</span>
-                </a>
-              ))}
-            </div>
-            <div className="card" style={{ padding: '14px 18px' }}>
-              <b style={{ fontSize: 14, color: 'var(--obsidian)' }}>결과를 읽는 법</b>
-              <ul style={{ margin: '8px 0 0', paddingLeft: 18, fontSize: 13, lineHeight: 1.65 }}>
-                <li><b>현재 가능성 추정</b>: 지금 검사하면 기준에 해당할 가능성이에요. 예를 들어 ‘15%’는 비슷한 조건의 100명 중 약 15명이 검사에서 기준에 해당한다는 뜻이에요.</li>
-                <li><b>앞으로 N년 안의 발생 위험</b>: 지금은 아니지만 정해진 기간 안에 새로 생길 가능성이에요.</li>
-                <li><b>검진 수치</b>: 입력한 측정값이 기준 범위 어디에 있는지예요. 입력한 그날의 값이에요.</li>
-                <li><b>설문 점수</b>: 검증된 설문의 점수와 등급이에요.</li>
-                <li><b>또래 평균</b>: 같은 나이대(10살 단위)·같은 성별 한국인의 같은 기준 값이에요.</li>
-              </ul>
-            </div>
-          </div>
-        </details>
-        <p className="help" style={{ margin: '8px 4px 0' }}>{DISCLAIMER} 모든 계산은 이 기기 안에서만 했어요.</p>
+        <div className="card" style={{ padding: '4px 18px' }}>
+          {([['#/all', '모든 항목 보기', '콜레스테롤·골다공증·생활 체크·근거'], ['#/summary', '진료용 요약 저장', '인쇄하거나 PDF로 저장']] as const).map(([h, t, s]) => (
+            <a key={h} href={h} style={{ display: 'flex', alignItems: 'center', gap: 12, minHeight: 60, borderBottom: '1px solid var(--line)', textDecoration: 'none', color: 'inherit' }}>
+              <span className="grow"><b style={{ fontSize: 15, color: 'var(--obsidian)' }}>{t}</b><span style={{ display: 'block', fontSize: 12, color: 'var(--slate)' }}>{s}</span></span><span style={{ color: 'var(--ink)' }}>{Icon.right}</span>
+            </a>
+          ))}
+          <button type="button" onClick={save} style={{ display: 'flex', alignItems: 'center', gap: 12, width: '100%', minHeight: 60, border: 0, background: 'transparent', padding: 0, textAlign: 'left', font: 'inherit', color: 'inherit' }}>
+            <span className="grow"><b style={{ fontSize: 15, color: 'var(--obsidian)' }}>이 기기에 기록 저장</b><span style={{ display: 'block', fontSize: 12, color: 'var(--slate)' }}>몇 달 뒤 다시 체크하면 달라진 만큼 비교해요</span></span><span style={{ color: 'var(--ink)' }}>{Icon.save}</span>
+          </button>
+        </div>
+        <button type="button" className="cta outline" onClick={() => shareApp(toast)}>{Icon.share} 친구에게도 알려주기</button>
+        <p className="help" style={{ margin: '4px 4px 0' }}>{DISCLAIMER} 모든 계산은 이 기기 안에서만 했어요.</p>
       </div>
       <TabBar at="result" />
     </div>

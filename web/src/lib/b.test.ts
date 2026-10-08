@@ -72,7 +72,9 @@ describe('B 표시: 이유·확인 범위·칭찬은 실제 입력만', () => {
     expect(vb.tier).toBe(4);
     expect(vb.sub).not.toMatch(/검진/);
     expect(vb.sub).toMatch(/담배를 피우지 않고/);
-    expect(goodHabits(P.P3)).toEqual(['체중·허리둘레가 정상 범위예요']);   // 흡연·운동 부족·음주는 칭찬하지 않음
+    // 흡연·운동 부족·음주는 칭찬하지 않고, BMI 23–24.9(비만 전단계)도 '정상'이라고 하지 않는다
+    expect(goodHabits(P.P3)).toEqual([]);
+    expect(goodHabits({ ...P.P3, weightKg: Math.floor(22 * (P.P3.heightCm / 100) ** 2) })).toEqual(['체중·허리둘레가 정상 범위예요']);
     expect(normalLabs(P.P4)).toEqual(['공복혈당']);
     expect(normalLabs(P.P9)).toEqual([]);   // 총콜레스테롤 228은 정상(200 미만)이 아니다
   });

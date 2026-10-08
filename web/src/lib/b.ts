@@ -126,7 +126,8 @@ function habitPairs(inp: AppInput): [string, string][] {
   if (inp.smoke === 'never') g.push(['담배를 피우지 않고', '담배를 피우지 않아요']); else if (inp.smoke === 'past') g.push(['담배를 끊었고', '담배를 끊었어요']);
   if (inp.exercise === true) g.push(['꾸준히 운동하고', '꾸준히 운동해요']);
   if (inp.alcohol === 'none') g.push(['술을 마시지 않고', '술을 마시지 않아요']);
-  if (b >= 18.5 && b < 25) g.push(inp.waistCm != null && waistOk ? ['체중·허리둘레가 정상 범위이고', '체중·허리둘레가 정상 범위예요'] : ['체중이 정상 범위이고', '체중이 정상 범위예요']);
+  // 대한비만학회: 23–24.9는 비만 전단계라 '정상'이라고 칭찬하지 않는다
+  if (b >= 18.5 && b < 23) g.push(inp.waistCm != null && waistOk ? ['체중·허리둘레가 정상 범위이고', '체중·허리둘레가 정상 범위예요'] : ['체중이 정상 범위이고', '체중이 정상 범위예요']);
   return g;
 }
 export const goodHabits = (inp: AppInput) => habitPairs(inp).map((x) => x[1]);

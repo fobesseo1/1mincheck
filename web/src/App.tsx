@@ -3,6 +3,7 @@ import { StoreCtx, useRoute } from './ui.tsx';
 import { type Draft, emptyDraft, loadDraft, saveDraft, loadRecords, fromInput, type RecordItem } from './state.ts';
 import { Intro, Info, Life, Modules, Sleep, Mind, Digest, Diet } from './screens/Inputs.tsx';
 import { Results } from './screens/Results.tsx';
+import { All } from './screens/All.tsx';
 import { Checkup } from './screens/Checkup.tsx';
 import { Detail } from './screens/Detail.tsx';
 import { WhatIf } from './screens/WhatIf.tsx';
@@ -54,6 +55,7 @@ export function App() {
   if (!route.startsWith('/') || route === '/') screen = <Landing />;
   else if (APP[route]) { const S = APP[route]; screen = <div className="app"><S /></div>; }
   else if (route === '/result') screen = <Results />;
+  else if (route === '/all') screen = <All />;
   else if (route === '/whatif') screen = <WhatIf key={JSON.stringify(draft)} />;
   else if (route === '/record') screen = <Record />;
   else if (route === '/summary') screen = <div className="app"><div className="page fade"><Summary /></div></div>;

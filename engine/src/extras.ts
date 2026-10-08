@@ -292,7 +292,8 @@ export function kdrScore(i: Input, bp: 'normal' | 'pre' | 'htn') {
   return K.age[Math.floor((i.age - 40) / 5)] + K.urban + (i.smoke === 'never' ? 0 : K.smoke[i.smoke]) + (bp === 'normal' ? 0 : K.bp[bp])
     + (i.famDM ? K.fam : 0) + (waistHigh(i) ? K.waist : 0);
 }
-export function dm10(i: Input, L: Lab = {}): Extra | null {
+/** 10년 당뇨 점수와 점수표 비율(혈압을 모르면 가능한 혈압 구분마다 하나씩). 대상이 아니면 null. dm10 과 화면의 기준선 비교가 함께 쓴다 */
+export function dm10Calc(i: Input, L: Lab = {}) {
   if (i.dx.dm || (L.glu != null && L.glu >= 126) || i.age < 40 || i.age > 69 || i.waistCm == null) return null;
   const K = KDR[i.sex];
   // 원문 혈압 구분: 전단계 120–139/80–89, 고혈압 140/90 이상 또는 약 복용. 검진 혈압이 있으면 그 값으로
@@ -300,6 +301,12 @@ export function dm10(i: Input, L: Lab = {}): Extra | null {
   const bpm = bpNum ? (L.sbp! >= 140 || L.dbp! >= 90 ? 'htn' : L.sbp! >= 120 || L.dbp! >= 80 ? 'pre' : 'normal') : null;
   const bps: ('normal' | 'pre' | 'htn')[] = i.dx.htn ? ['htn'] : bpm ? [bpm] : htnYes(i) ? ['htn'] : i.bp === 'elevated' ? ['pre'] : i.bp === 'normal' ? ['normal'] : ['normal', 'pre', 'htn'];
   const ss = bps.map((b) => kdrScore(i, b)), rs = ss.map((s) => K.risk[kdrBand(s)]);
+  return { ss, rs, bpm };
+}
+export function dm10(i: Input, L: Lab = {}): Extra | null {
+  const c = dm10Calc(i, L);
+  if (!c) return null;
+  const { ss, rs, bpm } = c;
   const lo = Math.min(...rs), hi = Math.max(...rs), avg = 22.7;
   const pct = lo === hi ? `${lo}%` : `${lo}–${hi}%`;
   return { id: 'dm10', name: '10년 안에 당뇨가 생길 가능성', level: hi > avg ? 'look' : 'note', tag: '참고사항',

@@ -38,6 +38,7 @@ export const Icon = {
   sliders: <svg width="24" height="24" viewBox="0 0 24 24" {...P} strokeWidth={2}><path d="M4 7h10M18 7h2M4 17h4M12 17h8" /><circle cx="16" cy="7" r="2" /><circle cx="10" cy="17" r="2" /></svg>,
   chart: <svg width="24" height="24" viewBox="0 0 24 24" {...P} strokeWidth={2}><path d="M4 19V5M4 19h16" /><path d="M8 15l3-4 3 2 5-6" /></svg>,
   clock: <svg width="24" height="24" viewBox="0 0 24 24" {...P} strokeWidth={2}><circle cx="12" cy="12" r="8" /><path d="M12 8v4l3 2" /></svg>,
+  doc: <svg width="24" height="24" viewBox="0 0 24 24" {...P} strokeWidth={2}><path d="M7 3h7l4 4v14H7z" /><path d="M14 3v4h4M10 12h5M10 16h5" /></svg>,
   phone: <svg width="22" height="22" viewBox="0 0 24 24" {...P} strokeWidth={2}><rect x="6" y="2.5" width="12" height="19" rx="3" /><path d="M10 18.5h4" /></svg>,
 };
 
@@ -110,8 +111,8 @@ export function Next({ error, to, label, onGo }: { error: string | null; to: str
     </>
   );
 }
-export function TabBar({ at }: { at: 'result' | 'whatif' | 'record' | 'again' }) {
-  const T: [typeof at, string, string, ReactNode][] = [['result', '#/result', '결과', Icon.grid], ['whatif', '#/whatif', '바꿔보기', Icon.sliders], ['record', '#/record', '기록', Icon.chart], ['again', '#/start', '다시 체크', Icon.clock]];
+export function TabBar({ at }: { at: 'result' | 'labs' | 'whatif' | 'record' | 'again' }) {
+  const T: [typeof at, string, string, ReactNode][] = [['result', '#/result', '결과', Icon.grid], ['labs', '#/labs', '검진 풀이', Icon.doc], ['record', '#/record', '기록', Icon.chart], ['again', '#/start', '다시 체크', Icon.clock]];
   return (
     <nav className="tabbar" aria-label="주요 메뉴">
       {T.map(([k, h, t, ic]) => <a key={k} href={h} aria-current={at === k ? 'page' : undefined}>{ic}{t}</a>)}

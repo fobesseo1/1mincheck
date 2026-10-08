@@ -148,7 +148,7 @@ export function verdict(inp: AppInput, r: R, sc: Scenario): Verdict {
   // 칭찬: '…고, …고, …이에요' 한 문장 (명령처럼 들리지 않게)
   const good: [string, string][] = [inp.smoke === 'never' ? ['담배를 피우지 않고', '담배를 피우지 않아요'] : ['담배를 끊었고', '담배를 끊었어요'],
     ...(inp.exercise ? [['운동을 꾸준히 하고', '운동을 꾸준히 해요'] as [string, string]] : []),
-    ...(b >= 18.5 && b < 25 && !waistHigh(inp) ? [['체중·허리둘레도 정상이고', '체중·허리둘레도 정상이에요'] as [string, string]] : [])];
+    ...(b >= 18.5 && b < 23 && !waistHigh(inp) ? [['체중·허리둘레도 정상이고', '체중·허리둘레도 정상이에요'] as [string, string]] : [])];
   const praise = good.map((g, k) => (k === good.length - 1 ? g[1] : g[0])).join(', ');
   // 넣은 검진 수치가 모두 정상일 때만 칭찬 (하나라도 경계·이상이면 말하지 않음)
   const allNormal = (L.sbp == null || (L.sbp < 120 && L.dbp! < 80)) && (L.glu == null || L.glu < 100) && (L.tc == null || L.tc < 200) && (L.tg == null || L.tg < 150)
