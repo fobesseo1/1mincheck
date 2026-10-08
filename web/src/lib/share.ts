@@ -7,3 +7,6 @@ export async function shareApp(toast: (m: string) => void) {
     else { await navigator.clipboard.writeText(`${SHARE_TEXT} ${APP_URL()}`); toast('소개 문구와 주소를 복사했어요'); }
   } catch { /* 취소 */ }
 }
+
+/** 개인정보 한 줄. Vercel 빌드에서 익명 방문 통계를 켜면 그 사실도 함께 말한다(vite.config.ts __ANALYTICS__) */
+export const PRIVACY_LINE = __ANALYTICS__ ? '건강정보는 보내지 않고 방문 수만 익명으로 세요' : '입력한 건강정보는 서버로 보내지 않아요';

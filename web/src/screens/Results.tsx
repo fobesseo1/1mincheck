@@ -72,7 +72,7 @@ function VerdictCard({ v, gap }: { v: Verdict; gap: string }) {
 }
 
 /** 100명 점 그림. rank 가 있으면 낮은 순서로 세운 줄에서 내 자리, 없으면 n명 칠하기 */
-function Dots({ rank, n, hot }: { rank?: number; n?: number; hot: boolean }) {
+export function Dots({ rank, n, hot }: { rank?: number; n?: number; hot: boolean }) {
   return (
     <div className="dots100" aria-hidden="true">
       {Array.from({ length: 100 }, (_, k) => {

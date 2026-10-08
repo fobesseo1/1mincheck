@@ -49,7 +49,7 @@ export function LabsInput() {
 }
 
 /** 구간 막대: 구간마다 같은 폭, 점이 왼쪽에서 제자리로 미끄러져 들어온다 */
-function ZoneBar({ c, delay }: { c: LabCard; delay: number }) {
+export function ZoneBar({ c, delay }: { c: LabCard; delay: number }) {
   const n = c.zones.length;
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
