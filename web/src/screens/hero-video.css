@@ -1,24 +1,36 @@
-/* 랜딩 첫 화면 (HeroVideo.tsx): 흰 바탕 큰 제목 + 아래 소개 영상이 둥근 화면 → 꽉 찬 화면 */
-.hv { position: relative; background: #fff; }
-.hv-head { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 168px 16px 56px; }
-.lm-page .hv h1, .hv h1 { margin: 0; font-size: clamp(48px, 7vw, 112px); font-weight: 600; line-height: 1.1; letter-spacing: -0.005em; color: #0e0f0c; }
-.hv h1 em { font-style: normal; color: #1e6a12; }
-.lm-page .hv-lead, .hv-lead { margin: 22px 0 0; font-size: clamp(17px, 1.5vw, 21px); line-height: 1.6; color: #45483f; }
-.hv-actions { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 12px 22px; margin-top: 30px; }
-.hv-note { margin-top: 16px; font-size: 13px; color: #6b6e68; }
-.hv-stage { position: relative; }
-.hv-sticky { display: flex; align-items: flex-start; justify-content: center; }
-.hv-frame { position: relative; overflow: hidden; background: #fff; box-shadow: 0 40px 90px -40px rgba(22, 51, 0, .35), 0 0 0 1px rgba(22, 51, 0, .06); }
+/* 랜딩 첫 화면 A안 (HeroVideo.tsx): 원래 진초록 사진 배경 + 왼쪽 큰 제목 + 오른쪽 둥근 화면 틀 속 영상 */
+.hv { position: relative; isolation: isolate; overflow: clip; min-height: 720px; height: 100svh; background: #0b1d07; color: #fff; }
+.hv-bg { position: absolute; inset: 0; z-index: -2; }
+.hv-bg picture, .hv-bg img { display: block; width: 100%; height: 100%; }
+.hv-bg img { object-fit: cover; object-position: center; }
+.hv-shade { position: absolute; inset: 0; z-index: -1; background: linear-gradient(90deg, rgba(8, 28, 5, .82) 0%, rgba(8, 28, 5, .55) 45%, rgba(8, 28, 5, .25) 100%), linear-gradient(0deg, rgba(8, 28, 5, .6) 0%, rgba(8, 28, 5, 0) 45%); }
+.hv-inner { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr); align-items: center; gap: 56px; width: min(1320px, calc(100% - 96px)); height: 100%; margin: 0 auto; padding-top: 72px; }
+.lm-page .hv h1, .hv h1 { margin: 0; font-size: clamp(44px, 4.9vw, 78px); font-weight: 600; line-height: 1.12; letter-spacing: -0.005em; color: #fff; white-space: nowrap; }
+.hv h1 em { font-style: normal; color: #9fe870; }
+.lm-page .hv-lead, .hv-lead { margin: 22px 0 0; font-size: clamp(17px, 1.45vw, 21px); line-height: 1.6; color: rgba(255, 255, 255, .86); }
+.hv-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 24px; margin-top: 32px; }
+.hv-actions .lm-text-link { color: #fff !important; }
+.hv-note { display: block; margin-top: 18px; font-size: 13px; color: rgba(255, 255, 255, .6); }
+/* 화면 틀: 얇은 반투명 테두리 + 둥근 모서리 + 그림자 */
+.hv-screen { position: relative; width: 100%; max-width: 680px; justify-self: end; aspect-ratio: 16 / 9; overflow: hidden; border-radius: 20px; background: #fff;
+  box-shadow: 0 0 0 6px rgba(255, 255, 255, .14), 0 40px 80px -24px rgba(0, 0, 0, .55); }
 .hv-video { display: block; width: 100%; height: 100%; object-fit: cover; background: #fff; }
-.hv-sound, .hv-play { position: absolute; display: inline-flex; align-items: center; gap: 8px; border: 0; cursor: pointer; font: inherit; font-weight: 600; color: #fff; background: rgba(14, 15, 12, .78); backdrop-filter: blur(8px); border-radius: 999px; }
-.hv-sound { right: 20px; bottom: 20px; padding: 10px 16px; font-size: 14px; }
-.hv-play { left: 50%; top: 50%; transform: translate(-50%, -50%); padding: 16px 24px; font-size: 17px; background: #163300; }
-.hv-sound:focus-visible, .hv-play:focus-visible { outline: 3px solid #9fe870; outline-offset: 3px; }
-/* 넓은 화면: 붙잡고 커진다 */
-.hv-stage[data-mode='wide'] { height: 190vh; }
-.hv-stage[data-mode='wide'] .hv-sticky { position: sticky; top: 0; height: 100vh; align-items: center; }
-/* 좁은 화면: 둥근 화면 그대로 */
-.hv-stage[data-mode='narrow'] { padding: 0 16px 48px; }
-.hv-stage[data-mode='narrow'] .hv-frame { width: 100%; aspect-ratio: 16 / 9; border-radius: 20px; }
-.hv-stage[data-mode='narrow'] .hv-sound { right: 10px; bottom: 10px; padding: 8px 12px; font-size: 12px; }
-@media (max-width: 700px) { .hv-head { padding-top: 128px; padding-bottom: 36px; } }
+.hv-video:fullscreen { object-fit: contain; background: #fff; }
+.hv-full { position: absolute; right: 10px; bottom: 10px; display: inline-flex; align-items: center; gap: 5px; padding: 5px 10px; border: 0; border-radius: 999px; cursor: pointer;
+  font: inherit; font-size: 12px; font-weight: 500; color: #fff; background: rgba(14, 15, 12, .6); backdrop-filter: blur(6px); transition: background .2s; }
+.hv-full:hover { background: rgba(14, 15, 12, .85); }
+.hv-full:focus-visible { outline: 3px solid #9fe870; outline-offset: 2px; }
+
+/* 태블릿·휴대폰: 제목 위, 화면 아래 */
+@media (max-width: 1023px) {
+  .hv { height: auto; min-height: 100svh; }
+  .hv-inner { grid-template-columns: 1fr; gap: 40px; width: calc(100% - 48px); padding: 132px 0 64px; text-align: center; }
+  .hv-actions { justify-content: center; }
+  .hv-screen { justify-self: center; max-width: 620px; }
+  .hv-shade { background: linear-gradient(0deg, rgba(8, 28, 5, .85) 0%, rgba(8, 28, 5, .55) 55%, rgba(8, 28, 5, .35) 100%); }
+}
+@media (max-width: 700px) {
+  .hv-inner { width: calc(100% - 32px); padding: 112px 0 48px; }
+  .lm-page .hv h1, .hv h1 { font-size: clamp(36px, 10vw, 46px); }
+  .hv-screen { border-radius: 14px; box-shadow: 0 0 0 4px rgba(255, 255, 255, .14), 0 24px 50px -20px rgba(0, 0, 0, .55); }
+}
