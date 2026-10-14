@@ -13,3 +13,6 @@ web/e2e-shots-b/
 web/e2e-shots-v2/
 
 .vercel
+
+# 캐릭터 정리 스크립트가 함께 만드는 시안용 목록 (사이트는 characters.json 만 씀)
+web/public/characters/sets.js
