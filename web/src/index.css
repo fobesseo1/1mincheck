@@ -76,6 +76,10 @@
   /* body 는 투명: 앱 화면 뒤 색 덩어리(.fields, z-index −1)가 body 바탕에 가리지 않게 */
   html { background: var(--color-canvas); color: var(--color-ink); }
   body { background: transparent; color: var(--color-ink); }
+  /* 자간 -0.5% 전체 통일: body 한 곳에만 걸면 16px 기준 길이(-0.08px)로 물려받아 글자 크기마다 비율이 달라진다
+     → 모든 요소에 각자 글자 크기 기준 -0.005em */
+  *, ::before, ::after { letter-spacing: -0.005em; }
+  button, input, select, textarea, optgroup { letter-spacing: -0.005em; }   /* Tailwind 기본(inherit)을 덮는다 */
   body { font-family: var(--font-sans); letter-spacing: -0.005em; min-height: 100dvh; word-break: keep-all; overflow-wrap: break-word;
     -webkit-font-smoothing: antialiased; -webkit-tap-highlight-color: transparent; font-weight: 400; }
   b, strong { font-weight: 500; }
