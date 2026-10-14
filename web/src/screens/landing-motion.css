@@ -77,3 +77,35 @@
 @media(min-width:1600px){.lm-float-body,.lm-float-htn{--x:-32vw}.lm-float-dm,.lm-float-nafld{--x:32vw}.lm-float-card{width:300px;padding:26px}.lm-float-habit{width:320px}}
 @media(max-width:1000px) and (min-width:701px){.lm-float-card{width:224px;padding:18px}.lm-float-card .lm-orbit-ratio{font-size:43px}.lm-orbit-title h2{font-size:58px}.lm-float-body,.lm-float-htn{--x:-34vw}.lm-float-dm,.lm-float-nafld{--x:34vw}.lm-float-habit{width:270px}.lm-orbit-comparison{font-size:9px}}
 @media(max-width:700px){.lm-orbit-title{transform:translateY(calc(-170px*(1 - var(--gather))))}.lm-orbit-title h2{font-size:42px}.lm-orbit-title .lm-eyebrow{font-size:10px;margin-bottom:12px}.lm-float-card{width:157px;padding:14px;border-radius:14px;top:56%}.lm-float-top{font-size:11px;margin-bottom:13px;gap:5px;flex-wrap:wrap}.lm-float-top .lm-result-indicator{font-size:8px}.lm-float-card .lm-orbit-ratio{font-size:35px;gap:3px;margin-bottom:12px}.lm-float-card .lm-orbit-ratio small{font-size:11px}.lm-float-card .lm-orbit-ratio small:first-child{font-size:9px;margin-right:1px}.lm-orbit-comparison{font-size:8px;display:flex;flex-direction:column;gap:3px;padding-top:10px}.lm-orbit-bar{margin-top:8px}.lm-profile-heading{font-size:24px;margin:0 0 15px}.lm-profile-heading>span{font-size:12px;margin-left:4px}.lm-profile-metrics{gap:6px;padding-top:10px}.lm-profile-metrics>span{font-size:8px}.lm-profile-metrics b{font-size:14px}.lm-profile-metrics b small{font-size:8px}.lm-float-body{--x:-25vw;--y:-24vh}.lm-float-dm{--x:25vw;--y:-24vh}.lm-float-htn{--x:-25vw;--y:12vh}.lm-float-nafld{--x:25vw;--y:12vh}.lm-float-habit{--x:0px;--y:29vh;width:254px;padding:14px}.lm-float-habit strong{font-size:14px}.lm-habit-check{width:30px;height:30px}}
+
+/* ── 떠 있는 메뉴 알약 (리퀴드 글래스, 화면 아래 가운데) ── */
+.lm-header.has-dock nav, .lm-header.has-dock .lm-header-start { display: none; }
+.lm-header.has-dock .lm-menu { display: flex; align-items: center; justify-content: center; }
+.lm-header.has-dock .lm-mobile-nav { display: flex !important; flex-direction: column; border-radius: 23px; background: white; color: #163300; padding: 12px 20px; margin: 8px 0 0 auto; max-width: 360px; box-shadow: 0 12px 40px #16330013; }
+.lm-header.has-dock .lm-mobile-nav a { display: flex; justify-content: space-between; padding: 14px 0; border-bottom: 1px solid #edf1e9; font-size: 14px; }
+.lm-header.has-dock .lm-mobile-nav a:last-child { border: 0; }
+.lm-dock { position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom)); translate: -50% 0; z-index: 60; display: flex; align-items: center; gap: 6px; padding: 6px; border-radius: 999px; color: var(--lm-green); transition: color .3s; }
+.lm-dock.is-dark { color: #fff; }
+.lm-dock-tabs { position: relative; display: flex; isolation: isolate; }
+.lm-dock-tab { position: relative; z-index: 1; display: grid; place-items: center; height: 48px; padding: 0 20px; border-radius: 999px; font-size: 15px; font-weight: 500; white-space: nowrap; color: inherit; }
+.lm-dock-lens { position: absolute; top: 0; height: 48px; z-index: 0; border-radius: 999px; background: rgba(22,51,0,.08); box-shadow: inset 0 1px 1px rgba(255,255,255,.9), inset 0 -1px 1px rgba(22,51,0,.06), 0 2px 10px rgba(22,51,0,.10); transition: opacity .25s; }   /* 밝은 바탕: 흰 렌즈는 묻히므로 옅은 진초록 틴트 */
+.lm-dock.is-dark .lm-dock-lens { background: rgba(255,255,255,.18); box-shadow: inset 0 1px 1px rgba(255,255,255,.5); }
+.lm-dock .lm-dock-start { min-height: 48px; padding: 0 20px; font-size: 15px; gap: 10px; width: auto; }
+.lm-dock .lm-dock-start svg { width: 17px; }
+@media (max-width: 700px) {
+  .lm-dock { bottom: calc(14px + env(safe-area-inset-bottom)); gap: 4px; padding: 5px; }
+  .lm-dock-tab { height: 44px; padding: 0 11px; font-size: 13px; }
+  .lm-dock-lens { height: 44px; }
+  .lm-dock .lm-dock-start { min-height: 44px; padding: 0 14px; font-size: 13px; gap: 6px; }
+  .lm-dock .lm-dock-start svg { display: none; }
+}
+@media (max-width: 360px) { .lm-dock-tab { padding: 0 8px; font-size: 12px; } .lm-dock .lm-dock-start { padding: 0 11px; font-size: 12px; } }
+
+/* ── v3 재질: 밝은 구간은 투명하게 두고 뒤의 옅은 색 덩어리(.fields)가 비치게 → 아래 메뉴 알약이 유리로 보인다.
+   어두운 구간(첫 화면 · 마지막 진초록)과 카드 · 결과지 같은 흰 면은 그대로 ── */
+.lm-page, .lm-peer-scene, .lm-bridge, .sp, .ls-trio, .ls-change, .ls-people, .ls-try, .ls-labs, .ls-minute, .lm-faq { background: transparent; }
+/* 폰: 첫 화면을 지나면 위쪽 머리글은 올려 숨긴다 (아래 메뉴 알약만 남김). 메뉴를 연 동안은 그대로 */
+.lm-header { transition: color .35s, transform .4s cubic-bezier(.2, .8, .2, 1); }
+@media (max-width: 700px) { .lm-header.has-dock.is-solid:not(.is-open) { transform: translateY(calc(-100% - 24px)); } }
+/* 첫 화면 유리 버튼 */
+.lm-glass-link { color: #fff !important; gap: 10px; }

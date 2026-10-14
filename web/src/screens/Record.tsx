@@ -45,7 +45,7 @@ export function Record() {
     <AppShell tab="record">
       <Nav title="기록 비교" sub={`이 기기에 저장된 기록 ${n}개`} />
       <Card className="flex items-center gap-2 p-2">{sel(pi, setPi, '이전')}<ArrowRight className="size-5 text-brand" />{sel(ci, setCi, '지금', true)}</Card>
-      <div className="flex items-stretch rounded-card bg-ink px-2 py-5 text-white shadow-float">
+      <div className="flex items-stretch rounded-card bg-brand px-2 py-5 text-white shadow-float">
         {[['체중', v.weight.v, v.weight.s], null, ['좋아진 항목', `${v.down}개`, v.habit], null, ['허리', v.waist.v, v.waist.s]].map((x, k) => x ? (
           <div key={k} className={cn('flex flex-1 flex-col items-center justify-center gap-1 text-center', k === 2 && 'flex-[1.5]')}>
             <span className="text-[11px] text-white/70">{x[0]}</span>

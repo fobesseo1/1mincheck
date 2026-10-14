@@ -3,17 +3,21 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { ChevronDown, ChevronRight, FileText, Bookmark, Share2, ClipboardList, LayoutList, RotateCcw, TriangleAlert, TrendingDown, TrendingUp, Equal } from 'lucide-react';
 import type { Input } from '../../../engine/src/engine.ts';
-import { useStore, Nav, Crisis, AppShell, Help } from '../ui.tsx';
+import { useStore, Nav, Crisis, AppShell, Help, Fields } from '../ui.tsx';
 import { toInput, suggestScenario, saveRecords, today, type AppInput } from '../state.ts';
 import { viewResults } from '../lib/view.ts';
 import { verdict, type Verdict } from '../lib/verdict.ts';
 import { DISCLAIMER } from '../lib/content.ts';
 import { peerCards, standing, type PeerCard } from '../lib/peer.ts';
-import { bmiGauge, waistGauge, futureEffects, weightTrack, waistTrack, toneAt, type Gauge, type Track } from '../lib/lines.ts';
+import { bmiGauge, waistGauge, futureEffects, weightTrack, waistTrack, toneAt, waistCut, type Gauge } from '../lib/lines.ts';
+import { bodyStage, bellyMix, weightStops, waistStops, toUnit, toCm, unitLabel, cutLabel, IN, initialWaistUnit, saveWaistUnit, type WaistUnit } from '../lib/body.ts';
+import { useCharacterSet } from '../lib/characters.ts';
+import { reducedMotion } from '../lib/spring.ts';
+import { BodyCharacter, type BodyCharacterHandle } from '@/components/body-character';
 import { shareApp } from '../lib/share.ts';
 import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+import { Button, GlassButton } from '@/components/ui/button';
+import { Badge, type BadgeVariant } from '@/components/ui/badge';
 import { ZoneSlider } from '@/components/ui/zone-slider';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { ZoneGauge, Dots, CountTo, TONE_TEXT, type Tone } from '@/components/viz';
@@ -28,6 +32,7 @@ export function useInput(): Input | null { const { draft } = useStore(); return 
 export function NeedInput() {
   return (
     <div className="mx-auto flex min-h-dvh max-w-[440px] flex-col justify-center gap-4 px-5 text-center">
+      <Fields />
       <h1 className="text-heading-sm text-ink-soft">아직 답한 내용이<b className="block text-ink">없어요</b></h1>
       <p className="text-body-sm text-ink-soft">몸 정보와 생활 질문에 답하면 결과를 볼 수 있어요. 약 1분이면 돼요.</p>
       <Button asChild size="lg" className="mt-4"><a href="#/start">체크 시작하기</a></Button>
@@ -40,7 +45,7 @@ export function NeedInput() {
 const TIER: Record<Verdict['tier'], { card: string; title: string; sub: string; num: string; row: string }> = {
   1: { card: 'bg-risk text-white', title: 'text-white', sub: 'text-white/90', num: 'bg-risk text-white', row: 'bg-white' },
   2: { card: 'bg-white', title: 'text-risk', sub: 'text-ink-soft', num: 'bg-risk-bg text-risk', row: 'bg-sand-soft' },
-  5: { card: 'bg-sand-soft', title: 'text-ink', sub: 'text-ink-soft', num: 'bg-ink text-white', row: 'bg-white' },
+  5: { card: 'bg-sand-soft', title: 'text-ink', sub: 'text-ink-soft', num: 'bg-brand text-white', row: 'bg-white' },
   3: { card: 'bg-white', title: 'text-ink', sub: 'text-ink-soft', num: 'bg-brand text-white', row: 'bg-sand-soft' },
   4: { card: 'bg-good-bg', title: 'text-good', sub: 'text-ink-soft', num: 'bg-good text-white', row: 'bg-white' },
 };
@@ -165,24 +170,35 @@ export function LineBar({ g, changed, delay }: { g: Gauge; changed: boolean; del
   );
 }
 
-/** 막대 하나 = 손잡이 하나. 큰 숫자(kg·cm) 옆에 바뀐 만큼, 오른쪽에 지금 구간(글자 색 하나) */
-function DragBar({ title, unit, now, value, onChange, track, sub }: { title: string; unit: string; now: number; value: number; onChange: (v: number) => void; track: Track; sub?: string }) {
-  const z = toneAt(track, value), d = Math.round((value - now) * 10) / 10;
+const BADGE: Record<string, BadgeVariant> = { low: 'risk', ok: 'good', mid: 'warn', high: 'risk' };
+
+/** 막대 하나 = 손잡이 하나. 위 줄: 이름 · 기준 / 가운데: 큰 숫자 + 바뀐 만큼 (+ 허리 단위) · 지금 구간 알약 / 아래: 구간 막대 */
+function DragBar({ title, unit, value, delta, note, zone, picker, slider }: { title: string; unit: string; value: number; delta: number; note: string; zone: { name: string; tone: string }; picker?: ReactNode; slider: ReactNode }) {
   return (
-    <div className="flex flex-col gap-1">
-      <div className="flex items-end justify-between gap-3">
-        <div className="flex flex-col gap-1">
-          <span className="text-body-sm text-ink-soft">{title}</span>
-          <b className="text-[30px] leading-none font-semibold tabular-nums">{value}<small className="ml-0.5 text-body font-normal text-ink-soft">{unit}</small>
-            {d !== 0 && <span className={cn('ml-2 text-body font-semibold', d < 0 ? 'text-good' : 'text-risk')}>{`${d > 0 ? '+' : '−'}${Math.abs(d)}${unit}`}</span>}</b>
-        </div>
-        <div className="flex flex-col items-end gap-0.5 text-right">
-          <span className={cn('text-body font-semibold', TONE_TEXT[z.tone])}>{z.name}</span>
-          {sub && <span className="text-caption text-ink-soft">{sub}</span>}
-        </div>
+    <div className="flex flex-col">
+      <div className="flex items-baseline justify-between gap-3"><span className="text-body-sm text-ink-soft">{title}</span><span className="text-caption text-ink-soft tabular-nums">{note}</span></div>
+      <div className="mt-1 flex items-center justify-between gap-3">
+        <b className="flex items-center text-[30px] leading-none font-semibold tabular-nums">
+          {value}{!picker && <small className="ml-0.5 text-body font-normal text-ink-soft">{unit}</small>}
+          {delta !== 0 && <span className={cn('ml-2 text-body font-semibold', delta < 0 ? 'text-good' : 'text-risk')}>{`${delta > 0 ? '+' : '−'}${Math.abs(delta)}${unit}`}</span>}
+          {picker}
+        </b>
+        <Badge variant={BADGE[zone.tone]} className="h-7 px-3 text-body-sm font-semibold">{zone.name}</Badge>
       </div>
-      <ZoneSlider label={`${title} 바꿔보기`} valueText={`${value}${unit}`} min={track.min} max={track.max} value={value} onChange={onChange} zones={track.zones} now={now} normal={track.normal} cut={track.cut} tone={z.tone} />
+      {slider}
     </div>
+  );
+}
+
+/** 허리 단위 고르기: 사이트 입력 화면과 같은 모양(숫자 옆 세로 두 줄, 고른 쪽만 진초록) */
+export function UnitPick({ unit, onChange }: { unit: WaistUnit; onChange: (u: WaistUnit) => void }) {
+  return (
+    <span role="radiogroup" aria-label="허리 단위" className="ml-2 inline-flex flex-col gap-px">
+      {([['in', '인치'], ['cm', 'cm']] as const).map(([u, t]) => (
+        <button key={u} type="button" role="radio" aria-checked={unit === u} onClick={() => onChange(u)}
+          className={cn('cursor-pointer px-0.5 text-left text-[13px] leading-[18px]', unit === u ? 'font-semibold text-brand' : 'font-normal text-ash')}>{t}</button>
+      ))}
+    </span>
   );
 }
 
@@ -191,38 +207,53 @@ type Row = { k: string; name: string; b: string; a: string; dir: 'down' | 'up' |
 const ZRANK: Record<string, number> = { 정상: 0, 저체중: 1, '비만 전단계': 2, '1단계 비만': 3, '2단계 비만': 4, '3단계 비만': 5, 복부비만: 3 };
 /** 두 확률의 차이(%p). '23.4%' 같은 한 값일 때만 (범위면 null) */
 const ppDiff = (b: string, a: string) => { const x = /^(\d+(?:\.\d+)?)%$/.exec(b), y = /^(\d+(?:\.\d+)?)%$/.exec(a); return x && y ? Math.round((parseFloat(y[1]) - parseFloat(x[1])) * 10) / 10 : null; };
+/** 말풍선용: '8.9%' · '6.1–9.8%' 의 큰 쪽 숫자 */
+const pctHi = (t: string) => parseFloat(t.split('–').pop()!);
+const RISK_LABEL: Record<string, string> = { dm10: '10년 안에 당뇨가 생길 위험', htn4: '4년 안에 고혈압이 생길 위험' };
 
 /**
  * ③ 몸무게·허리를 줄이면, 위험도는? — 몸무게·허리를 따로 움직이면, 같은 조건에서 바꾼 몸 정보로 계산한 예측값을 변경 전 → 변경 후로 보여준다.
  * 값은 lines.ts(원문 점수표) 그대로이고 보간하지 않는다. anchor: 결과 화면에서 할 일 버튼이 내려오는 자리(랜딩에서는 null)
+ * 체형 캐릭터: 몸무게 = 체형 단계, 허리 = 배만. 멈췄을 때 의미 있는 변화가 있으면 머리 옆 말풍선(위험 값 > 복부비만 > 비만도).
+ * 허리는 기본 인치(정수만), cm 로 바꿀 수 있다. 계산은 늘 cm.
  */
 export function ChangeCard({ inp, anchor = 'change', example, heading = true, start, demo }: { inp: Input; anchor?: string | null; example?: string; heading?: boolean; start?: { dw?: number; dwa?: number };
-  /** 랜딩 시연: 화면에 보이면 [몸무게 변화, 허리 변화]를 차례로 보여 주고, 사람이 손대면 멈춘다 */
-  demo?: [number, number][] }) {
-  const [w, setW0] = useState(inp.weightKg + (start?.dw ?? 0)), [wa, setWa0] = useState((inp.waistCm ?? 0) + (inp.waistCm == null ? 0 : start?.dwa ?? 0));
-  const box = useRef<HTMLDivElement>(null), touched = useRef(false);
-  const setW = (v: number) => { touched.current = true; setW0(v); }, setWa = (v: number) => { touched.current = true; setWa0(v); };
+  /** 랜딩 시연: 화면에 보이면 [몸무게 변화 kg, 허리 변화(그 단위 눈금)]를 차례로 보여 주고, 사람이 손대면 멈춘다 */
+  demo?: Record<WaistUnit, [number, number][]> }) {
+  const { draft } = useStore();
+  const hasWaist = inp.waistCm != null, cut = waistCut(inp.sex);
+  const [unit, setUnit0] = useState<WaistUnit>(() => initialWaistUnit(draft));
+  const [w, setW0] = useState(inp.weightKg + (start?.dw ?? 0));
+  const [wv, setWv0] = useState(hasWaist ? toUnit(inp.waistCm! + (start?.dwa ?? 0), unit) : 0);
+  const box = useRef<HTMLDivElement>(null), touched = useRef(false), char = useRef<BodyCharacterHandle>(null);
+  const setW = (v: number) => { touched.current = true; setW0(v); }, setWv = (v: number) => { touched.current = true; setWv0(v); };
+  const wv0 = hasWaist ? toUnit(inp.waistCm!, unit) : 0;
+  // 눈금을 안 움직였으면 입력한 cm 그대로(인치 눈금으로 바꾸며 생기는 작은 차이로 결과가 바뀌지 않게)
+  const waistNow = !hasWaist ? 0 : wv === wv0 ? inp.waistCm! : toCm(wv, unit);
+  const setUnit = (u: WaistUnit) => { if (u === unit) return; touched.current = true; saveWaistUnit(u); setUnit0(u); setWv0(toUnit(waistNow, u)); };
   useEffect(() => {
-    const el = box.current; if (!demo || !el || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    const el = box.current; if (!demo || !el || reducedMotion()) return;
+    const seq = demo[unit];
     let timer = 0;
-    const step = (k: number) => { setW0(inp.weightKg + demo[k][0]); if (inp.waistCm != null) setWa0(inp.waistCm + demo[k][1]); };
+    const step = (k: number) => { setW0(inp.weightKg + seq[k][0]); if (hasWaist) setWv0(toUnit(inp.waistCm!, unit) + seq[k][1]); };
     const io = new IntersectionObserver(([e]) => {
       clearInterval(timer);
       if (!e.isIntersecting || touched.current) return;
       let k = 0; step(0);
-      timer = window.setInterval(() => { k++; if (touched.current || k >= demo.length) { clearInterval(timer); return; } step(k); }, 1400);
+      timer = window.setInterval(() => { k++; if (touched.current || k >= seq.length) { clearInterval(timer); return; } step(k); }, 1400);
     }, { threshold: 0.55 });
     io.observe(el);
     return () => { io.disconnect(); clearInterval(timer); };
-  }, [demo, inp]);
-  const wt = weightTrack(inp), wat = waistTrack(inp);
-  const dw = Math.round((w - inp.weightKg) * 10) / 10, dwa = inp.waistCm == null ? 0 : Math.round((wa - inp.waistCm) * 10) / 10;
+  }, [demo, inp, unit, hasWaist]);
+  const wt = weightTrack(inp), wat = waistTrack(inp), h2 = (inp.heightCm / 100) ** 2, wStops = weightStops(inp.heightCm);
+  const dw = Math.round((w - inp.weightKg) * 10) / 10, dwa = hasWaist ? Math.round((waistNow - inp.waistCm!) * 10) / 10 : 0, dWv = wv - wv0;
   const changed = dw !== 0 || dwa !== 0;
   const bg = bmiGauge(inp, dw), wg = waistGauge(inp, dwa), { effects, hints } = futureEffects(inp, dw, dwa);
-  const down = dw <= 0 && dwa <= 0, up = dw >= 0 && dwa >= 0, verb = down ? '줄이면?' : up ? '늘리면?' : '바꾸면?';
+  const down = dw <= 0 && dWv <= 0, up = dw >= 0 && dWv >= 0, verb = down ? '줄이면?' : up ? '늘리면?' : '바꾸면?';
   const amt = (d: number, u: string) => (down || up ? `${Math.abs(d)}${u}` : `${d > 0 ? '+' : '−'}${Math.abs(d)}${u}`);
+  const wu = unitLabel(unit);
   const title = !changed ? '막대를 움직여 보세요'
-    : dw && dwa ? `허리둘레 ${amt(dwa, 'cm')}·몸무게 ${amt(dw, 'kg')}을 ${verb}` : dwa ? `허리둘레를 ${amt(dwa, 'cm')} ${verb}` : `몸무게를 ${amt(dw, 'kg')} ${verb}`;
+    : dw && dWv ? `허리둘레 ${amt(dWv, wu)}·몸무게 ${amt(dw, 'kg')}을 ${verb}` : dWv ? `허리둘레를 ${amt(dWv, wu)} ${verb}` : `몸무게를 ${amt(dw, 'kg')} ${verb}`;
   const zdir = (b: string, a: string): Row['dir'] => (ZRANK[a] < ZRANK[b] ? 'down' : ZRANK[a] > ZRANK[b] ? 'up' : 'same');
   const rows: Row[] = [
     { k: 'bmi', name: '비만도', b: bg.nowZone.name, a: bg.afterZone.name, dir: zdir(bg.nowZone.name, bg.afterZone.name) },
@@ -233,10 +264,30 @@ export function ChangeCard({ inp, anchor = 'change', example, heading = true, st
   // 좋아진 것을 구체적으로: 복부비만 → 비만도 → 당뇨 → 고혈압 순서로 하나
   const won = ((d) => !d ? '' : d.k === 'waist' ? '복부비만에서 벗어났어요' : d.k === 'bmi' ? `${d.a}${josa(d.a, '으로', '로')} 내려왔어요` : d.k === 'dm10' ? '당뇨가 생길 위험이 줄었어요' : '고혈압이 생길 위험이 줄었어요')(
     ['waist', 'bmi', 'dm10', 'htn4'].map((k) => rows.find((r) => r.k === k && r.dir === 'down')).find(Boolean));
-  const reset = () => { setW(inp.weightKg); setWa(inp.waistCm ?? 0); };
+  const reset = () => { setW(inp.weightKg); setWv(wv0); };
+
+  // 체형 캐릭터 + 말풍선: 멈추면(0.35초) 바로 전 멈춤과 비교해 의미 있는 변화 하나만
+  const set = useCharacterSet(inp.sex, inp.age);
+  const snap = { risk: effects.map((e) => [e.id, e.after] as const), belly: wg?.afterZone.tone === 'high', cls: bg.afterZone.name, bmi: bg.after };
+  const snapRef = useRef(snap); snapRef.current = snap;
+  const prev = useRef(snap);
+  useEffect(() => { prev.current = snapRef.current; }, [set?.prefix]);
+  useEffect(() => {
+    const t = window.setTimeout(() => {
+      const now = snapRef.current, p = prev.current, dist = (b: number) => (b < 18.5 ? 18.5 - b : b >= 23 ? b - 23 : 0);
+      const r = now.risk.find(([id, a]) => { const b = p.risk.find(([j]) => j === id)?.[1]; return b != null && b !== a; });
+      if (r) { const b = pctHi(p.risk.find(([j]) => j === r[0])![1]), a = pctHi(r[1]); char.current?.say({ label: RISK_LABEL[r[0]], value: r[1], better: a < b, up: a > b }); }
+      else if (now.belly !== p.belly) char.current?.say({ label: '복부비만', value: now.belly ? '해당' : '아님', better: !now.belly, up: now.belly });
+      else if (now.cls !== p.cls) char.current?.say({ label: '비만도', value: now.cls, better: dist(now.bmi) < dist(p.bmi), up: now.bmi > p.bmi });
+      prev.current = now;
+    }, 380);
+    return () => clearTimeout(t);
+  }, [w, waistNow]);
+
+  const per = unit === 'cm' ? 1 : IN;
   return (
     <div ref={box}>
-    <Card id={anchor ?? undefined} aria-label="몸무게·허리를 줄이면, 위험도는?" className="flex scroll-mt-20 flex-col gap-5 p-5 text-left">
+    <Card id={anchor ?? undefined} aria-label="몸무게·허리를 줄이면, 위험도는?" className="flex scroll-mt-20 flex-col gap-4 p-5 text-left">
       <div className="flex items-start justify-between gap-2">
         <div className="flex flex-col gap-1">
           {example && <Badge variant="soft" className="self-start">{example}</Badge>}
@@ -244,9 +295,24 @@ export function ChangeCard({ inp, anchor = 'change', example, heading = true, st
         </div>
         {changed && <Button variant="ghost" size="icon" className="size-9 shrink-0 bg-sand-soft" aria-label="처음 값으로" onClick={reset}><RotateCcw /></Button>}
       </div>
-      <DragBar title="몸무게" unit="kg" now={inp.weightKg} value={w} onChange={setW} track={wt} sub={`BMI ${bg.after.toFixed(1)}`} />
-      {wat ? <DragBar title="허리둘레" unit="cm" now={inp.waistCm!} value={wa} onChange={setWa} track={wat} />
-        : <a href="#/info" className="text-body-sm font-medium text-brand">허리둘레를 넣으면 복부비만 기준선도 볼 수 있어요</a>}
+
+      <div className="-mx-1.5 -mt-1 grid grid-cols-[minmax(0,170px)_1fr] items-end gap-1.5">
+        <BodyCharacter ref={char} set={set} stage={bodyStage(inp.heightCm, w)} belly={hasWaist ? bellyMix(waistNow, cut) : 0} />
+        <div className="flex flex-col items-start gap-1.5 pb-[18px]">
+          <span className="text-body-sm text-ink-soft">비만도</span>
+          <b className="text-[30px] leading-none font-semibold tabular-nums">BMI {bg.after.toFixed(1)}</b>
+          <Badge variant={BADGE[bg.afterZone.tone]} className="h-7 px-3 text-body-sm font-semibold">{bg.afterZone.name}</Badge>
+        </div>
+      </div>
+
+      <DragBar title="몸무게" unit="kg" value={w} delta={dw} note={`표준 ${wt.normal![0]}–${wt.normal![1]}kg`} zone={toneAt(wt, w)}
+        slider={<ZoneSlider label="몸무게 바꿔보기" valueText={`${w}kg`} min={wt.min} max={wt.max} value={w} onChange={setW} now={inp.weightKg} onGrab={() => { touched.current = true; }}
+          healthy={[18.5 * h2, 23 * h2]} bracket="표준" overStops={wStops.over} underStops={wStops.under} />} />
+      {wat ? (
+        <DragBar title="허리둘레" unit={wu} value={wv} delta={dWv} note={cutLabel(cut, unit)} zone={toneAt(wat, waistNow)} picker={<UnitPick unit={unit} onChange={setUnit} />}
+          slider={<ZoneSlider label="허리둘레 바꿔보기" valueText={`${wv}${wu}`} min={Math.floor(wat.min / per)} max={Math.ceil(wat.max / per)} value={wv} onChange={setWv} now={wv0} onGrab={() => { touched.current = true; }}
+            healthy={[Math.floor(wat.min / per), cut / per]} tick overStops={waistStops(cut).map(([v, c]) => [v / per, c] as [number, string])} />} />
+      ) : <a href="#/info" className="text-body-sm font-medium text-brand">허리둘레를 넣으면 복부비만 기준선도 볼 수 있어요</a>}
 
       <div className="flex flex-col rounded-card bg-brand p-5 text-white" aria-live="polite">
         <b className="mb-2 text-[18px] leading-snug font-semibold">{title}</b>
@@ -308,7 +374,7 @@ export function Results() {
   };
   return (
     <AppShell tab="result">
-      <Nav title="내 결과" sub={`${today()} · ${r.who}`} right={<Button variant="soft" size="icon" aria-label="친구에게 알려주기" onClick={() => shareApp(toast)}><Share2 /></Button>} />
+      <Nav title="내 결과" sub={`${today()} · ${r.who}`} right={<GlassButton size="icon" aria-label="친구에게 알려주기" onClick={() => shareApp(toast)}><Share2 /></GlassButton>} />
       {r.crisis && <Crisis />}
       <VerdictCard v={v} gap={gap} />
       <PeerCardView cs={peerCards(inp)} />

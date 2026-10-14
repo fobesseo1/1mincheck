@@ -1,7 +1,7 @@
 // v2 검진 풀이: 결과지 숫자를 넣으면(#/labs) 하나씩 쉽게 풀어 준다(#/labs/result).
 // 넣은 값은 1분 체크 결과에도 함께 반영된다(같은 draft.lab). 계산 없이 공식 기준 구간만 쓴다(lib/labZones.ts). 디자인: docs/DESIGN.md
 import { ArrowRight, ChevronLeft, Camera, Trash2 } from 'lucide-react';
-import { useStore, Nav, H1, Lead, Help, AppShell, go, optCls } from '../ui.tsx';
+import { useStore, Nav, H1, Lead, Help, AppShell, go, optCls, Fields } from '../ui.tsx';
 import { toInput } from '../state.ts';
 import { LABS, LAB_GROUPS, labError, parseLab } from '../lib/labs.ts';
 import { labCards, labSummary, type LabCard, type LabTone } from '../lib/labZones.ts';
@@ -81,6 +81,7 @@ export function LabsResult() {
   const cs = labCards(parseLab(d.lab ?? {}), d.sex);
   if (!cs.length) return (
     <div className="mx-auto flex min-h-dvh max-w-[440px] flex-col justify-center gap-4 px-5 text-center">
+      <Fields />
       <h1 className="text-heading-sm text-ink-soft">아직 넣은 숫자가<b className="block text-ink">없어요</b></h1>
       <Button asChild size="lg" className="mt-4"><a href="#/labs">결과지 숫자 넣기</a></Button>
     </div>

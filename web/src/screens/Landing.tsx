@@ -14,6 +14,8 @@ import './landing-motion.css';
 import { SpreadScene } from './SpreadScene.tsx';
 import { TrioScene, ChangeLive, PeopleScene, LabsLive, MinuteScene } from './LandingScenes.tsx';
 import { HeroVideo } from './HeroVideo.tsx';
+import { useDroplet, useLens, usePress, attachPress } from '@/lib/motion';
+import { Fields } from '../ui.tsx';
 
 const ART = import.meta.glob('../assets/landing/*.{jpg,jpeg,png,webp}', { eager: true, import: 'default' }) as Record<string, string>;
 const art = (name: string) => Object.entries(ART).find(([k]) => k.includes('/' + name + '.'))?.[1];
@@ -65,11 +67,62 @@ function Start({ children = '1분 건강 체크하기', className = '' }: { chil
   const go = (e: MouseEvent<HTMLAnchorElement>) => { const m = loadMini(); if (m) { e.preventDefault(); setDraft((d) => ({ ...d, ...miniDraft(m) })); location.hash = '#/info'; } };
   return <a className={'lm-button lm-button-lime ' + className} href="#/start" onClick={go}>{children}<ArrowRight size={19} /></a>;
 }
+/** 떠 있는 메뉴 알약 (화면 아래 가운데, 리퀴드 글래스). 지금 보는 구간의 탭으로 물방울 렌즈가 옮겨 가고,
+ *  어두운 사진 위에서는 흰 글자 · 밝은 구간에서는 진초록 글자. 굴절은 크롬 계열에서만(useLens) */
+function DockTab({ id, t, on, set }: { id: string; t: string; on: boolean; set: (el: HTMLAnchorElement | null) => void }) {
+  const a = useRef<HTMLAnchorElement>(null);
+  usePress(a, 1.04);
+  return <a ref={(el) => { (a as { current: HTMLAnchorElement | null }).current = el; set(el); }} href={'#' + id} onClick={(e) => jump(e, id)} aria-current={on ? 'true' : undefined}
+    className="lm-dock-tab">{t}</a>;
+}
+/** 화면의 한 점 아래 바탕이 어두운지: 그림 · 영상이거나, 처음 만나는 바탕색이 어두우면 */
+function darkAt(x: number, y: number, skip: Element | null) {
+  for (const el of document.elementsFromPoint(x, y)) {
+    if (skip?.contains(el)) continue;
+    if (el instanceof HTMLImageElement || el instanceof HTMLVideoElement || el instanceof HTMLCanvasElement) return true;
+    const m = /rgba?\(([\d.]+),\s*([\d.]+),\s*([\d.]+)(?:,\s*([\d.]+))?/.exec(getComputedStyle(el).backgroundColor);
+    if (m && (m[4] == null || +m[4] > 0.5)) return 0.2126 * +m[1] + 0.7152 * +m[2] + 0.0722 * +m[3] < 110;
+  }
+  return false;
+}
+function Dock() {
+  const bar = useRef<HTMLElement>(null), drop = useRef<HTMLSpanElement>(null), tabs = useRef<(HTMLAnchorElement | null)[]>([]);
+  const [at, setAt] = useState(-1), [dark, setDark] = useState(true);
+  const d = useDroplet(drop), shown = useRef(false);
+  useLens(bar, { strength: 26 });
+  useEffect(() => {
+    let raf = 0;
+    const check = () => {
+      raf = 0;
+      const mid = innerHeight * 0.5;
+      setAt(NAV.findIndex(([id]) => { const r = document.getElementById(id)?.getBoundingClientRect(); return !!r && r.top <= mid && r.bottom > mid; }));
+      const b = bar.current?.getBoundingClientRect();
+      if (b) setDark(darkAt(b.left + b.width / 2, b.top + b.height / 2, bar.current));
+    };
+    const on = () => { if (!raf) raf = requestAnimationFrame(check); };
+    check(); addEventListener('scroll', on, { passive: true }); addEventListener('resize', on);
+    return () => { cancelAnimationFrame(raf); removeEventListener('scroll', on); removeEventListener('resize', on); };
+  }, []);
+  useEffect(() => {
+    const el = drop.current; if (!el) return;
+    if (at < 0) { el.style.opacity = '0'; shown.current = false; return; }
+    d.go(tabs.current[at], !shown.current); shown.current = true; el.style.opacity = '1';
+  }, [at]);   // eslint-disable-line react-hooks/exhaustive-deps
+  return (
+    <nav ref={bar} aria-label="주요 메뉴" className={'lm-dock glass ' + (dark ? 'is-dark glass-dark' : 'glass-light')}>
+      <div className="lm-dock-tabs">
+        <span ref={drop} aria-hidden className="lm-dock-lens" style={{ opacity: 0 }} />
+        {NAV.map(([id, t], k) => <DockTab key={id} id={id} t={t} on={k === at} set={(el) => { tabs.current[k] = el; }} />)}
+      </div>
+      <Start className="lm-dock-start">1분 체크하기</Start>
+    </nav>
+  );
+}
 function Logo() { return <a className="lm-logo" href="#/" aria-label="1분체크 처음으로"><span className="lm-logo-mark"><i /></span><span>1분체크</span></a>; }
 function Header() {
   const [solid, setSolid] = useState(false), [open, setOpen] = useState(false);
   useEffect(() => { const on = () => setSolid(scrollY > innerHeight - 110); on(); addEventListener('scroll', on, { passive: true }); return () => removeEventListener('scroll', on); }, []);
-  return <header className={'lm-header ' + (solid || open ? 'is-solid' : '')}><div className="lm-header-inner"><Logo /><nav aria-label="주요 메뉴">{NAV.map(([id, t]) => <a key={id} href={'#' + id} onClick={(e) => jump(e, id)}>{t}</a>)}</nav><Start className="lm-header-start" /><button className="lm-menu" aria-label={open ? '메뉴 닫기' : '메뉴 열기'} aria-expanded={open} aria-controls="lm-mobile-nav" onClick={() => setOpen(!open)}>{open ? <X /> : <Menu />}</button></div>
+  return <header className={'lm-header has-dock ' + (solid || open ? 'is-solid' : '') + (open ? ' is-open' : '')}><div className="lm-header-inner"><Logo /><nav aria-label="주요 메뉴">{NAV.map(([id, t]) => <a key={id} href={'#' + id} onClick={(e) => jump(e, id)}>{t}</a>)}</nav><Start className="lm-header-start" /><button className="lm-menu" aria-label={open ? '메뉴 닫기' : '메뉴 열기'} aria-expanded={open} aria-controls="lm-mobile-nav" onClick={() => setOpen(!open)}>{open ? <X /> : <Menu />}</button></div>
   {open && <nav className="lm-mobile-nav" id="lm-mobile-nav" aria-label="모바일 메뉴">{[...NAV, ['faq', '자주 묻는 질문']].map(([id, t]) => <a key={id} href={'#' + id} onClick={(e) => { setOpen(false); jump(e, id); }}>{t}<ArrowRight size={18} /></a>)}</nav>}</header>;
 }
 function Finish() {
@@ -78,4 +131,17 @@ function Finish() {
     <section className="lm-closing"><div className="lm-closing-disc" aria-hidden /><div className="lm-wrap"><span className="lm-eyebrow">내 몸에 관심을 갖는 첫걸음</span><h2>내 몸이 궁금하다면,<br /><span>지금 확인해 보세요.</span></h2><Start /><p>내 기기 안에서만 계산해요 · 논문과 국가 통계 바탕 · 무료, 가입 없음</p></div></section>
     <footer className="lm-footer"><div className="lm-wrap"><div><Logo /><p>국가 건강통계와 한국인 연구를 바탕으로<br />내 건강을 가늠하는 서비스.</p><small>질환 여부는 검사와 진료로 확인해 주세요.</small></div><nav aria-label="바닥글 메뉴"><a href="#/start">1분 건강 체크하기</a><a href="#/labs">검진 수치 확인하기</a><a href="#/record">지난 결과 비교</a></nav><div className="lm-footer-source"><a href="https://www.kdca.go.kr/" target="_blank" rel="noreferrer">질병관리청 <MoveUpRight size={13} /></a><span>국민건강영양조사 · 한국인 추적 연구</span><small>© 2026 1분체크</small></div></div></footer></>;
 }
-export function Landing() { return <div className="lm-page"><Header /><main><HeroVideo art={{ pc: art('hero'), m: art('hero-m') }} actions={<><Start /><a className="lm-text-link" href="#ls-try" onClick={(e) => jump(e, 'ls-try')}>10초 간단 체험 <MoveUpRight size={17} /></a></>} note="만 19세 이상 · 건강정보는 서버로 보내지 않아요" /><SpreadScene id="overview" ex={EX} exLabel="52세 남성 · 172cm · 82kg · 허리 92cm" /><TrioScene id="peer" ex={EX} /><ChangeLive id="change" ex={EX} /><PeopleScene id="try" /><LabsLive id="labs" sex="M" /><Finish /></main></div>; }
+/** 어두운 사진 위 유리 버튼 (시안 02 btn-glass dark). 굴절은 크롬 계열에서만 */
+function GlassLink({ href, onClick, children }: { href: string; onClick?: (e: MouseEvent<HTMLAnchorElement>) => void; children: ReactNode }) {
+  const a = useRef<HTMLAnchorElement>(null);
+  useLens(a); usePress(a);
+  return <a ref={a} href={href} onClick={onClick} className="lm-button lm-glass-link glass glass-dark">{children}</a>;
+}
+/** 랜딩의 라임 · 진초록 버튼: 누르면 줄지 않고 1.06배로 부풀며 떠오른다 */
+function usePressAll() {
+  useEffect(() => {
+    const offs = [...document.querySelectorAll<HTMLElement>('.lm-page .lm-button:not(.lm-glass-link), .lm-page .ls-btn, .lm-page .sp-cta')].map((el) => attachPress(el));
+    return () => offs.forEach((f) => f());
+  }, []);
+}
+export function Landing() { usePressAll(); return <div className="lm-page"><Fields /><Header /><Dock /><main><HeroVideo art={{ pc: art('hero'), m: art('hero-m') }} actions={<><Start /><GlassLink href="#ls-try" onClick={(e) => jump(e, 'ls-try')}>10초 간단 체험 <MoveUpRight size={17} /></GlassLink></>} note="만 19세 이상 · 건강정보는 서버로 보내지 않아요" /><SpreadScene id="overview" ex={EX} exLabel="52세 남성 · 172cm · 82kg · 허리 92cm" /><TrioScene id="peer" ex={EX} /><ChangeLive id="change" ex={EX} /><PeopleScene id="try" /><LabsLive id="labs" sex="M" /><Finish /></main></div>; }

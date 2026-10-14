@@ -2,58 +2,58 @@
 import { useState } from 'react';
 import { RotateCcw, ArrowRight } from 'lucide-react';
 import type { Alcohol } from '../../../engine/src/engine.ts';
-import { Nav, AppShell, Help } from '../ui.tsx';
+import { Nav, AppShell, Help, useStore } from '../ui.tsx';
 import { suggestScenario, type AppInput } from '../state.ts';
 import { whatIfRows } from '../lib/view.ts';
 import { HIDDEN } from '../lib/features.ts';
 import type { ItemId } from '../lib/content.ts';
-import { useInput, NeedInput } from './Results.tsx';
+import { useInput, NeedInput, UnitPick } from './Results.tsx';
+import { toUnit, toCm, unitLabel, initialWaistUnit, saveWaistUnit, type WaistUnit } from '../lib/body.ts';
 import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import { GlassButton } from '@/components/ui/button';
 import { Badge, type BadgeVariant } from '@/components/ui/badge';
 import { Slider } from '@/components/ui/slider';
 import { Progress } from '@/components/ui/progress';
+import { Segmented } from '@/components/ui/segmented';
+import { Switch } from '@/components/ui/switch';
 import { cn } from '@/lib/utils';
 
 const ALC: [Alcohol, string][] = [['none', '안 마심'], ['lt1', '1잔 미만'], ['d1_4', '1–4.9잔'], ['d5', '5잔+']];
 const TONE: Record<string, BadgeVariant> = { down: 'good', up: 'risk', same: 'muted', na: 'muted' };
 
-/** 켜고 끄기 */
-function Toggle({ on, label, onChange }: { on: boolean; label: string; onChange: (v: boolean) => void }) {
-  return (
-    <button type="button" role="switch" aria-checked={on} aria-label={label} onClick={() => onChange(!on)}
-      className={cn('flex h-8 w-14 shrink-0 cursor-pointer items-center rounded-full p-[3px] transition-colors', on ? 'justify-end bg-brand' : 'justify-start bg-sand')}>
-      <i className="block size-[26px] rounded-full bg-white shadow-card" />
-    </button>
-  );
-}
-
 export function WhatIf() {
   const inp = useInput();
   const sc0 = inp ? suggestScenario(inp) : { weightKg: 0, waistCm: 0 };
   const [dw, setDw] = useState(sc0.weightKg);
-  const [dwa, setDwa] = useState(sc0.waistCm);
+  // 허리: 인치가 기본(정수만), 고른 사람은 cm. 막대는 그 단위 눈금으로 움직이고 계산은 cm
+  const { draft } = useStore();
+  const [unit, setUnit0] = useState<WaistUnit>(() => initialWaistUnit(draft));
+  const [dU, setDU] = useState(inp?.waistCm == null ? 0 : toUnit(sc0.waistCm, unit));
   const [alc, setAlc] = useState<Alcohol>(inp?.alcohol ?? 'none');
   const [ex, setEx] = useState<boolean>(inp?.exercise !== false);
   const [smoke, setSmoke] = useState<boolean>(inp?.smoke === 'current');
   if (!inp) return <NeedInput />;
   const r1 = (x: number) => Math.round(x * 10) / 10;
-  const after = { ...inp, weightKg: r1(inp.weightKg + dw), waistCm: inp.waistCm == null ? null : r1(inp.waistCm + dwa),
+  const w0 = inp.waistCm == null ? 0 : toUnit(inp.waistCm, unit), wNow = w0 + dU, wu = unitLabel(unit);
+  // 눈금을 안 움직였으면 입력한 cm 그대로 (단위만 바꿔서 결과가 바뀌지 않게)
+  const waistAfter = inp.waistCm == null ? null : dU === 0 ? inp.waistCm : r1(toCm(wNow, unit));
+  const setUnit = (u: WaistUnit) => { if (u === unit || inp.waistCm == null) return; saveWaistUnit(u); setUnit0(u); setDU(toUnit(waistAfter!, u) - toUnit(inp.waistCm, u)); };
+  const after = { ...inp, weightKg: r1(inp.weightKg + dw), waistCm: waistAfter,
     smoke: smoke ? 'current' as const : inp.smoke === 'current' ? 'never' as const : inp.smoke, alcohol: alc, exercise: ex,
     alc: alc === inp.alcohol ? (inp as AppInput).alc : undefined };   // 음주 단계를 바꾸면 원답(종류별 양)은 더 이상 맞지 않는다
   const { rows: all, down, up } = whatIfRows(inp, after);
   const rows = all.filter((r) => !HIDDEN.includes(r.id as ItemId));   // 숨긴 분야(수면 등)는 빼고
   const sign = (n: number, u: string) => (n === 0 ? '그대로' : `${n > 0 ? '+' : '−'}${Math.abs(n)}${u}`);
-  const reset = () => { setDw(0); setDwa(0); setAlc(inp.alcohol); setEx(inp.exercise !== false); setSmoke(inp.smoke === 'current'); };
+  const reset = () => { setDw(0); setDU(0); setAlc(inp.alcohol); setEx(inp.exercise !== false); setSmoke(inp.smoke === 'current'); };
   return (
     <AppShell>
-      <Nav back="/all" title="바꿔보기" sub="바꾸는 대로 바로 다시 계산해요" right={<Button variant="soft" size="icon" aria-label="처음 값으로" onClick={reset}><RotateCcw /></Button>} />
-      <div className="flex items-stretch rounded-card bg-ink px-2 py-5 text-white shadow-float">
+      <Nav back="/all" title="바꿔보기" sub="바꾸는 대로 바로 다시 계산해요" right={<GlassButton size="icon" aria-label="처음 값으로" onClick={reset}><RotateCcw /></GlassButton>} />
+      <div className="flex items-stretch rounded-card bg-brand px-2 py-5 text-white shadow-float">
         <div className="flex flex-1 flex-col items-center justify-center gap-1 text-center"><span className="text-[11px] text-white/70">체중</span><span className="text-subheading font-medium">{after.weightKg}kg</span><span className="text-[11px] text-white/70">{sign(dw, 'kg')}</span></div>
         <i className="w-px bg-white/20" />
         <div className="flex flex-[1.5] flex-col items-center justify-center gap-1 text-center"><span className="text-[11px] text-white/70">낮아지는 항목</span><span className="text-heading font-medium text-good-dot" aria-live="polite">{down}<small className="text-subheading">개</small></span><span className="text-[11px] text-white/70">{up ? `${up}개는 올라가요` : '올라가는 항목 없음'}</span></div>
         <i className="w-px bg-white/20" />
-        <div className="flex flex-1 flex-col items-center justify-center gap-1 text-center"><span className="text-[11px] text-white/70">허리</span><span className="text-subheading font-medium">{after.waistCm == null ? '모름' : after.waistCm + 'cm'}</span><span className="text-[11px] text-white/70">{after.waistCm == null ? '' : sign(dwa, 'cm')}</span></div>
+        <div className="flex flex-1 flex-col items-center justify-center gap-1 text-center"><span className="text-[11px] text-white/70">허리</span><span className="text-subheading font-medium">{after.waistCm == null ? '모름' : wNow + wu}</span><span className="text-[11px] text-white/70">{after.waistCm == null ? '' : sign(dU, wu)}</span></div>
       </div>
 
       <Card className="px-5 py-1">
@@ -80,22 +80,22 @@ export function WhatIf() {
       </Card>
       {inp.waistCm != null && (
         <Card className="p-5">
-          <div className="flex justify-between text-body-sm"><b className="font-medium">허리둘레</b><span><b>{after.waistCm}cm</b> <span className="text-ink-soft">{sign(dwa, 'cm')}</span></span></div>
-          <Slider fill={false} aria-label="허리둘레" min={-15} max={10} step={1} value={[dwa]} onValueChange={([x]) => setDwa(x)} />
-          <div className="flex justify-between text-caption text-ink-soft"><span>−15cm</span><span>+10cm</span></div>
+          <div className="flex items-center justify-between text-body-sm"><b className="flex items-center font-medium">허리둘레 <UnitPick unit={unit} onChange={setUnit} /></b><span><b>{wNow}{wu}</b> <span className="text-ink-soft">{sign(dU, wu)}</span></span></div>
+          {(() => { const [lo, hi] = unit === 'cm' ? [-15, 10] : [-6, 4]; return <>
+            <Slider fill={false} aria-label="허리둘레" min={lo} max={hi} step={1} value={[dU]} onValueChange={([x]) => setDU(x)} />
+            <div className="flex justify-between text-caption text-ink-soft"><span>−{-lo}{wu}</span><span>+{hi}{wu}</span></div>
+          </>; })()}
         </Card>
       )}
       <Card className="flex flex-col gap-3 p-5">
         <b className="text-body-sm font-medium">술 <span className="font-normal text-ink-soft">하루 평균</span></b>
-        <div className="flex gap-1 rounded-full bg-sand-soft p-1" role="group" aria-label="음주">
-          {ALC.map(([v, t]) => <button key={v} type="button" aria-pressed={alc === v} onClick={() => setAlc(v)} className={cn('h-10 flex-1 cursor-pointer rounded-full text-body-sm font-medium', alc === v ? 'bg-white text-ink shadow-card' : 'text-ink-soft')}>{t}</button>)}
-        </div>
+        <Segmented label="음주" options={ALC.map(([v, t]) => ({ v, t }))} value={alc} onChange={setAlc} optClassName="text-body-sm" />
       </Card>
       <Card className="px-5">
         {([['운동', '일주일에 두 번, 30분 이상', ex, setEx], ['흡연', '지금 담배를 피우면', smoke, setSmoke]] as const).map(([t, s, v, f], k) => (
           <div key={t} className={cn('flex min-h-16 items-center justify-between', k && 'border-t border-sand-soft')}>
             <span><b className="text-body font-medium">{t}</b><div className="text-caption text-ink-soft">{s}</div></span>
-            <Toggle on={v} label={t} onChange={f} />
+            <Switch on={v} label={t} onChange={f} />
           </div>
         ))}
       </Card>

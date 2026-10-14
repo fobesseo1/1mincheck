@@ -1,7 +1,7 @@
 // 입력 화면 (기본정보 → 생활 → [켜진 분야] → 결과). 디자인: docs/DESIGN.md
 import { useEffect, useState, type ReactNode } from 'react';
 import { ChevronDown, Minus, Plus, Check, Flame, Salad, Moon, Heart, MessageCircle, ArrowRight } from 'lucide-react';
-import { useStore, Nav, Progress, H1, Lead, Help, Choice, YN, Branch, ScaleItem, Closed, Next, Crisis, optCls } from '../ui.tsx';
+import { useStore, Nav, Progress, H1, Lead, Help, Choice, YN, Branch, ScaleItem, Closed, Next, Crisis, optCls, Fields } from '../ui.tsx';
 import { LABS, parseLab, bpOf } from '../lib/labs.ts';
 import type { LabKey } from '../lib/labs.ts';
 import { LabField } from './Checkup.tsx';
@@ -22,7 +22,7 @@ const ROUTE: Record<Step, string> = { info: '/info', life: '/life', modules: '/m
 const nextOf = (d: Draft, s: Step) => { const f = flow(d), i = f.indexOf(s); return i >= 0 && i < f.length - 1 ? ROUTE[f[i + 1]] : '/result'; };
 const lastLabel = (d: Draft, s: Step) => (nextOf(d, s) === '/result' ? '결과 보기' : '다음');
 const prevOf = (d: Draft, s: Step) => { const f = flow(d), i = f.indexOf(s); return i > 0 ? ROUTE[f[i - 1]] : '/'; };
-const Screen = ({ children }: { children: ReactNode }) => <div className="mx-auto flex min-h-dvh max-w-[440px] flex-col gap-4 bg-white px-5 pt-[calc(12px+env(safe-area-inset-top))] pb-8 animate-rise">{children}</div>;
+const Screen = ({ children }: { children: ReactNode }) => <div className="mx-auto flex min-h-dvh max-w-[440px] flex-col gap-4 px-5 pt-[calc(12px+env(safe-area-inset-top))] pb-8 animate-rise"><Fields />{children}</div>;
 function Head({ s, title }: { s: Step; title: string }) {
   const { draft } = useStore(); const f = flow(draft), i = Math.max(0, f.indexOf(s));
   return (<><Nav back={prevOf(draft, s)} title={title} right={<div className="w-11 text-right text-body-sm font-medium text-ink-soft">{i + 1}/{f.length}</div>} /><Progress step={i + 1} total={f.length} /></>);
@@ -119,7 +119,7 @@ export function Info() {
             <div role="radiogroup" aria-label="허리 단위" className="flex flex-col gap-0.5">
               {([['in', '인치'], ['cm', 'cm']] as const).map(([u, t]) => {
                 const on = d.waistUnit === u;
-                return <button key={u} type="button" role="radio" aria-checked={on} onClick={() => set({ waistUnit: u })} className={cn('min-h-[22px] cursor-pointer whitespace-nowrap px-0.5 text-left text-body-sm', on ? 'font-medium text-brand' : 'text-ash')}>{t}</button>;
+                return <button key={u} type="button" role="radio" aria-checked={on} onClick={() => set({ waistUnit: u, waistUnitChosen: true })} className={cn('min-h-[22px] cursor-pointer whitespace-nowrap px-0.5 text-left text-body-sm', on ? 'font-medium text-brand' : 'text-ash')}>{t}</button>;
               })}
             </div>
           </div>
@@ -128,8 +128,8 @@ export function Info() {
       </Card>
       <Help className="-mt-1">허리둘레는 배꼽 높이에서 잰 둘레예요.</Help>
       {bmi != null && (
-        <div className="flex items-center justify-between rounded-card bg-ink px-5 py-4 text-white animate-rise">
-          <div><div className="text-caption font-medium text-brand-tint">키와 몸무게로 계산했어요</div><div className="text-body-sm">{cat} (대한비만학회 기준)</div></div>
+        <div className="flex items-center justify-between rounded-card bg-brand px-5 py-4 text-white animate-rise">
+          <div><div className="text-caption font-medium text-lime">키와 몸무게로 계산했어요</div><div className="text-body-sm">{cat} (대한비만학회 기준)</div></div>
           <div><span className="text-body-sm text-white/70">BMI </span><b className="text-heading-sm font-medium">{bmi.toFixed(1)}</b></div>
         </div>
       )}

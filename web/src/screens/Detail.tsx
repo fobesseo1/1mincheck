@@ -121,7 +121,7 @@ export function Detail({ id }: { id: ItemId }) {
 
       {/* 관리하면 */}
       {d.afterV != null && r.value != null && d.afterV < r.value && (
-        <div className="flex flex-col gap-3.5 rounded-card bg-ink p-5 text-white">
+        <div className="flex flex-col gap-3.5 rounded-card bg-brand p-5 text-white">
           <div className="flex items-center justify-between gap-2"><b className="text-body font-medium">줄이면 이만큼 내려가요</b><Badge variant="brand">{d.scenarioText}</Badge></div>
           <div className="flex items-center">
             <div className="flex-1 text-center"><div className="text-[11px] text-white/70">지금</div><b className="text-[40px] font-medium">{f1(r.value)}</b><small>{d.isProb ? '%' : ''}</small></div>

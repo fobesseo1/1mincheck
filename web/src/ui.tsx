@@ -1,12 +1,14 @@
 // 공통 화면 부품 (Jeton 스타일 · Tailwind · shadcn · lucide). 디자인 기준: docs/DESIGN.md
-import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
+import { useDroplet, useLens } from '@/lib/motion';
 import {
   ChevronLeft, ChevronRight, ChevronDown, Check, ArrowUpRight, Bookmark, Share2, RotateCcw, MessageCircle, LayoutGrid, SlidersHorizontal,
   LineChart, History, Smartphone, FileText, Play, X, ArrowRight,
 } from 'lucide-react';
 import type { Draft, RecordItem } from './state.ts';
+import { Segmented } from '@/components/ui/segmented';
 import { cn } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
+import { Button, GlassButton } from '@/components/ui/button';
 
 // ── 라우팅: 해시(#/result) 기반. 정적 호스팅에서 새로고침해도 안전 ──
 export function useRoute() {
@@ -38,10 +40,13 @@ export const Icon = {
 };
 
 /** 앱 화면 틀: 가운데 440px, 흰 바탕 */
+/** 앱 화면 뒤 옅은 연두 · 민트 색 덩어리: 카드 · 숫자 칸은 흰 면 그대로, 떠 있는 유리 부품은 이 색이 비쳐 보인다 */
+export const Fields = () => <div className="fields" aria-hidden><i /><i /><i /></div>;
 export function AppShell({ children, tab }: { children: ReactNode; tab?: Parameters<typeof TabBar>[0]['at'] }) {
   return (
-    <div className="mx-auto flex min-h-dvh max-w-[440px] flex-col bg-white">
-      <div className="flex flex-1 flex-col gap-4 px-5 pt-[calc(12px+env(safe-area-inset-top))] pb-8 animate-rise">{children}</div>
+    <div className="mx-auto flex min-h-dvh max-w-[440px] flex-col">
+      <Fields />
+      <div className={cn('flex flex-1 flex-col gap-4 px-5 pt-[calc(12px+env(safe-area-inset-top))] animate-rise', tab ? 'pb-32' : 'pb-8')}>{children}</div>
       {tab && <TabBar at={tab} />}
     </div>
   );
@@ -52,7 +57,7 @@ export const Page = ({ children, className }: { children: ReactNode; className?:
 export function Nav({ back, title, sub, right }: { back?: string; title: string; sub?: string; right?: ReactNode }) {
   return (
     <div className="flex h-14 items-center justify-between">
-      {back ? <Button asChild variant="ghost" size="icon" className="bg-sand-soft"><a href={'#' + back} aria-label="뒤로">{Icon.back}</a></Button> : <div className="w-11" />}
+      {back ? <GlassButton asChild size="icon"><a href={'#' + back} aria-label="뒤로">{Icon.back}</a></GlassButton> : <div className="w-11" />}
       <div className="flex flex-col items-center text-center"><b className="text-[17px] font-medium text-ink">{title}</b>{sub && <span className="text-caption text-ink-soft">{sub}</span>}</div>
       {right ?? <div className="w-11" />}
     </div>
@@ -71,7 +76,7 @@ export const Help = ({ children, className }: { children: ReactNode; className?:
 
 /** 선택 버튼 하나 */
 export const optCls = (on: boolean, size?: 'sm' | 'xs') => cn('flex min-h-12 cursor-pointer flex-col items-center justify-center rounded-btn px-1.5 py-1.5 text-center leading-tight font-medium transition-colors',
-  size === 'xs' ? 'text-caption' : size === 'sm' ? 'text-body-sm' : 'text-body', on ? 'bg-ink text-white' : 'bg-sand-soft text-ink hover:bg-sand');
+  size === 'xs' ? 'text-caption' : size === 'sm' ? 'text-body-sm' : 'text-body', on ? 'bg-brand text-white' : 'bg-sand-soft text-ink hover:bg-sand');
 
 /** 한 개 고르기 */
 export function Choice<T>({ q, options, value, onChange, cols, size, help, badge }: {
@@ -82,13 +87,16 @@ export function Choice<T>({ q, options, value, onChange, cols, size, help, badge
     <div className="flex flex-col gap-3 rounded-card bg-white p-4 shadow-card" role="group" aria-label={typeof q === 'string' ? q : undefined}>
       {badge && <span className="self-start rounded-full bg-blush px-2.5 py-0.5 text-caption font-medium text-brand">{badge}</span>}
       <div className="text-body font-medium leading-snug text-ink">{q}</div>
-      <div className="grid gap-1.5" style={{ gridTemplateColumns: `repeat(${cols ?? options.length}, minmax(0, 1fr))` }}>
-        {options.map((o) => (
-          <button key={String(o.v)} type="button" className={optCls(value === o.v, size)} aria-pressed={value === o.v} onClick={() => onChange(o.v)}>
-            {o.t}{o.s && <small className="mt-0.5 text-[11px] font-normal opacity-80">{o.s}</small>}
-          </button>
-        ))}
-      </div>
+      {/* 한 줄이면 물방울 선택 표시(성별 · 네/아니요 등), 여러 줄이면 칸 */}
+      {(cols ?? options.length) === options.length
+        ? <Segmented options={options} value={value} onChange={onChange} optClassName={size === 'xs' ? 'text-caption' : size === 'sm' ? 'text-body-sm' : 'text-body'} />
+        : <div className="grid gap-1.5" style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}>
+          {options.map((o) => (
+            <button key={String(o.v)} type="button" className={optCls(value === o.v, size)} aria-pressed={value === o.v} onClick={() => onChange(o.v)}>
+              {o.t}{o.s && <small className="mt-0.5 text-[11px] font-normal opacity-80">{o.s}</small>}
+            </button>
+          ))}
+        </div>}
       {help && <div className="text-caption text-ink-soft">{help}</div>}
     </div>
   );
@@ -100,7 +108,7 @@ export const YN = ({ q, value, onChange, help }: { q: string; value: boolean | n
 export function Branch({ title, sub, children }: { title: string; sub: string; children: ReactNode }) {
   return (
     <div className="overflow-hidden rounded-card bg-white shadow-card animate-rise">
-      <div className="flex items-center gap-2.5 bg-ink px-4 py-3.5 text-white"><ChevronDown className="size-5 text-brand" /><div><b className="text-body-sm font-medium">{title}</b><span className="block text-caption text-white/75">{sub}</span></div></div>
+      <div className="flex items-center gap-2.5 bg-brand px-4 py-3.5 text-white"><ChevronDown className="size-5 text-lime" /><div><b className="text-body-sm font-medium">{title}</b><span className="block text-caption text-white/75">{sub}</span></div></div>
       <div className="flex flex-col gap-5 p-4">{children}</div>
     </div>
   );
@@ -128,12 +136,28 @@ export function Next({ error, to, label, onGo }: { error: string | null; to: str
     </>
   );
 }
+/** 아래 탭 막대: 화면 아래 가운데 떠 있는 유리 알약. 지금 화면 탭에 물방울 렌즈가 있고,
+ *  다른 화면으로 가면 바로 전 탭 자리에서 새 탭으로 물방울처럼 옮겨 간다 */
+let lastTab = -1;
 export function TabBar({ at }: { at: 'result' | 'labs' | 'whatif' | 'record' | 'again' }) {
   const T: [typeof at, string, string, ReactNode][] = [['result', '#/result', '결과', Icon.grid], ['labs', '#/labs', '검진 풀이', Icon.doc], ['record', '#/record', '기록', Icon.chart], ['again', '#/start', '다시 체크', Icon.clock]];
+  const bar = useRef<HTMLElement>(null), lens = useRef<HTMLSpanElement>(null), items = useRef<(HTMLAnchorElement | null)[]>([]);
+  const d = useDroplet(lens), k = T.findIndex(([x]) => x === at);
+  useLens(bar);
+  useLayoutEffect(() => {
+    if (k < 0) return;
+    if (lastTab >= 0 && lastTab !== k) { d.go(items.current[lastTab], true); d.go(items.current[k]); } else d.go(items.current[k], true);
+    lastTab = k;
+    const ro = new ResizeObserver(() => d.go(items.current[k], true)); if (bar.current) ro.observe(bar.current);
+    return () => ro.disconnect();
+  }, [k]);   // eslint-disable-line react-hooks/exhaustive-deps
   return (
-    <nav className="no-print sticky bottom-0 z-10 flex rounded-t-[24px] bg-white px-3 pt-2 pb-[calc(10px+env(safe-area-inset-bottom))] shadow-card" aria-label="주요 메뉴">
-      {T.map(([k, h, t, ic]) => (
-        <a key={k} href={h} aria-current={at === k ? 'page' : undefined} className={cn('flex h-14 flex-1 flex-col items-center justify-center gap-1 text-[11px] font-medium no-underline', at === k ? 'text-brand' : 'text-ink-soft')}>{ic}{t}</a>
+    <nav ref={bar} style={{ position: 'fixed' }} aria-label="주요 메뉴"
+      className="glass glass-light no-print inset-x-0 bottom-[calc(12px+env(safe-area-inset-bottom))] z-20 mx-auto flex w-[calc(100%-24px)] max-w-[416px] rounded-full p-1.5">
+      <span ref={lens} aria-hidden style={{ opacity: k < 0 ? 0 : 1 }} className="pointer-events-none absolute inset-y-1.5 rounded-full bg-brand/[.08] shadow-[inset_0_1px_1px_#fff,inset_0_-1px_1px_rgba(22,51,0,.06),0_2px_10px_rgba(22,51,0,.10)]" />
+      {T.map(([key, h, t, ic], i) => (
+        <a key={key} ref={(el) => { items.current[i] = el; }} href={h} aria-current={at === key ? 'page' : undefined}
+          className={cn('relative z-[1] flex h-14 flex-1 flex-col items-center justify-center gap-1 rounded-full text-[11px] font-medium no-underline transition-colors', at === key ? 'text-brand' : 'text-ink-soft')}>{ic}{t}</a>
       ))}
     </nav>
   );

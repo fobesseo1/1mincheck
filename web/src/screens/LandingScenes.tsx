@@ -14,7 +14,9 @@ import { LABS } from '../lib/labs.ts';
 import { Dots } from '@/components/viz';
 import { CountTo } from '@/components/viz';
 import { ZoneSlider } from '@/components/ui/zone-slider';
+import { waistStops, toUnit, toCm, unitLabel, initialWaistUnit, IN, type WaistUnit } from '../lib/body.ts';
 import { ChangeCard } from './Results.tsx';
+import { useStore } from '../ui.tsx';
 import { LabCardView } from './Labs.tsx';
 import { MiniTrial } from './MiniTrial.tsx';
 import { cn } from '@/lib/utils';
@@ -57,21 +59,26 @@ function PeerBit({ ex }: { ex: Input }) {
     </div>
   );
 }
-/** 허리 막대: 진행도에 따라 허리가 줄고, 10년 당뇨 위험이 바뀐다(값은 lines.ts 점수표 그대로) */
+/** 허리 막대: 진행도에 따라 허리가 줄고, 10년 당뇨 위험이 바뀐다(값은 lines.ts 점수표 그대로).
+ *  허리는 인치가 기본(정수만), cm 를 고른 사람은 cm. 계산은 보이는 눈금의 cm 로 */
 function ChangeBit({ ex, dwa }: { ex: Input; dwa: number }) {
-  const t = waistTrack(ex)!, v = (ex.waistCm ?? 0) + dwa, z = toneAt(t, v);
-  const e = futureEffects(ex, 0, dwa).effects.find((x) => x.id === 'dm10');
+  const { draft } = useStore();
+  const u = initialWaistUnit(draft), per = u === 'cm' ? 1 : IN, wu = unitLabel(u);
+  const t = waistTrack(ex)!, v0 = toUnit(ex.waistCm!, u), v = toUnit(ex.waistCm! + dwa, u), dv = v - v0;
+  const cm = dv === 0 ? ex.waistCm! : toCm(v, u), z = toneAt(t, cm);
+  const e = futureEffects(ex, 0, cm - ex.waistCm!).effects.find((x) => x.id === 'dm10');
   return (
     <div className="flex flex-col gap-3">
       <div className="flex items-end justify-between gap-3">
         <div className="flex flex-col gap-1"><span className="text-body-sm text-ink-soft">허리둘레</span>
-          <b className="text-[30px] leading-none font-semibold tabular-nums">{v}<small className="ml-0.5 text-body font-normal text-ink-soft">cm</small>{dwa !== 0 && <span className="ml-2 text-body font-semibold text-good">−{-dwa}cm</span>}</b></div>
+          <b className="text-[30px] leading-none font-semibold tabular-nums">{v}<small className="ml-0.5 text-body font-normal text-ink-soft">{wu}</small>{dv !== 0 && <span className="ml-2 text-body font-semibold text-good">−{-dv}{wu}</span>}</b></div>
         <span className={cn('text-body font-semibold', z.tone === 'ok' ? 'text-good' : 'text-risk')}>{z.name}</span>
       </div>
-      <ZoneSlider label="허리둘레 예시" valueText={`${v}cm`} min={t.min} max={t.max} value={v} onChange={() => {}} zones={t.zones} now={ex.waistCm!} cut={t.cut} tone={z.tone} />
+      <ZoneSlider label="허리둘레 예시" valueText={`${v}${wu}`} min={Math.floor(t.min / per)} max={Math.ceil(t.max / per)} value={v} onChange={() => {}} now={v0}
+        healthy={[Math.floor(t.min / per), t.cut! / per]} tick overStops={waistStops(t.cut!).map(([x, c]) => [x / per, c] as [number, string])} />
       {e && <div className="flex items-center justify-between gap-3 rounded-btn bg-brand px-4 py-3 text-white">
         <span className="text-body-sm leading-snug text-white/80">10년 안에 당뇨가<br />생길 위험</span>
-        <span className="flex items-baseline gap-2 tabular-nums">{dwa !== 0 && e.before !== e.after && <s className="text-body-sm text-white/45">{e.before}</s>}
+        <span className="flex items-baseline gap-2 tabular-nums">{dv !== 0 && e.before !== e.after && <s className="text-body-sm text-white/45">{e.before}</s>}
           <CountTo text={e.after} className={cn('text-[22px] font-semibold', e.before !== e.after ? 'text-lime' : 'text-white')} /></span>
       </div>}
     </div>
@@ -133,7 +140,8 @@ export function TrioScene({ ex, id }: { ex: Input; id?: string }) {
 
 /* ───────── ② 바꿔보기 ───────── */
 export function ChangeLive({ ex, id }: { ex: Input; id?: string }) {
-  const demo = useMemo<[number, number][]>(() => [[0, 0], [0, -1], [0, -2], [0, -3], [-2, -3], [-4, -4]], []);
+  // cm: 허리 92→91→90→89 → 몸무게 −2kg → 몸무게 −4kg·허리 88 / 인치(1인치 단위): 36→35(기준선 넘음) → 몸무게 −2kg → 몸무게 −4kg·허리 34
+  const demo = useMemo<Record<WaistUnit, [number, number][]>>(() => ({ cm: [[0, 0], [0, -1], [0, -2], [0, -3], [-2, -3], [-4, -4]], in: [[0, 0], [0, -1], [-2, -1], [-4, -2]] }), []);
   return (
     <section id={id} className="ls-change">
       <div className="ls-wrap ls-change-grid">

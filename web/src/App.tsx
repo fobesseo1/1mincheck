@@ -15,6 +15,7 @@ import type { ItemId } from './lib/content.ts';
 import { stressSamples } from './lib/stress.ts';
 import { isDev } from './lib/dev.ts';
 import { Dev } from './screens/Dev.tsx';
+import { DevChars } from './screens/DevChars.tsx';
 import { loadMini, miniDraft } from './screens/MiniTrial.tsx';
 import { modOn, anyModOn, shown, type ModKey } from './lib/features.ts';
 
@@ -63,12 +64,13 @@ export function App() {
   else if (route === '/summary') screen = <Summary />;
   else if (route.startsWith('/detail/')) screen = <Detail id={route.slice(8) as ItemId} />;
   else if (route === '/dev') screen = <Dev />;
+  else if (route === '/dev/chars' && (import.meta.env.DEV || isDev())) screen = <DevChars />;
   else screen = <Landing />;
 
   return (
     <StoreCtx.Provider value={{ draft, setDraft, reset, records, setRecords, toast }}>
       {screen}
-      {msg && <div className="fixed left-1/2 bottom-[calc(96px+env(safe-area-inset-bottom))] z-50 -translate-x-1/2 rounded-full bg-ink px-5 py-3 text-body-sm font-medium text-white shadow-float animate-rise" role="status">{msg}</div>}
+      {msg && <div className="fixed left-1/2 bottom-[calc(96px+env(safe-area-inset-bottom))] z-50 -translate-x-1/2 rounded-full bg-brand/90 backdrop-blur-md backdrop-saturate-150 px-5 py-3 text-body-sm font-medium text-white shadow-float animate-rise" role="status">{msg}</div>}
       {isDev() && <a href="#/dev" className="fixed top-2 left-2 z-50 rounded-lg bg-citrus px-2 py-0.5 text-[11px] font-medium text-ink no-underline">개발자 모드 · 보정 확인</a>}
       {(import.meta.env.DEV || isDev()) && route.startsWith('/') && route !== '/' && (
         <div className="demo no-print fixed left-3 bottom-[calc(84px+env(safe-area-inset-bottom))] z-30 flex gap-1 rounded-full border border-dashed border-ash bg-white p-1" role="group" aria-label="개발용 예시 불러오기">

@@ -5,10 +5,10 @@ import { cn } from '@/lib/utils';
 
 export type Tone = 'low' | 'ok' | 'mid' | 'high' | 'urgent';
 /** 상태 색: 좋음 초록 · 주의(저체중·전단계) 옅은 빨강 · 위험 빨강 · 급함 진한 빨강 */
-export const TONE_FILL: Record<Tone, string> = { low: 'bg-warn-dot', ok: 'bg-good-dot', mid: 'bg-warn-dot', high: 'bg-risk-dot', urgent: 'bg-risk' };
-export const TONE_TEXT: Record<Tone, string> = { low: 'text-warn', ok: 'text-good', mid: 'text-warn', high: 'text-risk', urgent: 'text-risk' };
-const ME_RING: Record<Tone, string> = { low: 'ring-warn-dot', ok: 'ring-good-dot', mid: 'ring-warn-dot', high: 'ring-risk-dot', urgent: 'ring-risk' };
-export const TONE_BG: Record<Tone, string> = { low: 'bg-warn-bg', ok: 'bg-good-bg', mid: 'bg-warn-bg', high: 'bg-risk-bg', urgent: 'bg-risk-bg' };
+export const TONE_FILL: Record<Tone, string> = { low: 'bg-low-dot', ok: 'bg-good-dot', mid: 'bg-warn-dot', high: 'bg-risk-dot', urgent: 'bg-risk' };
+export const TONE_TEXT: Record<Tone, string> = { low: 'text-risk', ok: 'text-good', mid: 'text-warn', high: 'text-risk', urgent: 'text-risk' };
+const ME_RING: Record<Tone, string> = { low: 'ring-low-dot', ok: 'ring-good-dot', mid: 'ring-warn-dot', high: 'ring-risk-dot', urgent: 'ring-risk' };
+export const TONE_BG: Record<Tone, string> = { low: 'bg-risk-bg', ok: 'bg-good-bg', mid: 'bg-warn-bg', high: 'bg-risk-bg', urgent: 'bg-risk-bg' };
 
 /**
  * 구간 막대 배경. segs = 0–1 위치의 구간들. 좋음(ok) 구간은 초록 그대로,

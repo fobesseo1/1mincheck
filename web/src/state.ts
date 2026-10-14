@@ -44,6 +44,8 @@ export const ALC_LABEL: Record<Alcohol, string> = { none: '안 마심', lt1: '�
 
 export interface Draft {
   age: string; sex: 'M' | 'F' | null; height: string; weight: string; waist: string; waistUnknown: boolean; waistUnit: 'cm' | 'in';
+  /** 사용자가 허리 단위를 직접 골랐는지 (안 골랐으면 어디서든 인치가 기본) */
+  waistUnitChosen?: boolean;
   smoke: 'never' | 'past' | 'current' | null; alcFreq: AlcFreq | null; alcAmt: Record<DrinkKey, number>; exercise: YN; meno: YN | 'unknown';
   famDM: YN; dx: { htn: boolean; dm: boolean; chol: boolean; none: boolean }; bp: Bp | null;
   modules: { sleep: boolean; mind: boolean; gerd: boolean; diet: boolean };

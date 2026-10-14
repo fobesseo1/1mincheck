@@ -1,8 +1,9 @@
 import { useEffect, useState, type CSSProperties } from 'react';
 import MINI from '../../../engine/src/mini_rates.json';
-import { ArrowRight, UserRound, Check } from 'lucide-react';
+import { ArrowRight, UserRound } from 'lucide-react';
 import { useStore } from '../ui.tsx';
 import { Button } from '@/components/ui/button';
+import { Segmented } from '@/components/ui/segmented';
 import { cn } from '@/lib/utils';
 import { riskView, fracOf, SEV_COLOR } from '../lib/risk.ts';
 import { freqOf, peerLine } from '../lib/b.ts';
@@ -128,10 +129,8 @@ export function MiniTrial({ preset }: { preset?: { sex: 'M' | 'F'; age: number; 
         <b className="text-[19px] font-semibold">내 몸 정보로 간단히 확인하기</b>
         <span className="text-caption text-ink-soft">성별·나이·키·몸무게, 4가지만 넣어 보세요</span>
       </div>
-      <div className="flex gap-2">
-        {(['F', 'M'] as const).map((s) => <button key={s} type="button" onClick={() => { setSex(s); setRes(null); }} aria-pressed={sex === s}
-          className={cn('flex h-12 flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-btn border-2 text-body font-medium transition-colors', sex === s ? 'border-brand bg-brand text-white' : 'border-transparent bg-sand-soft text-ink hover:bg-sand')}>{sex === s && <Check className="size-4" strokeWidth={3} />}{s === 'F' ? '여성' : '남성'}</button>)}
-      </div>
+      {/* 성별: 앱 화면과 같은 물방울 고르기 */}
+      <Segmented label="성별" options={[{ v: 'F' as const, t: '여성' }, { v: 'M' as const, t: '남성' }]} value={sex} onChange={(s) => { setSex(s); setRes(null); }} optClassName="text-body" />
       <div className="flex gap-2">{field('만 나이', age, setAge, '세', '45')}{field('키', h, setH, 'cm', '165')}{field('몸무게', w, setW, 'kg', '65')}</div>
       {!res && <Button size="lg" className="w-full" onClick={show}>간단 결과 보기 <ArrowRight /></Button>}
       {!res && tried && err && <div role="alert" className="text-center text-body-sm font-medium text-risk">{err}</div>}
