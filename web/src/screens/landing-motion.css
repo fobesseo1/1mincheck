@@ -109,3 +109,9 @@
 @media (max-width: 700px) { .lm-header.has-dock.is-solid:not(.is-open) { transform: translateY(calc(-100% - 24px)); } }
 /* 첫 화면 유리 버튼 */
 .lm-glass-link { color: #fff !important; gap: 10px; }
+/* 메뉴 알약: 페이지 끝에서 바닥글 링크를 덮지 않게 알약 높이 + 여유만큼 바닥글 아래를 비우고,
+   입력칸에 커서가 있으면 내려 숨긴다 */
+.lm-footer { padding-bottom: calc(58px + 96px + env(safe-area-inset-bottom)); }
+@media (max-width: 700px) { .lm-footer { padding-bottom: calc(40px + 84px + env(safe-area-inset-bottom)); } }
+.lm-dock { transition: color .3s, opacity .25s, translate .35s cubic-bezier(.2, .8, .2, 1); }
+.lm-dock.is-hidden { opacity: 0; translate: -50% calc(100% + 40px); pointer-events: none; }

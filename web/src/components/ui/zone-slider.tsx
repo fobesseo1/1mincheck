@@ -60,7 +60,10 @@ export function ZoneSlider({ label, valueText, min, max, step = 1, value, onChan
   useEffect(() => () => { pos.current?.stop(); grab.current?.stop(); stretch.current?.stop(); }, []);
 
   const snap = (v: number) => Math.min(max, Math.max(min, min + Math.round((v - min) / step) * step));
-  const emit = (v: number) => { const s = Math.round(snap(v) * 100) / 100; if (s !== value) onChange(s); };
+  // 마지막으로 보낸 값: 키를 빠르게 · 꾹 누르면 화면이 다시 그려지기 전에 다음 키가 와서, 그려진 값(value)에 더하면 한 칸만 간다
+  const sent = useRef(value);
+  useEffect(() => { sent.current = value; }, [value]);
+  const emit = (v: number) => { const s = Math.round(snap(v) * 100) / 100; if (s !== sent.current) { sent.current = s; onChange(s); } };
   const fromX = (x: number) => {
     const b = track.current!.getBoundingClientRect(), raw = (x - b.left) / b.width;
     // 고무줄: 끝을 넘어선 만큼 늘어나되, 멀리 끌수록 덜 늘어난다 — offset = (1 − 1/(x·0.55/26 + 1))·26px
@@ -79,7 +82,7 @@ export function ZoneSlider({ label, valueText, min, max, step = 1, value, onChan
     const d = ({ ArrowLeft: -step, ArrowDown: -step, ArrowRight: step, ArrowUp: step, PageDown: -10 * step, PageUp: 10 * step } as Record<string, number>)[e.key];
     if (d == null && e.key !== 'Home' && e.key !== 'End') return;
     e.preventDefault(); onGrab?.();
-    emit(e.key === 'Home' ? min : e.key === 'End' ? max : value + d);
+    emit(e.key === 'Home' ? min : e.key === 'End' ? max : sent.current + d);
   };
 
   return (

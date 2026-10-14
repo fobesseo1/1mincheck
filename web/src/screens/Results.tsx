@@ -207,8 +207,10 @@ type Row = { k: string; name: string; b: string; a: string; dir: 'down' | 'up' |
 const ZRANK: Record<string, number> = { 정상: 0, 저체중: 1, '비만 전단계': 2, '1단계 비만': 3, '2단계 비만': 4, '3단계 비만': 5, 복부비만: 3 };
 /** 두 확률의 차이(%p). '23.4%' 같은 한 값일 때만 (범위면 null) */
 const ppDiff = (b: string, a: string) => { const x = /^(\d+(?:\.\d+)?)%$/.exec(b), y = /^(\d+(?:\.\d+)?)%$/.exec(a); return x && y ? Math.round((parseFloat(y[1]) - parseFloat(x[1])) * 10) / 10 : null; };
-/** 말풍선용: '8.9%' · '6.1–9.8%' 의 큰 쪽 숫자 */
-const pctHi = (t: string) => parseFloat(t.split('–').pop()!);
+/** 말풍선용: '8.9%' · '6.1–9.8%' → [낮은 끝, 높은 끝] */
+const pctEnds = (t: string) => { const xs = t.replace('%', '').split('–').map(parseFloat); return [xs[0], xs[xs.length - 1]] as const; };
+/** 좋아졌는지: 두 끝의 변화를 더한 값 (엔진 lines.ts 와 같은 방식). 음수 = 낮아짐 */
+const pctMove = (b: string, a: string) => { const [b0, b1] = pctEnds(b), [a0, a1] = pctEnds(a); return Math.round((a0 - b0 + a1 - b1) * 10) / 10; };
 const RISK_LABEL: Record<string, string> = { dm10: '10년 안에 당뇨가 생길 위험', htn4: '4년 안에 고혈압이 생길 위험' };
 
 /**
@@ -275,8 +277,12 @@ export function ChangeCard({ inp, anchor = 'change', example, heading = true, st
   useEffect(() => {
     const t = window.setTimeout(() => {
       const now = snapRef.current, p = prev.current, dist = (b: number) => (b < 18.5 ? 18.5 - b : b >= 23 ? b - 23 : 0);
-      const r = now.risk.find(([id, a]) => { const b = p.risk.find(([j]) => j === id)?.[1]; return b != null && b !== a; });
-      if (r) { const b = pctHi(p.risk.find(([j]) => j === r[0])![1]), a = pctHi(r[1]); char.current?.say({ label: RISK_LABEL[r[0]], value: r[1], better: a < b, up: a > b }); }
+      // 위험 값: 숫자 하나면 그 숫자, 범위(혈압을 몰라 정상 · 전단계 · 고혈압을 모두 계산)면 숫자 대신 「낮아졌어요 ▼」처럼 말로
+      const r = now.risk.map(([id, a]) => { const b = p.risk.find(([j]) => j === id)?.[1]; return { id, a, b, d: b == null || b === a ? 0 : pctMove(b, a) }; }).find((x) => x.d !== 0);
+      if (r) {
+        const range = r.a.includes('–') || r.b!.includes('–');
+        char.current?.say({ label: RISK_LABEL[r.id], value: range ? (r.d < 0 ? '낮아졌어요' : '높아졌어요') : r.a, better: r.d < 0, up: r.d > 0 });
+      }
       else if (now.belly !== p.belly) char.current?.say({ label: '복부비만', value: now.belly ? '해당' : '아님', better: !now.belly, up: now.belly });
       else if (now.cls !== p.cls) char.current?.say({ label: '비만도', value: now.cls, better: dist(now.bmi) < dist(p.bmi), up: now.bmi > p.bmi });
       prev.current = now;

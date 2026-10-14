@@ -2,7 +2,7 @@
 //   usePress   누르면 줄지 않고 살짝 부풀며 떠오른다 (1.06배)
 //   useLens    가장자리 굴절 (크롬 계열 · 크기가 고정된 요소만). 안 되면 흐림 유리로 남는다
 //   useDroplet 탭 · 고르기의 물방울 선택 표시 (가는 쪽 끝이 먼저, 반대쪽 끝이 늦게)
-import { useEffect, useLayoutEffect, useRef, type RefObject } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, type RefObject } from 'react';
 import { Spring, PRESS, LEAD, TRAIL, reducedMotion } from './spring';
 
 /** 요소 하나에 누름 반응을 붙이고, 떼는 함수를 돌려준다 */
@@ -95,6 +95,20 @@ export function useDroplet(ind: RefObject<HTMLElement>, onDraw?: (L: number, R: 
     get L() { return st.current!.L; }, get R() { return st.current!.R; },
   });
   return api.current;
+}
+
+/** 글자를 입력하는 중인지 (입력칸 · 글상자에 커서가 있으면 true). 떠 있는 메뉴가 입력칸 · 휴대폰 자판 위를 가리지 않게 숨길 때 쓴다 */
+export function useTyping() {
+  const [typing, setTyping] = useState(false);
+  useEffect(() => {
+    const isText = (el: EventTarget | null) => el instanceof HTMLTextAreaElement || el instanceof HTMLSelectElement || (el instanceof HTMLElement && el.isContentEditable)
+      || (el instanceof HTMLInputElement && !['checkbox', 'radio', 'range', 'button', 'submit', 'reset', 'file', 'color'].includes(el.type));
+    const on = (e: FocusEvent) => { if (isText(e.target)) setTyping(true); };
+    const off = (e: FocusEvent) => { if (isText(e.target) && !isText(e.relatedTarget)) setTyping(false); };
+    document.addEventListener('focusin', on); document.addEventListener('focusout', off);
+    return () => { document.removeEventListener('focusin', on); document.removeEventListener('focusout', off); };
+  }, []);
+  return typing;
 }
 
 /** 처음 그릴 때(크기가 잡힌 뒤) 한 번 바로 놓기 */

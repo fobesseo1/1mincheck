@@ -14,7 +14,7 @@ import './landing-motion.css';
 import { SpreadScene } from './SpreadScene.tsx';
 import { TrioScene, ChangeLive, PeopleScene, LabsLive, MinuteScene } from './LandingScenes.tsx';
 import { HeroVideo } from './HeroVideo.tsx';
-import { useDroplet, useLens, usePress, attachPress } from '@/lib/motion';
+import { useDroplet, useLens, usePress, attachPress, useTyping } from '@/lib/motion';
 import { Fields } from '../ui.tsx';
 
 const ART = import.meta.glob('../assets/landing/*.{jpg,jpeg,png,webp}', { eager: true, import: 'default' }) as Record<string, string>;
@@ -88,7 +88,7 @@ function darkAt(x: number, y: number, skip: Element | null) {
 function Dock() {
   const bar = useRef<HTMLElement>(null), drop = useRef<HTMLSpanElement>(null), tabs = useRef<(HTMLAnchorElement | null)[]>([]);
   const [at, setAt] = useState(-1), [dark, setDark] = useState(true);
-  const d = useDroplet(drop), shown = useRef(false);
+  const d = useDroplet(drop), shown = useRef(false), typing = useTyping();
   useLens(bar, { strength: 26 });
   useEffect(() => {
     let raf = 0;
@@ -109,7 +109,7 @@ function Dock() {
     d.go(tabs.current[at], !shown.current); shown.current = true; el.style.opacity = '1';
   }, [at]);   // eslint-disable-line react-hooks/exhaustive-deps
   return (
-    <nav ref={bar} aria-label="주요 메뉴" className={'lm-dock glass ' + (dark ? 'is-dark glass-dark' : 'glass-light')}>
+    <nav ref={bar} aria-label="주요 메뉴" aria-hidden={typing || undefined} {...(typing ? { inert: '' } : {})} className={'lm-dock glass ' + (dark ? 'is-dark glass-dark' : 'glass-light') + (typing ? ' is-hidden' : '')}>
       <div className="lm-dock-tabs">
         <span ref={drop} aria-hidden className="lm-dock-lens" style={{ opacity: 0 }} />
         {NAV.map(([id, t], k) => <DockTab key={id} id={id} t={t} on={k === at} set={(el) => { tabs.current[k] = el; }} />)}

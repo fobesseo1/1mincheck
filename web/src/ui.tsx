@@ -1,6 +1,6 @@
 // 공통 화면 부품 (Jeton 스타일 · Tailwind · shadcn · lucide). 디자인 기준: docs/DESIGN.md
 import { createContext, useContext, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
-import { useDroplet, useLens } from '@/lib/motion';
+import { useDroplet, useLens, useTyping } from '@/lib/motion';
 import {
   ChevronLeft, ChevronRight, ChevronDown, Check, ArrowUpRight, Bookmark, Share2, RotateCcw, MessageCircle, LayoutGrid, SlidersHorizontal,
   LineChart, History, Smartphone, FileText, Play, X, ArrowRight,
@@ -142,7 +142,7 @@ let lastTab = -1;
 export function TabBar({ at }: { at: 'result' | 'labs' | 'whatif' | 'record' | 'again' }) {
   const T: [typeof at, string, string, ReactNode][] = [['result', '#/result', '결과', Icon.grid], ['labs', '#/labs', '검진 풀이', Icon.doc], ['record', '#/record', '기록', Icon.chart], ['again', '#/start', '다시 체크', Icon.clock]];
   const bar = useRef<HTMLElement>(null), lens = useRef<HTMLSpanElement>(null), items = useRef<(HTMLAnchorElement | null)[]>([]);
-  const d = useDroplet(lens), k = T.findIndex(([x]) => x === at);
+  const d = useDroplet(lens), k = T.findIndex(([x]) => x === at), typing = useTyping();
   useLens(bar);
   useLayoutEffect(() => {
     if (k < 0) return;
@@ -152,8 +152,10 @@ export function TabBar({ at }: { at: 'result' | 'labs' | 'whatif' | 'record' | '
     return () => ro.disconnect();
   }, [k]);   // eslint-disable-line react-hooks/exhaustive-deps
   return (
-    <nav ref={bar} style={{ position: 'fixed' }} aria-label="주요 메뉴"
-      className="glass glass-light no-print inset-x-0 bottom-[calc(12px+env(safe-area-inset-bottom))] z-20 mx-auto flex w-[calc(100%-24px)] max-w-[416px] rounded-full p-1.5">
+    // 입력칸에 커서가 있으면 내려 숨긴다 (입력칸 · 휴대폰 자판 위를 가리지 않게)
+    <nav ref={bar} style={{ position: 'fixed' }} aria-label="주요 메뉴" aria-hidden={typing || undefined} {...(typing ? { inert: '' } : {})}
+      className={cn('glass glass-light no-print inset-x-0 bottom-[calc(12px+env(safe-area-inset-bottom))] z-20 mx-auto flex w-[calc(100%-24px)] max-w-[416px] rounded-full p-1.5 transition-[translate,opacity] duration-300',
+        typing && 'pointer-events-none translate-y-[calc(100%+24px)] opacity-0')}>
       <span ref={lens} aria-hidden style={{ opacity: k < 0 ? 0 : 1 }} className="pointer-events-none absolute inset-y-1.5 rounded-full bg-brand/[.08] shadow-[inset_0_1px_1px_#fff,inset_0_-1px_1px_rgba(22,51,0,.06),0_2px_10px_rgba(22,51,0,.10)]" />
       {T.map(([key, h, t, ic], i) => (
         <a key={key} ref={(el) => { items.current[i] = el; }} href={h} aria-current={at === key ? 'page' : undefined}
