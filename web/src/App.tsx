@@ -6,10 +6,9 @@ import { Results } from './screens/Results.tsx';
 import { All } from './screens/All.tsx';
 import { LabsInput, LabsResult } from './screens/Labs.tsx';
 import { Detail } from './screens/Detail.tsx';
-import { WhatIf } from './screens/WhatIf.tsx';
 import { Record } from './screens/Record.tsx';
 import { Summary } from './screens/Summary.tsx';
-import { Landing } from './screens/Landing.tsx';
+import { LandingV4 } from './screens/LandingV4.tsx';   // 무채색 새 첫 화면 (2026-10-15). 예전 Landing.tsx 는 남겨 둔다
 import { samples } from '../../src/sampleData.ts';
 import type { ItemId } from './lib/content.ts';
 import { stressSamples } from './lib/stress.ts';
@@ -49,24 +48,26 @@ export function App() {
     || (MOD_PATH[route] != null && !modOn(MOD_PATH[route]!)) || (route.startsWith('/detail/') && !shown(route.slice(8)));
   useEffect(() => { if (hiddenRoute) location.replace(location.href.split('#')[0] + '#/result'); }, [hiddenRoute]);
 
+  useEffect(() => { if (route === '/whatif' || route === '/change') location.replace(location.href.split('#')[0] + '#/result'); }, [route]);
+
   // 랜딩 안의 섹션 이동(#how 등)
   useEffect(() => { if (!route.startsWith('/')) document.getElementById(route)?.scrollIntoView({ behavior: 'smooth' }); }, [route]);
 
   let screen: JSX.Element;
-  if (!route.startsWith('/') || route === '/') screen = <Landing />;
+  if (!route.startsWith('/') || route === '/') screen = <LandingV4 />;
   else if (APP[route]) { const S = APP[route]; screen = <S />; }
   else if (route === '/result') screen = <Results />;
   else if (route === '/all') screen = <All />;
   else if (route === '/labs' || route === '/checkup') screen = <LabsInput />;   // 예전 '검진 수치 넣기' 주소도 검진 풀이로
   else if (route === '/labs/result') screen = <LabsResult />;
-  else if (route === '/change') screen = <Results />;   // 예전 '줄이면?' 주소는 결과 화면으로 (이제 결과 안에 있음)
-  else if (route === '/whatif') screen = <WhatIf key={JSON.stringify(draft)} />;
+  // 예전 '줄이면?'(/change)·'바꿔보기'(/whatif) 주소는 결과 화면으로: 이제 결과 안의 '생활을 바꾸면'이 같은 일을 한다 (WhatIf.tsx 파일은 남김)
+  else if (route === '/change' || route === '/whatif') screen = <Results />;
   else if (route === '/record') screen = <Record />;
   else if (route === '/summary') screen = <Summary />;
   else if (route.startsWith('/detail/')) screen = <Detail id={route.slice(8) as ItemId} />;
   else if (route === '/dev') screen = <Dev />;
   else if (route === '/dev/chars' && (import.meta.env.DEV || isDev())) screen = <DevChars />;
-  else screen = <Landing />;
+  else screen = <LandingV4 />;
 
   return (
     <StoreCtx.Provider value={{ draft, setDraft, reset, records, setRecords, toast }}>

@@ -54,17 +54,20 @@ export function Intro() {
 }
 
 // ── 1. 기본정보 ──
-const numCls = 'w-full min-w-0 border-0 bg-transparent p-0 font-medium text-ink outline-none placeholder:text-sand';
-function NumField({ label, unit, value, onChange, big, id }: { label: string; unit: string; value: string; onChange: (v: string) => void; big?: boolean; id: string }) {
+const numCls = 'min-w-0 border-0 bg-transparent p-0 text-[30px] leading-none font-semibold text-ink outline-none placeholder:text-[#c4c4c0] tabular-nums';
+/** 숫자 입력 카드 (2026-10-15): 이름 13px · 숫자 30px + 단위 15px 회색(붙여서). 쓰는 중이면 잉크 2px 테두리 */
+export const fieldCard = 'flex flex-col gap-2 rounded-card bg-white px-[18px] py-4 focus-within:shadow-[inset_0_0_0_2px_var(--color-ink)]';
+function NumField({ label, unit, value, onChange, id, right, foot }: { label: string; unit: string; value: string; onChange: (v: string) => void; id: string; right?: ReactNode; foot?: ReactNode }) {
   return (
-    <label htmlFor={id} className={cn('flex flex-1 flex-col gap-0.5', big && 'items-center')}>
-      <span className="text-caption font-medium text-ink-soft">{label}</span>
-      <span className={cn('flex items-baseline gap-1', big && 'justify-center')}>
-        <input id={id} className={cn(numCls, big ? 'text-center text-[46px]' : 'text-[38px]')} inputMode="decimal" value={value} placeholder="0" onChange={(e) => onChange(e.target.value.replace(/[^0-9.]/g, ''))}
-          style={{ width: `${Math.max(2, value.length) * (big ? 0.62 : 0.64) + 0.4}em` }} />
-        <span className="text-body font-medium text-ink-soft">{unit}</span>
-      </span>
-    </label>
+    <div className={fieldCard}>
+      <span className="flex items-center justify-between"><label htmlFor={id} className="text-[13px] text-ink-soft">{label}</label>{right}</span>
+      <label htmlFor={id} className="flex items-baseline gap-0.5">
+        <input id={id} className={numCls} inputMode="decimal" value={value} placeholder="0" onChange={(e) => onChange(e.target.value.replace(/[^0-9.]/g, ''))}
+          style={{ width: `${Math.max(1, value.length) * 0.6 + 0.1}em` }} />
+        <span className="text-[15px] text-ink-soft">{unit}</span>
+      </label>
+      {foot}
+    </div>
   );
 }
 /** 미니 체험에서 이어 온 경우 맨 위 안내: 미니에서 본 결론 색 그대로 이어서 */
@@ -101,36 +104,28 @@ export function Info() {
       <Head s="info" title="기본정보" />
       <MiniBridge />
       <H1 a="먼저 몸 정보를" b="알려 주세요" />
-      <Help className="-mt-2">{'답한 내용은 이 기기 안에서만 계산해요.\n만 19세 이상 성인을 위한 참고 정보예요.'}</Help>
+      <Help className="-mt-2 text-[13px]">{'이 기기 안에서만 계산해요.\n가족 것을 대신 넣어도 돼요.'}</Help>
       <Choice q="성별" value={d.sex} onChange={(v) => set({ sex: v })} options={[{ v: 'M' as const, t: '남성' }, { v: 'F' as const, t: '여성' }]} />
       <div className="grid grid-cols-2 gap-3">
-        <Card className="px-5 py-4"><NumField id="age" label="만 나이" unit="세" value={d.age} onChange={(v) => set({ age: v })} /></Card>
-        <Card className="px-5 py-4"><NumField id="h" label="키" unit="cm" value={d.height} onChange={(v) => set({ height: v })} /></Card>
+        <NumField id="age" label="만 나이" unit="세" value={d.age} onChange={(v) => set({ age: v })} />
+        <NumField id="h" label="키" unit="cm" value={d.height} onChange={(v) => set({ height: v })} />
+        <NumField id="w" label="몸무게" unit="kg" value={d.weight} onChange={(v) => set({ weight: v })} />
+        {/* 허리둘레: 이름 줄 오른쪽에 단위 알약(인치 기본), 숫자 아래에 다른 단위 환산값 */}
+        <NumField id="wa" label="허리둘레" unit={d.waistUnit === 'in' ? '인치' : 'cm'} value={d.waist} onChange={(v) => set({ waist: v, waistUnknown: false })}
+          right={<span role="radiogroup" aria-label="허리 단위" className="flex gap-0.5 rounded-[7px] bg-[#f0f0ed] p-0.5">
+            {([['in', '인치'], ['cm', 'cm']] as const).map(([u, t]) => {
+              const on = d.waistUnit === u;
+              return <button key={u} type="button" role="radio" aria-checked={on} onClick={() => set({ waistUnit: u, waistUnitChosen: true })} className={cn('cursor-pointer rounded-[5px] px-1.5 py-0.5 text-[11px] font-semibold', on ? 'bg-ink text-white' : 'text-ink-soft')}>{t}</button>;
+            })}
+          </span>}
+          foot={<span className="-mt-1 min-h-4 text-[11px] text-mute">{Number(d.waist) > 0 ? (d.waistUnit === 'in' ? `약 ${(Number(d.waist) * 2.54).toFixed(1)}cm` : `약 ${(Number(d.waist) / 2.54).toFixed(1)}인치`) : ''}</span>} />
       </div>
-      <Card className="flex items-center px-4 py-5">
-        <NumField id="w" big label="몸무게" unit="kg" value={d.weight} onChange={(v) => set({ weight: v })} />
-        <div className="h-16 w-px bg-sand" />
-        {/* 허리둘레: 숫자 오른쪽에 단위(인치 위·cm 아래), 숫자 아래에 다른 단위 환산값 */}
-        <div className="flex flex-1 flex-col items-center gap-0.5">
-          <label htmlFor="wa" className="text-caption font-medium text-ink-soft">허리둘레</label>
-          <div className="flex items-center justify-center gap-1.5">
-            <input id="wa" inputMode="decimal" value={d.waist} placeholder="0" className={cn(numCls, 'text-center text-[42px]')}
-              onChange={(e) => set({ waist: e.target.value.replace(/[^0-9.]/g, ''), waistUnknown: false })} style={{ width: `${Math.max(2, d.waist.length) * 0.6 + 0.3}em` }} />
-            <div role="radiogroup" aria-label="허리 단위" className="flex flex-col gap-0.5">
-              {([['in', '인치'], ['cm', 'cm']] as const).map(([u, t]) => {
-                const on = d.waistUnit === u;
-                return <button key={u} type="button" role="radio" aria-checked={on} onClick={() => set({ waistUnit: u, waistUnitChosen: true })} className={cn('min-h-[22px] cursor-pointer whitespace-nowrap px-0.5 text-left text-body-sm', on ? 'font-medium text-brand' : 'text-ash')}>{t}</button>;
-              })}
-            </div>
-          </div>
-          <span className="min-h-4 text-caption text-ash">{Number(d.waist) > 0 ? (d.waistUnit === 'in' ? `약 ${(Number(d.waist) * 2.54).toFixed(1)}cm` : `약 ${(Number(d.waist) / 2.54).toFixed(1)}인치`) : ''}</span>
-        </div>
-      </Card>
-      <Help className="-mt-1">허리둘레는 배꼽 높이에서 잰 둘레예요.</Help>
+      <Help className="-mt-1">{'허리둘레는 배꼽 높이에서 한 바퀴 잰 값이에요.\n모르면 비워 두거나 바지 허리 사이즈를 넣어도 돼요.'}</Help>
       {bmi != null && (
-        <div className="flex items-center justify-between rounded-card bg-brand px-5 py-4 text-white animate-rise">
-          <div><div className="text-caption font-medium text-lime">키와 몸무게로 계산했어요</div><div className="text-body-sm">{cat} (대한비만학회 기준)</div></div>
-          <div><span className="text-body-sm text-white/70">BMI </span><b className="text-heading-sm font-medium">{bmi.toFixed(1)}</b></div>
+        <div className="flex items-center justify-between gap-3 rounded-card bg-white px-[18px] py-4 animate-rise">
+          <div className="flex flex-col gap-1"><span className="text-[13px] text-ink-soft">키와 몸무게로 계산한 체형</span>
+            <span className="flex items-baseline gap-1.5"><span className="text-[15px] text-ink-soft">BMI</span><b className="text-[24px] leading-none font-semibold tabular-nums">{bmi.toFixed(1)}</b></span></div>
+          <Badge variant={bmi >= 25 || bmi < 18.5 ? 'risk' : bmi >= 23 ? 'warn' : 'good'}>{cat}</Badge>
         </div>
       )}
       <Grow />
@@ -166,9 +161,9 @@ export function Life() {
           options={[{ v: true as const, t: '네' }, { v: false as const, t: '아니요' }, { v: 'unknown' as const, t: '잘 모름' }]} />
       )}
       <Choice q="부모·형제 중에 당뇨가 있는 분이 있나요?" value={d.famDM} onChange={(v) => set({ famDM: v })} options={[{ v: true, t: '있어요' }, { v: false, t: '없어요' }]} />
-      <Card className="flex flex-col gap-3 p-4" role="group" aria-label="진단받은 질환">
-        <div className="text-body font-medium">진단받은 질환이 있나요? <span className="text-body-sm font-normal text-ink-soft">(여러 개 선택)</span></div>
-        <div className="grid grid-cols-4 gap-1.5">
+      <Card className="flex flex-col gap-3 p-[18px]" role="group" aria-label="진단받은 질환">
+        <div className="flex items-baseline justify-between gap-2"><b className="text-[15px] font-semibold">진단받은 질환이 있나요?</b><span className="shrink-0 text-[12px] text-mute">여러 개 골라도 돼요</span></div>
+        <div className="grid grid-cols-2 gap-1.5">
           {([['htn', '고혈압'], ['dm', '당뇨'], ['chol', '고지혈증'], ['none', '없음']] as const).map(([k, t]) => (
             <button key={k} type="button" className={optCls(d.dx[k], 'sm')} aria-pressed={d.dx[k]} onClick={() => toggleDx(k)}>{t}</button>
           ))}
@@ -211,21 +206,22 @@ function Drinks() {
   const c = alcCalc(d.alcFreq, d.alcAmt), freq = ALC_FREQ.find((f) => f.v === d.alcFreq)!;
   const fmt = (v: number) => (Number.isInteger(v) ? String(v) : v.toFixed(1));
   return (
-    <Branch title="한 번 마실 때 보통 얼마나 마시나요?" sub="여러 술을 섞어 마시면 하나씩 넣어 주세요">
-      <div role="group" aria-label="한 번 마실 때 마시는 양" className="-my-2 flex flex-col">
-        {DRINKS.map((k) => (
-          <div key={k.k} className="flex min-h-[52px] items-center gap-2.5 border-b border-sand-soft">
-            <div className="flex-1"><b className="text-body font-medium">{k.t}</b><div className="text-caption text-ink-soft">{k.hint}</div></div>
-            <Button variant="soft" size="icon" className="size-9" aria-label={`${k.t} 줄이기`} onClick={() => setAmt(k.k, d.alcAmt[k.k] - k.step)}><Minus /></Button>
-            <span className={cn('min-w-[62px] text-center text-body font-medium', d.alcAmt[k.k] ? 'text-ink' : 'text-ash')}>{fmt(d.alcAmt[k.k])}<small className="text-[11px]"> {k.unit}</small></span>
-            <Button size="icon" className="size-9" aria-label={`${k.t} 늘리기`} onClick={() => setAmt(k.k, d.alcAmt[k.k] + k.step)}><Plus /></Button>
-          </div>
-        ))}
-        <div className={cn('mt-3 rounded-btn px-3.5 py-3 text-body-sm', c.per ? 'bg-blush text-ink' : 'bg-sand-soft text-ink-soft')} role="status">
-          {c.per ? <>{freq.t} × 한 번에 약 {fmt(c.per)}잔 <ArrowRight className="mx-0.5 inline size-3.5 align-[-2px] text-brand" /> <b>하루 평균 약 {c.daily.toFixed(1)}잔</b> ({ALC_LABEL[c.cat!]})</> : '+ 버튼을 눌러 양을 넣어 주세요'}
+    <Card className="flex flex-col gap-1 p-[18px] animate-rise" role="group" aria-label="한 번 마실 때 마시는 양">
+      <span className="text-[13px] text-ink-soft">한 번 마실 때 보통 얼마나요?</span>
+      {DRINKS.map((k) => (
+        <div key={k.k} className="flex items-center justify-between gap-2.5 border-b border-hair py-2 last-of-type:border-0">
+          <span className="flex flex-col"><b className="text-[15px] font-semibold">{k.t}</b><span className="text-[12px] text-mute">{k.hint}</span></span>
+          <span className="flex items-center gap-3">
+            <button type="button" className="flex size-10 cursor-pointer items-center justify-center rounded-full bg-[#f0f0ed] text-ink disabled:text-[#c4c4c0]" disabled={!d.alcAmt[k.k]} aria-label={`${k.t} 줄이기`} onClick={() => setAmt(k.k, d.alcAmt[k.k] - k.step)}><Minus className="size-[18px]" /></button>
+            <span className="flex min-w-12 items-baseline justify-center"><b className={cn('text-[24px] leading-none font-semibold tabular-nums', !d.alcAmt[k.k] && 'text-[#c4c4c0]')}>{fmt(d.alcAmt[k.k])}</b><span className="text-[13px] text-ink-soft">{k.unit}</span></span>
+            <button type="button" className="flex size-10 cursor-pointer items-center justify-center rounded-full bg-[#f0f0ed] text-ink" aria-label={`${k.t} 늘리기`} onClick={() => setAmt(k.k, d.alcAmt[k.k] + k.step)}><Plus className="size-[18px]" /></button>
+          </span>
         </div>
-      </div>
-    </Branch>
+      ))}
+      <p className="mt-2 rounded-[12px] bg-paper px-3 py-2.5 text-[13px] leading-[1.55] text-ink-2" role="status">
+        {c.per ? <>{freq.t} · 한 번에 약 {fmt(c.per)}잔<br /><b className="font-semibold text-ink">하루 평균 약 {c.daily.toFixed(1)}잔</b> ({ALC_LABEL[c.cat!]})</> : '+ 버튼을 눌러 양을 넣어 주세요'}
+      </p>
+    </Card>
   );
 }
 

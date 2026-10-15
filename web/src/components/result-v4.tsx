@@ -22,15 +22,17 @@ import { cn } from '@/lib/utils';
 const IN = 2.54;
 /** 판정 문구의 %를 '100명 중 몇 명'으로 (일반 사용자는 %를 잘 읽지 않는다) */
 const R = (x: string) => String(Math.max(1, Math.round(parseFloat(x))));
-export const plain = (t: string) => t
+/** 숫자 범위·분수(2023–2025, 140/90, 3~4)가 줄 끝에서 갈라지지 않게 글자 붙임(U+2060)을 넣는다 */
+export const nb = (t: string) => t.replace(/(\d)([–~/-])(?=\d)/g, '$1⁠$2⁠');
+export const plain = (t: string) => nb(t
   .replace(/(\d+(?:\.\d+)?)%에서 (\d+(?:\.\d+)?)%로/g, (_, a: string, b: string) => `100명 중 ${R(a)}명에서 ${R(b)}명으로`)
   .replace(/(\d+(?:\.\d+)?)%로/g, (_, a: string) => `100명 중 ${R(a)}명으로`)
-  .replace(/(\d+(?:\.\d+)?)%/g, (_, a: string) => `100명 중 ${R(a)}명`);
+  .replace(/(\d+(?:\.\d+)?)%/g, (_, a: string) => `100명 중 ${R(a)}명`));
 /** 여러 줄 설명을 한 문단으로 */
 const para = (t: string) => t.split('\n').map((x) => x.trim()).filter(Boolean).map((x) => (/[요다죠]$/.test(x) ? x + '.' : x)).join(' ');
 
 /** 펼치기 단추 '자세히 ⌄' */
-function More({ open, onClick, dark }: { open: boolean; onClick: () => void; dark?: boolean }) {
+export function More({ open, onClick, dark }: { open: boolean; onClick: () => void; dark?: boolean }) {
   return (
     <button type="button" aria-expanded={open} onClick={onClick}
       className={cn('flex shrink-0 cursor-pointer items-center gap-0.5 py-2 pl-1 text-[13px]', dark ? 'text-white/70' : 'text-ink-soft')}>
@@ -66,11 +68,11 @@ function Todo({ v }: { v: Verdict }) {
 }
 
 /* ── ② 세 가지 한눈에 ── */
-type Tone = 'red' | 'green' | 'gray';
-const toneOfLevel = (l: Level): Tone => (l >= 3 ? 'red' : l === 0 ? 'green' : 'gray');
+export type Tone = 'red' | 'green' | 'gray';
+export const toneOfLevel = (l: Level): Tone => (l >= 3 ? 'red' : l === 0 ? 'green' : 'gray');
 const TXT: Record<Tone, string> = { red: 'text-risk', green: 'text-good', gray: 'text-ink' };
 const DOT: Record<Tone, string> = { red: 'bg-risk ring-risk', green: 'bg-good ring-good', gray: 'bg-ink ring-ink' };
-function Badge({ t, tone, guess }: { t: string; tone: Tone; guess?: boolean }) {
+export function Badge({ t, tone, guess }: { t: string; tone: Tone; guess?: boolean }) {
   return <span className={cn('rounded-full px-2 py-0.5 text-[11px] font-semibold whitespace-nowrap',
     guess ? cn('border border-dashed', tone === 'red' ? 'border-risk text-risk' : tone === 'green' ? 'border-good text-good' : 'border-mute text-ink-2')
       : tone === 'red' ? 'bg-risk-bg text-risk' : tone === 'green' ? 'bg-good-bg text-good' : 'bg-hair text-ink-2')}>{t}</span>;
@@ -79,7 +81,7 @@ const TEST: Record<string, string> = { htn: '지금 혈압을 재면 고혈압�
 const n100 = (p: number) => (p < 1 ? '1명도 안 돼요.' : `${Math.round(p)}명쯤이에요.`);
 const peerTxt = (p: number) => (Math.round(p) < 1 ? '같은 또래도 1명이 안 돼요.' : `같은 또래는 평균 ${Math.round(p)}명이에요.`);
 
-function RowView({ r, inp, first, onWaist }: { r: Row; inp: Input; first: boolean; onWaist: () => void }) {
+export function RowView({ r, inp, first, onWaist, nameW = 52 }: { r: Row; inp: Input; first: boolean; onWaist: () => void; nameW?: number }) {
   const [open, setOpen] = useState(false);
   const g = groupLabel(inp), N = r.num ?? {};
   let badge: ReactNode, stmt: ReactNode, viz: ReactNode = null, more = '';
@@ -88,11 +90,14 @@ function RowView({ r, inp, first, onWaist }: { r: Row; inp: Input; first: boolea
     badge = <Badge t={LEVEL_WORD[lv]} tone={tone} />;
     if (rank != null) {
       const high = rank >= 50, n = high ? 101 - rank : rank;   // 딱 가운데(50)는 위험 쪽으로 센다(뱃지와 엇갈리지 않게)
+      // '3번째로 위험'은 한 덩어리: 줄이 바뀌어도 숫자·번째로·위험이 떨어지지 않게. '(100명 중)'은 자리가 없으면 혼자 다음 줄로 (docs/DESIGN.md 8장)
       stmt = (<>
-        <span className="text-[13px] text-ink-soft">{g} 중</span>
-        <b className={cn('text-[24px] leading-none font-semibold tabular-nums', TXT[tone])}>{n}</b><span className="text-[13px] text-ink-2">번째로</span>
-        <b className={cn('text-[17px] font-semibold', TXT[tone])}>{high ? '위험' : '안전'}</b>
-        <span className="text-caption text-mute">(100명 중)</span>
+        <span className="whitespace-nowrap text-[13px] text-ink-soft">{g} 중</span>
+        <span className="inline-flex items-baseline gap-1 whitespace-nowrap">
+          <b className={cn('text-[24px] leading-none font-semibold tabular-nums', TXT[tone])}>{n}<span className="text-[13px] font-normal text-ink-2">번째로</span></b>
+          <b className={cn('text-[17px] font-semibold', TXT[tone])}>{high ? '위험' : '안전'}</b>
+        </span>
+        <span className="whitespace-nowrap text-caption text-mute">(100명 중)</span>
       </>);
       viz = (
         <div role="img" aria-label={`${g} 100명 중 ${n}번째로 ${high ? '위험' : '안전'}`} className="mt-0.5 flex flex-col gap-1">
@@ -106,7 +111,7 @@ function RowView({ r, inp, first, onWaist }: { r: Row; inp: Input; first: boolea
     more = `${TEST[r.id]} 나올 사람이 이런 조건에서 100명 중 ${n100(N.me)}${N.peer != null ? ' ' + peerTxt(N.peer) : ''}`;
   } else if (r.kind === 'managed') {
     badge = <Badge t="관리 중" tone="gray" />;
-    stmt = <b className="text-[17px] font-semibold">진단 · 관리 중</b>;
+    stmt = <b className="text-[17px] font-semibold">진단·관리 중</b>;
     more = r.id === 'dm' ? '약을 챙기고, 해마다 눈(안저)·콩팥·발 검사를 받으세요.' : r.id === 'htn' ? '약을 챙기고, 집에서 잰 혈압을 진료 때 보여 주세요.' : '정기 진료를 이어가세요.';
   } else if (r.kind === 'alert' && r.word === '간 검사 필요') {
     badge = <Badge t="검사 필요" tone="red" />;
@@ -136,7 +141,7 @@ function RowView({ r, inp, first, onWaist }: { r: Row; inp: Input; first: boolea
         <div className="relative h-1.5 rounded-full bg-track">
           <span className="absolute inset-y-0 rounded-full" style={{ left: `${lo}%`, width: `${Math.max(1.5, hi - lo)}%`, background: 'repeating-linear-gradient(90deg,#8a8a86 0 4px,#b5b5b1 4px 8px)' }} />
         </div>
-        <div className="flex justify-between text-[11px] text-[#9a9a96]"><span>0명</span><span className="text-ink-2">100명 중 · 허리에 따라 이 사이</span><span>100명</span></div>
+        <div className="flex justify-between text-[11px] text-[#9a9a96]"><span>0명</span><span className="text-ink-2">허리에 따라 100명 중 이 사이</span><span>100명</span></div>
       </div>
     );
     more = `${TEST[r.id]} 나올 사람이, 허리가 가늘면 100명 중 ${lo}명, 굵으면 ${hi}명쯤이에요.${N.peer != null ? ' ' + peerTxt(N.peer) : ''}${gl != null ? ` 같은 키·몸무게 ${g}의 보통 허리로 계산하면 '${LEVEL_WORD[gl]}'이에요.` : ''}`;
@@ -154,7 +159,7 @@ function RowView({ r, inp, first, onWaist }: { r: Row; inp: Input; first: boolea
     <div className={cn('flex flex-col gap-2 py-4', !first && 'border-t border-hair')}>
       <div className="flex items-center gap-1.5">{badge}</div>
       <div className="flex items-center gap-3">
-        <b className="w-[52px] flex-none text-[17px] font-semibold">{r.name}</b>
+        <b className="flex-none whitespace-nowrap text-[17px] font-semibold" style={{ width: nameW }}>{r.name}</b>
         <div className="flex min-w-0 flex-1 flex-wrap items-baseline gap-x-1">{stmt}</div>
         <More open={open} onClick={() => setOpen((x) => !x)} />
       </div>
@@ -168,10 +173,10 @@ function RowView({ r, inp, first, onWaist }: { r: Row; inp: Input; first: boolea
     </div>
   );
 }
-const sev = (r: Row) => (r.kind === 'alert' ? 5 : r.kind === 'prob' ? r.level ?? 0 : r.kind === 'range' ? 1.5 + (r.guess ?? 0) / 10 : r.kind === 'managed' ? 0.5 : 0);
+export const sev = (r: Row) => (r.kind === 'alert' ? 5 : r.kind === 'prob' ? r.level ?? 0 : r.kind === 'range' ? 1.5 + (r.guess ?? 0) / 10 : r.kind === 'managed' ? 0.5 : 0);
 
 /* ── 허리 입력 시트 ── */
-function WaistSheet({ open, onOpenChange, inp }: { open: boolean; onOpenChange: (v: boolean) => void; inp: Input }) {
+export function WaistSheet({ open, onOpenChange, inp }: { open: boolean; onOpenChange: (v: boolean) => void; inp: Input }) {
   const { setDraft } = useStore();
   const [unit, setUnit] = useState<'in' | 'cm'>('in');
   const [v, setV] = useState(Math.round((inp.sex === 'F' ? 80 : 86) / IN));   // 처음 숫자: 같은 성별의 흔한 허리
@@ -199,7 +204,7 @@ function WaistSheet({ open, onOpenChange, inp }: { open: boolean; onOpenChange: 
         </div>
         <div className="flex items-center justify-center gap-5">
           <button type="button" aria-label="줄이기" onClick={() => set(v - 1)} className="flex size-12 cursor-pointer items-center justify-center rounded-full bg-[#f0f0ed]"><Minus className="size-5" /></button>
-          <div className="flex min-w-[120px] items-baseline justify-center gap-1.5"><b className="text-[44px] leading-none font-semibold tabular-nums">{v}</b><span className="text-[17px] text-ink-soft">{unit === 'in' ? '인치' : 'cm'}</span></div>
+          <div className="flex min-w-[120px] items-baseline justify-center"><b className="text-[44px] leading-none font-semibold tabular-nums">{v}<span className="text-[17px] font-normal text-ink-soft">{unit === 'in' ? '인치' : 'cm'}</span></b></div>
           <button type="button" aria-label="늘리기" onClick={() => set(v + 1)} className="flex size-12 cursor-pointer items-center justify-center rounded-full bg-[#f0f0ed]"><Plus className="size-5" /></button>
         </div>
         <input type="range" className="range-v4" aria-label="허리둘레" min={lim[0]} max={lim[1]} step={1} value={v} onChange={(e) => set(Number(e.target.value))} />
@@ -246,7 +251,7 @@ function Bottle({ n, max }: { n: number; max: number }) {
     </svg>
   );
 }
-function Change({ inp }: { inp: Input }) {
+export function Change({ inp }: { inp: Input }) {
   const b0 = bodyOf(inp), d = drinkOf(inp), hasWaist = inp.waistCm != null;
   const in0 = Math.round(b0.waistCm / IN), kg0 = Math.round(inp.weightKg), times = d?.timesPerWeek ?? 0;
   const bt0 = d ? Math.round((d.perOccasion / 7) * 2) / 2 : 0;
@@ -278,9 +283,9 @@ function Change({ inp }: { inp: Input }) {
     <section aria-label="생활을 바꾸면 무엇이 달라질까요" className="flex flex-col gap-4 rounded-[20px] bg-white p-5">
       <div className="flex flex-col gap-1">
         <h2 className="text-[19px] leading-[1.4] font-semibold">생활을 바꾸면 무엇이 달라질까요?</h2>
-        <p className="text-[13px] leading-[1.55] text-ink-soft">같은 {g} 중 {tabs.map((t) => TL[t]).join('·')}이 다른 사람들의 실제 검진 결과예요.</p>
+        <p className="text-[13px] leading-[1.55] text-ink-soft">같은 {g} 중 {tabs.map((t) => TL[t]).join('·')}이 다른<br />사람들의 실제 검진 결과예요.</p>
       </div>
-      {!hasWaist && <p className="rounded-[12px] bg-paper px-3 py-2.5 text-[13px] leading-[1.55] text-ink-2">허리를 넣으면 허리도 바꿔 볼 수 있어요. 줄자로 배꼽 높이를 재 보세요.</p>}
+      {!hasWaist && <p className="rounded-[12px] bg-paper px-3 py-2.5 text-[13px] leading-[1.55] text-ink-2">허리를 넣으면 허리도 바꿔 볼 수 있어요.<br />줄자로 배꼽 높이를 재 보세요.</p>}
       {tabs.length > 1 && (
         <div role="tablist" aria-label="바꿔 볼 것" className="grid gap-1 rounded-[12px] bg-[#f0f0ed] p-1" style={{ gridTemplateColumns: `repeat(${tabs.length}, minmax(0, 1fr))` }}>
           {tabs.map((t) => <button key={t} type="button" role="tab" aria-selected={tab === t} onClick={() => setTab(t)}
@@ -295,7 +300,7 @@ function Change({ inp }: { inp: Input }) {
         <div className="flex flex-1 flex-col gap-1 pb-1.5">
           <span className="text-[13px] text-ink-soft">{tab === 'waist' ? '허리둘레' : tab === 'weight' ? '몸무게' : '한 번에 마시는 소주'}</span>
           <div className="flex items-baseline gap-1.5">
-            <b className="text-[30px] leading-none font-semibold tabular-nums">{val}</b><span className="text-[15px] text-ink-soft">{unit}</span>
+            <b className="text-[30px] leading-none font-semibold tabular-nums">{val}<span className="text-[15px] font-normal text-ink-soft">{unit}</span></b>
             {moved && <span className={cn('ml-1 rounded-full px-2 py-0.5 text-caption font-semibold', dv < 0 ? 'bg-good-bg text-good' : 'bg-risk-bg text-risk')}>{dv > 0 ? '+' : '−'}{Math.abs(dv)}{unit}</span>}
           </div>
           <span className="text-caption text-mute">지금 {now}{unit} · {tab === 'waist' ? `기준 ${cutIn}인치까지` : tab === 'weight' ? std : `일주일에 ${times}번쯤`}</span>
@@ -315,7 +320,7 @@ function Change({ inp }: { inp: Input }) {
       <div aria-live="polite" className="flex flex-col gap-3.5 rounded-[16px] bg-paper p-4">
         {moved ? (
           <div className="flex flex-col gap-2">
-            <p className="text-[15px] leading-[1.5] text-[#333]">{who}<br /><b className="font-semibold text-ink">{OUTCOME_NAME[lead.o]}이 100명 중 </b><b className="text-[22px] font-semibold text-ink tabular-nums">{lead.af}</b><b className="font-semibold text-ink">명</b></p>
+            <p className="text-[15px] leading-[1.5] text-[#333]">{who}<br /><b className="font-semibold text-ink">{OUTCOME_NAME[lead.o]}이 100명 중 </b><b className="text-[22px] font-semibold text-ink tabular-nums">{lead.af}<span className="text-[15px]">명</span></b></p>
             <span className={cn('self-start rounded-full px-2.5 py-0.5 text-caption font-semibold', diff > 0 ? 'bg-good-bg text-good' : diff < 0 ? 'bg-risk-bg text-risk' : 'bg-[#e6e6e3] text-ink-2')}>
               {diff > 0 ? `지금보다 ${diff}명 적어요` : diff < 0 ? `지금보다 ${-diff}명 많아요` : '지금과 같아요'}
             </span>
@@ -329,7 +334,7 @@ function Change({ inp }: { inp: Input }) {
                 <span className="text-[13px] text-ink-2">{OUTCOME_NAME[o]}</span>
                 <span className="flex items-baseline gap-1.5">
                   {af !== n && <s className="text-caption text-[#9a9a96] tabular-nums">{n}명</s>}
-                  <b className={cn('text-[18px] leading-none font-semibold tabular-nums', col === 'good' ? 'text-good' : col === 'risk' ? 'text-risk' : 'text-ink')}>{af}</b><span className="text-caption text-ink-soft">명</span>
+                  <b className={cn('text-[18px] leading-none font-semibold tabular-nums', col === 'good' ? 'text-good' : col === 'risk' ? 'text-risk' : 'text-ink')}>{af}<span className="text-caption font-normal text-ink-soft">명</span></b>
                 </span>
               </div>
               <div className="relative h-2 rounded-full bg-[#e6e6e3]">
@@ -339,7 +344,7 @@ function Change({ inp }: { inp: Input }) {
             </div>
           );
         })}
-        <p className="text-[11px] leading-[1.6] text-mute">국민건강영양조사(2022–2024) · 체형·습관이 비슷한 사람끼리 비교한 결과로, 바꾸면 꼭 이만큼 달라진다는 뜻은 아니에요.{!hasWaist && ' 허리를 몰라서 보통 허리로 계산했어요.'}</p>
+        <p className="text-[11px] leading-[1.6] text-mute">{nb("국민건강영양조사(2022–2024)")}<br />체형·습관이 비슷한 사람끼리 비교한 결과예요.<br />바꾸면 꼭 이만큼 달라진다는 뜻은 아니에요.{!hasWaist && <><br />허리를 몰라서 보통 허리로 계산했어요.</>}</p>
       </div>
 
       {st.length > 0 && (

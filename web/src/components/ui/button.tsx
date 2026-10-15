@@ -1,4 +1,4 @@
-// shadcn Button: 주 = 라임 바탕 진초록 글자(1분체크), 진초록 = 진초록 바탕 흰 글자, 보조 = 진초록 테두리, 그 밖에 옅은 바탕·고스트, 유리
+// shadcn Button (2026-10-15 무채색): 주 = 잉크 바탕 흰 글자 52px, 보조 = 흰 바탕 + 회색 테두리, 그 밖에 흰 바탕·고스트. 유리는 랜딩 예전 장면용으로만 남김
 // 누르면 줄지 않고 1.06배로 부풀며 떠오른다(lib/motion.ts usePress). 유리 버튼은 크롬에서 가장자리 굴절(useLens)
 import * as React from 'react';
 import { Slot } from '@radix-ui/react-slot';
@@ -11,20 +11,20 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: 'bg-lime text-brand hover:bg-[#8fdc5e]',
-        brand: 'bg-brand text-white hover:bg-brand-tint',
-        outline: 'border-[1.5px] border-brand text-brand bg-white hover:bg-blush',
-        ink: 'bg-ink text-white hover:bg-ink/90',
-        soft: 'bg-blush text-ink hover:bg-brand/10',
-        ghost: 'text-ink hover:bg-sand-soft',
-        link: 'text-brand underline-offset-4 hover:underline',
+        default: 'bg-ink text-white font-semibold hover:bg-ink/90',
+        brand: 'bg-ink text-white font-semibold hover:bg-ink/90',
+        outline: 'border-[1.5px] border-sand text-ink bg-white font-semibold hover:bg-paper',
+        ink: 'bg-ink text-white font-semibold hover:bg-ink/90',
+        soft: 'bg-white text-ink font-semibold hover:bg-hair',
+        ghost: 'text-ink hover:bg-hair',
+        link: 'text-ink underline-offset-4 hover:underline',
         white: 'bg-white text-ink hover:bg-white/90',
         glass: 'glass glass-light text-brand',
         'glass-dark': 'glass glass-dark text-white',
       },
       size: {
-        default: 'h-12 rounded-btn px-5 text-body [&_svg]:size-[18px]',
-        lg: 'h-14 rounded-btn px-6 text-[17px] [&_svg]:size-5',
+        default: 'h-[52px] rounded-btn px-5 text-body [&_svg]:size-[18px]',
+        lg: 'h-[52px] rounded-btn px-6 text-body [&_svg]:size-[18px]',
         sm: 'h-9 rounded-btn px-3.5 text-body-sm [&_svg]:size-4',
         pill: 'h-12 rounded-full px-6 text-body [&_svg]:size-[18px]',
         icon: 'size-11 rounded-full [&_svg]:size-5',

@@ -332,7 +332,7 @@ export function viewDetail(id: ItemId, inp: Input, sc: Scenario) {
     const s0 = (x: Input) => byId(runAll(x)).dm.score ?? 0, total = r.score;
     parts = [
       [`나이 ${inp.age}세`, total - s0({ ...inp, age: 30 })],
-      [`허리둘레 ${inp.waistCm}cm`, total - s0({ ...inp, waistCm: 60 })],
+      [inp.waistCm != null ? `허리 ${Math.round(inp.waistCm / 2.54)}인치` : "허리 모름", total - s0({ ...inp, waistCm: 60 })],
       ['부모·형제 당뇨', total - s0({ ...inp, famDM: false })],
       ['고혈압', total - s0({ ...inp, dx: { ...inp.dx, htn: false }, bp: 'normal' })],
       ['현재 흡연', total - s0({ ...inp, smoke: 'never' })],
@@ -352,7 +352,7 @@ export function viewDetail(id: ItemId, inp: Input, sc: Scenario) {
 export function viewRecord(prev: Input, cur: Input) {
   const Pv = byId(runAll(prev)), N = byId(runAll(cur));
   const ids = (['nafld', 'htn', 'chol', 'dm', 'dep', 'osteo', 'obesity', 'isi', 'osa', 'gad', 'gerd', 'diet'] as ItemId[]).filter(shown);   // 숨긴 분야 제외
-  const rows: { id: ItemId; name: string; b: string; a: string; delta: string; better: boolean; y1: number; y2: number; why: string }[] = [];
+  const rows: { id: ItemId; name: string; b: string; a: string; delta: string; better: boolean; y1: number; y2: number; why: string; bv: number; av: number; pct: boolean }[] = [];
   const same: string[] = []; let down = 0;
   ids.forEach((id) => {
     const a = Pv[id], b = N[id];
@@ -364,7 +364,7 @@ export function viewRecord(prev: Input, cur: Input) {
     const better = id === 'diet' ? d > 0 : d < 0; if (better) down++;
     const max = b.unit === 'bmi' ? 20 : b.unit === '%' ? 30 : id === 'diet' ? 100 : id === 'isi' || id === 'dep' ? 28 : 18, base = b.unit === 'bmi' ? 15 : 0;
     const y = (v: number) => 24 - Math.min(1, (v - base) / max) * 20;
-    rows.push({ id, name: TITLE[id] + (b.unit === 'bmi' ? ' (BMI)' : ''), b: fmt(a.value), a: fmt(b.value), y1: y(a.value), y2: y(b.value),
+    rows.push({ id, name: TITLE[id] + (b.unit === 'bmi' ? ' (BMI)' : ''), b: fmt(a.value), a: fmt(b.value), y1: y(a.value), y2: y(b.value), bv: a.value, av: b.value, pct: b.unit === '%',
       delta: (d > 0 ? '+' : '−') + (b.unit === 'score' ? Math.abs(d) + '점' : f1(Math.abs(d)) + (b.unit === '%' ? '%p' : '')), better,
       why: a.category && b.category && a.category !== b.category ? `${a.category} → ${b.category}` : '' });
   });
@@ -375,6 +375,7 @@ export function viewRecord(prev: Input, cur: Input) {
   if (cur.alcohol !== prev.alcohol) habits.push('음주 습관이 바뀌었어요');
   return { rows, same, down,
     weight: { v: dl(cur.weightKg - prev.weightKg) + (cur.weightKg !== prev.weightKg ? 'kg' : ''), s: `${prev.weightKg} → ${cur.weightKg}` },
-    waist: cur.waistCm != null && prev.waistCm != null ? { v: dl(cur.waistCm - prev.waistCm) + (cur.waistCm !== prev.waistCm ? 'cm' : ''), s: `${prev.waistCm} → ${cur.waistCm}` } : { v: '–', s: '허리 모름' },
+    // 허리는 인치(기본 단위, 정수)
+    waist: cur.waistCm != null && prev.waistCm != null ? (() => { const p = Math.round(prev.waistCm / 2.54), c = Math.round(cur.waistCm / 2.54); return { v: dl(c - p) + (c !== p ? '인치' : ''), s: `${p} → ${c}` }; })() : { v: '–', s: '허리 모름' },
     habit: habits.join(' · ') || '생활습관은 그대로예요' };
 }

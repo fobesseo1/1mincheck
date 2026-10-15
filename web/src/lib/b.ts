@@ -111,7 +111,7 @@ export function scopeOf(inp: AppInput) {
   const mods = ([['sleep', '수면'], ['mind', '마음'], ['gerd', '소화'], ['diet', '식생활']] as const).filter(([k]) => modOn(k)).map(([k, n]) => ({ k, name: n, done: !!inp[k] }));
   const dx = ([['htn', '고혈압'], ['dm', '당뇨'], ['chol', '고지혈증']] as const).filter(([k]) => inp.dx[k]).map(([, n]) => n);
   return {
-    body: `${inp.age}세 ${inp.sex === 'F' ? '여성' : '남성'} · 키 ${inp.heightCm}cm · 몸무게 ${inp.weightKg}kg · 허리 ${inp.waistCm != null ? inp.waistCm + 'cm' : '모름'}`,
+    body: `${inp.age}세 ${inp.sex === 'F' ? '여성' : '남성'} · 키 ${inp.heightCm}cm · 몸무게 ${inp.weightKg}kg · 허리 ${inp.waistCm != null ? Math.round(inp.waistCm / 2.54) + '인치' : '모름'}`,
     life: `흡연 ${{ never: '안 피움', past: '예전에 피움', current: '지금 피움' }[inp.smoke]} · 음주 ${ALC_LABEL[inp.alcohol]} · 운동 ${inp.exercise == null ? '모름' : inp.exercise ? '함' : '안 함'} · 가족 당뇨 ${inp.famDM ? '있음' : '없음'} · 혈압 응답 ${L.sbp != null ? `${L.sbp}/${L.dbp}` : BP_ANS[inp.bp]}`,
     dx, labs, mods,
     labLine: labs.length ? `반영한 검진값: ${labs.join(' · ')}` : '반영한 검진값: 없음',

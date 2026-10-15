@@ -1,8 +1,9 @@
-// B버전: 진료용 결과 요약. 기록이 없어도 지금 결과로 바로 인쇄·PDF 저장(브라우저 인쇄 기능, 서버 없음).
+// 진료용 결과 요약. 기록이 없어도 지금 결과로 바로 인쇄·PDF 저장(브라우저 인쇄 기능, 서버 없음).
 // 숫자·판정은 결과 화면과 같은 함수(view.ts·verdict.ts)에서 가져오고, 장식·큰 배수 없이 표로만 보여준다.
-import type React from 'react';
+// 2026-10-15 캔버스 'Summary': 앱과 같은 무채색 모양, 의사에게 보여 주는 문서라 %는 그대로(docs/DESIGN.md 9-1)
+import type { ReactNode } from 'react';
 import { Printer } from 'lucide-react';
-import { Nav, Help } from '../ui.tsx';
+import { Nav } from '../ui.tsx';
 import { Button } from '@/components/ui/button';
 import { suggestScenario, today, ALC_LABEL, type AppInput } from '../state.ts';
 import { viewResults, labOf } from '../lib/view.ts';
@@ -11,9 +12,14 @@ import { LABS } from '../lib/labs.ts';
 import { DISCLAIMER, NOT_DIAGNOSIS } from '../lib/content.ts';
 import { useInput, NeedInput } from './Results.tsx';
 
-const th: React.CSSProperties = { textAlign: 'left', padding: '6px 8px', borderBottom: '1px solid #e7dcdb', fontSize: 12, color: '#6b4a45', fontWeight: 500 };
-const td: React.CSSProperties = { padding: '7px 8px', borderBottom: '1px solid #f3ecea', fontSize: 13, verticalAlign: 'top' };
-const H = ({ children }: { children: React.ReactNode }) => <h2 style={{ margin: '18px 0 6px', fontSize: 15, fontWeight: 500, color: '#360802' }}>{children}</h2>;
+const H = ({ children }: { children: ReactNode }) => <h2 className="mt-[22px] mb-2 text-[15px] font-semibold">{children}</h2>;
+const K = 'w-[38%] border-b border-hair px-2 py-2 align-top text-[13px] text-ink-soft';
+const V = 'border-b border-hair px-2 py-2 align-top text-[13px]';
+const TH = 'whitespace-nowrap border-b border-sand px-2 py-[7px] text-left text-[12px] font-medium text-ink-soft';
+/** '·'로 이은 목록은 항목 사이에서만 줄이 바뀌게 */
+const List = ({ t }: { t: string }) => <>{t.split(' · ').map((x, j, a) => <span key={j}><span className="whitespace-nowrap">{x}{j < a.length - 1 ? ' ·' : ''}</span>{' '}</span>)}</>;
+/** 문장 끝마다 줄바꿈 */
+const Lines = ({ t }: { t: string }) => <>{t.split(/(?<=[요다]\.)\s+/).map((x, j) => <span key={j} className="block">{x}</span>)}</>;
 
 export function Summary() {
   const inp = useInput() as AppInput | null;
@@ -21,64 +27,62 @@ export function Summary() {
   const sc = suggestScenario(inp), r = viewResults(inp, sc), v = verdictB(inp, r, sc), scope = scopeOf(inp), L = labOf(inp);
   const labRows = LABS.filter((l) => L[l.key] != null).map((l) => [l.label, l.options ? l.options.find(([n]) => n === L[l.key])?.[1] ?? String(L[l.key]) : `${L[l.key]} ${l.unit}`]);
   const est = r.prob.filter((p) => p.status !== 'na');
-  const scores = r.score.filter((s) => s.id !== 'obesity');
   const ob = r.score.find((s) => s.id === 'obesity')!;
+  const cutCm = inp.sex === 'F' ? 85 : 90;
   return (
-    <div className="summary mx-auto flex min-h-dvh max-w-[440px] flex-col gap-4 bg-white px-5 pt-3 pb-8 print:max-w-none print:p-0">
+    <div className="mx-auto flex min-h-dvh max-w-[440px] flex-col gap-4 bg-paper px-5 pt-3 pb-8 print:max-w-none print:bg-white print:p-0">
       <div className="no-print flex flex-col gap-2.5">
-        <Nav back="/result" title="진료용 결과 요약" sub="인쇄하거나 PDF로 저장" />
+        <Nav back="/result" title="진료용 요약" sub="인쇄하거나 PDF로 저장" />
         <Button size="lg" className="w-full" onClick={() => window.print()}><Printer /> 인쇄·PDF로 저장</Button>
-        <Help className="text-center">인쇄 창에서 ‘PDF로 저장’을 고르면 파일로 남아요. 이 요약은 서버로 보내지 않아요.</Help>
+        <p className="m-0 text-center text-[12px] leading-[1.6] text-mute">인쇄 창에서 ‘PDF로 저장’을 고르면 파일로 남아요.<br />서버로 보내지 않아요.</p>
       </div>
 
-      <article className="rounded-card bg-white px-4 py-5 leading-normal text-ink shadow-card print:shadow-none">
-        <h1 style={{ margin: 0, fontSize: 20, fontWeight: 500 }}>1분체크 결과 요약 <span style={{ fontSize: 12, fontWeight: 450, color: '#8a706c' }}>(참고용 추정 정보)</span></h1>
-        <p style={{ margin: '4px 0 0', fontSize: 12, color: '#6b4a45' }}>작성일 {today()} · 이 기기에서 계산 · 진단이 아니며 진료를 대신하지 않아요.</p>
+      <article className="rounded-card bg-white px-[18px] pt-[22px] pb-5 leading-normal text-ink">
+        <h1 className="m-0 text-[19px] font-semibold">1분체크 결과 요약 <span className="text-[12px] font-normal text-mute">(참고용 추정)</span></h1>
+        <p className="m-0 mt-1 text-[12px] text-ink-soft">작성일 {today()} · 이 기기에서 계산<br />{NOT_DIAGNOSIS}</p>
 
         <H>입력한 기본 정보</H>
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}><tbody>
-          {[['몸 정보', `${scope.body} · BMI ${ob.v}`], ['흡연', { never: '안 피움', past: '예전에 피움', current: '지금 피움' }[inp.smoke]], ['음주', ALC_LABEL[inp.alcohol]],
-            ['운동(주 2회·30분 이상)', inp.exercise == null ? '모름' : inp.exercise ? '함' : '안 함'], ['부모·형제 당뇨', inp.famDM ? '있음' : '없음'],
-            ['진단받은 질환', scope.dx.length ? scope.dx.join(', ') : '없음'], ['최근 혈압(응답)', L.sbp != null ? '검진 수치로 대신함' : { unknown: '모름', normal: '정상', elevated: '주의', high: '140/90 이상' }[inp.bp]]]
-            .map(([k, x]) => <tr key={k}><td style={{ ...td, width: '38%', color: '#6b4a45' }}>{k}</td><td style={td}>{x}</td></tr>)}
+        <table className="w-full border-collapse"><tbody>
+          {([['몸 정보', <List key="b" t={`${scope.body} · BMI ${ob.v}`} />], ['흡연', { never: '안 피움', past: '예전에 피움', current: '지금 피움' }[inp.smoke]], ['음주', ALC_LABEL[inp.alcohol]],
+            ['운동', <>{inp.exercise == null ? '모름' : inp.exercise ? '함' : '안 함'}<span className="block text-[12px] text-mute">주 2회·30분 이상 기준</span></>], ['부모·형제 당뇨', inp.famDM ? '있음' : '없음'],
+            ['진단받은 질환', scope.dx.length ? scope.dx.join(', ') : '없음'], ['최근 혈압(응답)', L.sbp != null ? '검진 수치로 대신함' : { unknown: '모름', normal: '정상', elevated: '주의', high: '140/90 이상' }[inp.bp]]] as [string, ReactNode][])
+            .map(([k, x]) => <tr key={k}><td className={K}>{k}</td><td className={V}>{x}</td></tr>)}
         </tbody></table>
 
         <H>입력한 검진값</H>
         {labRows.length ? (
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}><tbody>
-            {labRows.map(([k, x]) => <tr key={k}><td style={{ ...td, width: '38%', color: '#6b4a45' }}>{k}</td><td style={td}>{x}</td></tr>)}
+          <table className="w-full border-collapse"><tbody>
+            {labRows.map(([k, x]) => <tr key={k}><td className={K}>{k}</td><td className={V}>{x}</td></tr>)}
           </tbody></table>
-        ) : <p style={{ margin: 0, fontSize: 13 }}>입력한 검진값 없음 (모든 항목을 몸 정보와 답변으로 추정)</p>}
-        <p style={{ margin: '4px 0 0', fontSize: 11, color: '#8a706c' }}>검진값은 사용자가 입력한 값이며 검사 날짜는 받지 않았어요.</p>
+        ) : <p className="m-0 text-[13px]">입력한 검진값 없음<br /><span className="text-ink-soft">모든 항목을 몸 정보와 답변으로 추정했어요.</span></p>}
+        <p className="m-0 mt-1.5 text-[11px] text-mute">사용자가 넣은 값이며 검사 날짜는 받지 않았어요.</p>
 
-        <H>앱의 안내 ({v.tag}) · 확인이 필요한 항목과 할 일</H>
-        <p style={{ margin: 0, fontSize: 13 }}><b>{v.title}</b></p>
-        <p style={{ margin: '2px 0 6px', fontSize: 13, color: '#6b4a45', whiteSpace: 'pre-line' }}>{v.sub}</p>
-        <ul style={{ margin: 0, paddingLeft: 18, fontSize: 13 }}>{v.actions.map((a) => <li key={a.t}>{a.t}{a.d ? ` — ${a.d}` : ''}</li>)}</ul>
-        {v.also && <p style={{ margin: '4px 0 0', fontSize: 12, color: '#6b4a45' }}>{v.also}</p>}
+        <H>앱의 안내 · 할 일</H>
+        <p className="m-0 text-[13px]"><b className="font-semibold">{v.title}</b></p>
+        {v.sub && <p className="m-0 mt-0.5 mb-1.5 text-[13px] whitespace-pre-line text-ink-soft">{v.sub}</p>}
+        <ul className="m-0 mt-1.5 pl-[18px] text-[13px] leading-[1.7]">{v.actions.map((a) => <li key={a.t}>{a.t}{a.d && <span className="block text-[12px] text-ink-soft"><Lines t={a.d} /></span>}</li>)}</ul>
+        {v.also && <p className="m-0 mt-1 text-[12px] text-ink-soft">{v.also}</p>}
 
-        <H>질환 가능성 추정 (지금 상태를 추정한 값)</H>
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-          <thead><tr><th style={th}>항목</th><th style={th}>지금 가능성</th><th style={th}>또래 평균</th><th style={th}>비고</th></tr></thead>
+        <H>질환 가능성 추정 (지금 상태)</H>
+        <table className="w-full border-collapse">
+          <thead><tr><th className={TH}>항목</th><th className={TH}>지금 가능성</th><th className={TH}>또래 평균</th><th className={TH}>비고</th></tr></thead>
           <tbody>{est.map((p) => { const b = probB(p);
-            return <tr key={p.id}><td style={td}>{B_NAME[p.id] ?? p.title}</td>
-              <td style={td}>{b.kind === 'estimate' || b.kind === 'range' ? `${p.pct}%` : b.big}</td>
-              <td style={td}>{p.cmp ? `${p.peerTxt}%` : '–'}</td>
-              <td style={{ ...td, fontSize: 12, color: '#6b4a45' }}>{b.kind === 'estimate' ? b.freq.replace('나와 비슷한 사람 ', '').replace(' 정도예요', '') : b.kind === 'range' ? '모르는 답이 있어 범위' : b.label}</td></tr>; })}</tbody>
+            return <tr key={p.id}><td className={V}>{(B_NAME[p.id] ?? p.title).replace('고콜레스테롤', '이상지질혈증')}</td>
+              <td className={V}><b className="font-semibold">{b.kind === 'estimate' || b.kind === 'range' ? `${p.pct}%` : b.big}</b></td>
+              <td className={V}>{p.cmp ? `${p.peerTxt}%` : '–'}</td>
+              <td className={`${V} whitespace-nowrap text-[12px] text-ink-soft`}>{b.kind === 'estimate' ? b.freq.replace('나와 비슷한 사람 ', '').replace(' 정도예요', '') : b.kind === 'range' ? '모르는 답이 있어 범위' : b.label}</td></tr>; })}</tbody>
         </table>
-        <p style={{ margin: '4px 0 0', fontSize: 11, color: '#8a706c' }}>또래 평균 = {r.group} (국민건강영양조사). 당뇨·고혈압·콜레스테롤은 아직 진단받지 않은 같은 또래 기준.</p>
+        <p className="m-0 mt-1.5 text-[11px] leading-[1.6] text-mute">또래 평균 = {r.group} (국민건강영양조사).<br />당뇨·고혈압·콜레스테롤은 아직 진단받지 않은 같은 또래 기준.</p>
 
-        <H>설문 결과 (점수와 등급, 확률 아님)</H>
-        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-          <thead><tr><th style={th}>항목</th><th style={th}>점수</th><th style={th}>등급</th></tr></thead>
-          <tbody>{scores.map((s) => <tr key={s.id}><td style={td}>{s.name}</td><td style={td}>{s.status === 'needs_input' ? '–' : `${s.v} (${s.unit})`}</td><td style={td}>{s.status === 'needs_input' ? '아직 체크하지 않음' : s.cat}</td></tr>)}</tbody>
-        </table>
+        <H>체형</H>
+        <table className="w-full border-collapse"><tbody>
+          <tr><td className={K}>BMI</td><td className={V}>{ob.v} · {ob.cat}</td></tr>
+          <tr><td className={K}>허리</td><td className={V}>{inp.waistCm == null ? '모름' : <>{Math.round(inp.waistCm / 2.54)}인치<span className="block text-[12px] text-ink-soft">{inp.waistCm >= cutCm ? `복부비만 기준(${cutCm}cm) 넘음` : `복부비만 기준(${cutCm}cm) 아래`}</span></>}</td></tr>
+        </tbody></table>
 
-        {scope.dx.length > 0 && (<><H>진단받아 관리 중인 항목</H><p style={{ margin: 0, fontSize: 13 }}>{scope.dx.join(', ')} — 가능성을 다시 추정하지 않았어요.</p></>)}
+        {scope.dx.length > 0 && (<><H>진단받아 관리 중인 항목</H><p className="m-0 text-[13px]">{scope.dx.join(', ')}<br /><span className="text-ink-soft">가능성을 다시 추정하지 않았어요.</span></p></>)}
 
-        <p style={{ margin: '18px 0 0', paddingTop: 10, borderTop: '1px solid #e7dcdb', fontSize: 11, color: '#6b4a45' }}>
-          {DISCLAIMER}이에요. {NOT_DIAGNOSIS} 체형은 입력한 키·몸무게로 계산했어요(BMI {ob.v} · {ob.cat}). 1분체크에서 만든 요약이에요.
-        </p>
+        <p className="m-0 mt-[22px] border-t border-sand pt-3 text-[11px] leading-[1.6] text-ink-soft"><Lines t={`${DISCLAIMER}이에요. 1분체크에서 만든 요약이에요.`} /></p>
       </article>
     </div>
   );

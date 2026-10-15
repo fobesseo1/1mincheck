@@ -109,7 +109,7 @@ export function overviewRows(i: Input): Row[] {
   const R = byId(runAll(i)), L = labOf(i);
   return ROW_IDS.map((id): Row => {
     const r = R[id], name = NAME[id];
-    if (r.status === 'managed') return { id, name, kind: 'managed', level: null, word: '진단 · 관리 중', side: id === 'dm' ? '약 · 혈당 재기' : '약 · 정기 진료', chips: [CARE[id]], big: { n: '관리 중' }, sub: '진단받아 치료하고 있어요' };
+    if (r.status === 'managed') return { id, name, kind: 'managed', level: null, word: '진단·관리 중', side: id === 'dm' ? '약 · 혈당 재기' : '약 · 정기 진료', chips: [CARE[id]], big: { n: '관리 중' }, sub: '진단받아 치료하고 있어요' };
     if (r.status === 'excluded') {
       const g = drinkOf(i)?.gramsPerWeek;
       return { id, name, kind: 'alert', level: 4, word: '간 검사 필요', side: '술 양이 지방간 점수 범위 밖', big: { n: g ? `${Math.round(g / 10) * 10}` : '5잔+', unit: g ? 'g / 주' : '/ 하루' }, sub: '술 양이 지방간 점수로 볼 수 있는 범위를 넘어요', num: { grams: g }, chips: [{ t: '간 수치 검사', tone: 'up', why: `지방간 점수는 술을 주 ${i.sex === 'M' ? '140' : '70'}g 이하로 마시는 사람으로 만든 도구예요. 그보다 많이 마시면 간 수치(AST·ALT·감마지티피) 검사로 확인해요.` }] };
@@ -134,4 +134,22 @@ export function overviewRows(i: Input): Row[] {
     if (r.status === ('measured' as typeof r.status) || (id === 'htn' && L.sbp != null)) return { id, name, kind: 'gray', level: null, word: r.category ?? '검진 혈압 반영', side: L.sbp != null ? `검진 혈압 ${L.sbp}/${L.dbp}` : '', chips: [], big: L.sbp != null ? { n: `${L.sbp}/${L.dbp}`, unit: 'mmHg' } : { n: '–' }, sub: '검진 혈압으로 본 지금 상태' };
     return { id, name, kind: 'gray', level: null, word: '계산 대상 아님', side: r.notes?.[0]?.slice(0, 24) ?? '', chips: [], big: { n: '–' }, sub: r.notes?.[0] ?? '' };
   });
+}
+
+/** 상세 화면 '몸무게와 허리가 줄어든다면?': 한 가지만 건강한 값으로 바꿨을 때 가능성(%)이 얼마가 되는지 (다른 건 그대로).
+ *  chipsOf 와 같은 기준값(허리 = 기준보다 6cm 아래, 몸무게 = BMI 22, 운동 = 주 2회, 술 = 안 마심).
+ *  name = 무엇(몸무게), from → to = 지금 값 → 바꾼 값(92kg → 70kg), now → after = 가능성 % */
+export interface Lever { key: 'weight' | 'waist' | 'exercise' | 'alcohol'; name: string; from: string; to: string; now: number; after: number }
+export function leversOf(id: ItemId, i: Input): Lever[] {
+  const r = byId(runAll(i))[id];
+  if (r.status !== 'ok' || r.value == null) return [];
+  const cut = i.sex === 'F' ? 85 : 90, cutIn = i.sex === 'F' ? 33 : 35, b = bmi(i), w = i.waistCm, now = r.value;
+  const healthyW = Math.round(22 * (i.heightCm / 100) ** 2);
+  const out: Lever[] = [];
+  const lever = (key: Lever['key'], name: string, from: string, to: string, alt: Input) => { const d = drop(id, i, alt); if (d >= 0.5) out.push({ key, name, from, to, now, after: now - d }); };
+  if (b >= 23) lever('weight', '몸무게', `${i.weightKg}kg`, `${healthyW}kg`, { ...i, weightKg: healthyW, waistCm: w == null ? null : Math.min(w, cut - 6) });
+  if (w != null && w >= cut) lever('waist', '허리둘레', `${inch(w)}인치`, `${cutIn}인치 미만`, { ...i, waistCm: cut - 6 });
+  if (i.exercise === false) lever('exercise', '운동', '안 함', '주 2회·30분', { ...i, exercise: true });
+  if (i.alcohol !== 'none') lever('alcohol', '술', '지금처럼', '안 마심', { ...i, alcohol: 'none' });
+  return out.slice(0, 3);   // 몸무게 → 허리 → 운동 → 술 순서 그대로
 }

@@ -1,4 +1,4 @@
-// shadcn Card (Jeton): 흰 바탕, 모서리 16px, 아래에서 받쳐 올리는 옅은 그림자
+// shadcn Card: 흰 바탕, 모서리 20px, 그림자 없음 (2026-10-15)
 import * as React from 'react';
 import { cn } from '@/lib/utils';
 

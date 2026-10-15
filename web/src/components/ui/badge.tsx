@@ -1,13 +1,13 @@
-// shadcn Badge (Jeton 토큰 + 상태 색)
+// shadcn Badge: 11px 600 알약. 색은 상태에만(빨강 위험 · 초록 좋음 · 회색 그 밖) (2026-10-15)
 import * as React from 'react';
 import { cva, type VariantProps } from 'class-variance-authority';
 import { cn } from '@/lib/utils';
 
-const badgeVariants = cva('inline-flex h-6 items-center gap-1 whitespace-nowrap rounded-full px-2.5 text-caption font-medium [&_svg]:size-3.5', {
+const badgeVariants = cva('inline-flex items-center gap-1 whitespace-nowrap rounded-full px-2 py-0.5 text-[11px] leading-[1.5] font-semibold [&_svg]:size-3', {
   variants: {
     variant: {
-      brand: 'bg-brand text-lime', lime: 'bg-lime text-brand', soft: 'bg-blush text-brand', ink: 'bg-ink text-white', muted: 'bg-sand-soft text-ink-soft', white: 'bg-white text-ink',
-      good: 'bg-good-bg text-good', info: 'bg-info-bg text-info', warn: 'bg-warn-bg text-warn', risk: 'bg-risk-bg text-risk',
+      brand: 'bg-brand text-lime', lime: 'bg-lime text-brand', soft: 'bg-hair text-ink-2', ink: 'bg-ink text-white', muted: 'bg-sand-soft text-ink-soft', white: 'bg-white text-ink',
+      good: 'bg-good-bg text-good', info: 'bg-info-bg text-info', warn: 'bg-warn-bg text-ink-2', risk: 'bg-risk-bg text-risk',
     },
   },
   defaultVariants: { variant: 'soft' },

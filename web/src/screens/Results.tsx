@@ -385,7 +385,7 @@ export function Results() {
     ['#/labs', '검진 결과지 풀어 보기', <FileText key="f" />, '숫자를 넣으면 하나씩 쉽게 풀어 드려요'],
     ['#/all', '모든 항목 보기', <LayoutList key="l" />, '콜레스테롤·골다공증·생활 체크·근거'],
     ['#/summary', '진료용 요약 저장', <ClipboardList key="c" />, '인쇄하거나 PDF로 저장'],
-    ['', '이 기기에 기록 저장', <Bookmark key="b" />, '몇 달 뒤 다시 체크하면 달라진 만큼 비교해 드려요', save],
+    ['', '이 기기에 기록 저장', <Bookmark key="b" />, '몇 달 뒤 달라진 만큼 비교해 드려요', save],
   ];
   return (
     <div className="min-h-dvh bg-paper">

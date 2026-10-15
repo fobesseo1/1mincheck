@@ -9,7 +9,7 @@ function Opt({ on, onClick, children, className }: { on: boolean; onClick: () =>
   usePress(b, 1.04);
   return (
     <button ref={b} type="button" aria-pressed={on} onClick={onClick} data-on={on || undefined}
-      className={cn('relative z-[1] flex min-h-12 flex-1 cursor-pointer flex-col items-center justify-center rounded-[11px] px-1.5 py-1.5 text-center leading-tight font-semibold transition-colors duration-200', on ? 'text-white' : 'text-ink-soft hover:text-ink', className)}>
+      className={cn('relative z-[1] flex min-h-11 flex-1 cursor-pointer flex-col items-center justify-center rounded-[9px] px-1.5 py-1.5 text-center leading-tight font-semibold transition-colors duration-200', on ? 'text-white' : 'text-ink-soft hover:text-ink', className)}>
       {children}
     </button>
   );
@@ -17,7 +17,7 @@ function Opt({ on, onClick, children, className }: { on: boolean; onClick: () =>
 
 export function Segmented<T>({ options, value, onChange, label, tone = 'brand', className, optClassName }: {
   options: { v: T; t: ReactNode; s?: string }[]; value: T | null | undefined; onChange: (v: T) => void; label?: string;
-  /** 고른 칸 색: 진초록(기본) · 흰 렌즈(밝은 탭 모양) */
+  /** 고른 칸 색: 잉크(기본) · 흰색 */
   tone?: 'brand' | 'white'; className?: string; optClassName?: string;
 }) {
   const box = useRef<HTMLDivElement>(null), ind = useRef<HTMLSpanElement>(null), shown = useRef(false);
@@ -35,9 +35,9 @@ export function Segmented<T>({ options, value, onChange, label, tone = 'brand', 
     return () => ro.disconnect();
   }, [k]);   // eslint-disable-line react-hooks/exhaustive-deps
   return (
-    <div ref={box} role="group" aria-label={label} className={cn('relative isolate flex gap-1 rounded-[16px] bg-sand-soft p-1', className)}>
+    <div ref={box} role="group" aria-label={label} className={cn('relative isolate flex gap-1 rounded-[12px] bg-[#f0f0ed] p-1', className)}>
       <span ref={ind} aria-hidden style={{ opacity: 0 }}
-        className={cn('pointer-events-none absolute inset-y-1 rounded-[11px]', tone === 'brand' ? 'bg-brand shadow-[0_4px_14px_rgba(22,51,0,.22)]' : 'bg-white shadow-card')} />
+        className={cn('pointer-events-none absolute inset-y-1 rounded-[9px]', tone === 'brand' ? 'bg-ink' : 'bg-white')} />
       {options.map((o) => (
         <Opt key={String(o.v)} on={o.v === value} onClick={() => onChange(o.v)} className={cn(tone === 'white' && o.v === value && 'text-ink', optClassName)}>
           {o.t}{o.s && <small className="mt-0.5 text-[11px] font-normal opacity-80">{o.s}</small>}

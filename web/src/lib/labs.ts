@@ -7,7 +7,7 @@ import type { Lab as EngineLab, LabKey as EngineLabKey } from '../../../engine/s
 export type LabKey = EngineLabKey | 'ldl' | 'hb' | 'ast' | 'alt' | 'ggt' | 'cr';
 export type Lab = EngineLab & Partial<Record<Exclude<LabKey, EngineLabKey>, number>>;
 /** 검진 풀이 입력 화면의 묶음 (결과지 칸 이름) */
-export const LAB_GROUPS = [['life', '혈압 · 혈당', '결과지 ‘고혈압’·‘당뇨병’ 칸'], ['lipid', '콜레스테롤', '결과지 ‘이상지질혈증’ 칸 · 4년마다'], ['blood', '빈혈', '결과지 ‘빈혈’ 칸'], ['liver', '간 수치', '결과지 ‘간장 질환’ 칸'], ['kidney', '콩팥 · 소변', '결과지 ‘신장 질환’·‘요검사’ 칸']] as const;
+export const LAB_GROUPS = [['life', '혈압·혈당', '결과지 ‘고혈압’·‘당뇨병’ 칸'], ['lipid', '콜레스테롤', '결과지 ‘이상지질혈증’ 칸 · 4년마다'], ['blood', '빈혈', '결과지 ‘빈혈’ 칸'], ['liver', '간 수치', '결과지 ‘간장 질환’ 칸'], ['kidney', '콩팥·소변', '결과지 ‘신장 질환’·‘요검사’ 칸']] as const;
 
 export interface LabDef {
   key: LabKey;

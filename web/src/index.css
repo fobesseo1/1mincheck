@@ -5,18 +5,19 @@
 @theme {
   --font-sans: 'Pretendard Variable', Pretendard, 'Noto Sans KR', -apple-system, system-ui, sans-serif;
 
-  --color-brand: #163300;
-  --color-brand-tint: #2f6b12;
-  --color-lime: #9fe870;
-  --color-lime-soft: #cdf5b2;
+  --color-forest: #163300;   /* 진초록은 로고에만. 예전 이름(brand·lime…)은 남기고 값만 무채색으로 (2026-10-15) */
+  --color-brand: #0e0f0c;
+  --color-brand-tint: #333333;
+  --color-lime: #ffffff;
+  --color-lime-soft: #efefed;
   --color-ink: #0e0f0c;
   --color-ink-soft: #5d605c;
   --color-ash: #ababab;
-  --color-sand: #e0e3dd;
-  --color-sand-soft: #f2f4f0;
-  --color-blush: #e2f6d5;
-  --color-citrus: #f5ffbb;
-  --color-mint: #bcffbb;
+  --color-sand: #e0e0dc;
+  --color-sand-soft: #f4f4f2;
+  --color-blush: #efefed;
+  --color-citrus: #efefed;
+  --color-mint: #efefed;
   --color-canvas: #ffffff;
   /* 결과 화면(무채색, 2026-10-15): 바탕 · 가는 선 · 막대 바탕 · 본문 회색 · 흐린 글자 */
   --color-paper: #f4f4f2;
@@ -34,7 +35,7 @@
   --color-info-bg: #e8effc;
   --color-warn: #5d605c;   /* 주의 = 회색 (황금색 쓰지 않음, 2026-10-15) */
   --color-warn-dot: #9a9e97;
-  --color-warn-bg: #f2f4f0;
+  --color-warn-bg: #efefed;
   --color-risk: #d81e44;
   --color-risk-dot: #fb2d54;
   --color-risk-bg: #ffe8ed;
@@ -59,12 +60,12 @@
 
   --font-weight-w450: 450;
 
-  --radius-card: 16px;
-  --radius-btn: 12px;
+  --radius-card: 20px;
+  --radius-btn: 14px;
   --radius-nav: 84px;
 
-  --shadow-card: 0 -4px 16px 0 rgba(0, 0, 0, 0.05), 0 1px 2px 0 rgba(22, 51, 0, 0.05);
-  --shadow-float: 0 8px 24px 0 rgba(22, 51, 0, 0.12), 0 2px 8px 0 rgba(22, 51, 0, 0.06);
+  --shadow-card: none;   /* 카드 그림자 없음 (2026-10-15) */
+  --shadow-float: 0 6px 20px rgba(0, 0, 0, .06);
 
   --animate-dot-in: dot-in .3s ease-out both;
   --animate-dot-me: dot-me .5s .9s ease-out both;
@@ -80,7 +81,7 @@
 
 @layer base {
   /* body 는 투명: 앱 화면 뒤 색 덩어리(.fields, z-index −1)가 body 바탕에 가리지 않게 */
-  html { background: var(--color-canvas); color: var(--color-ink); }
+  html { background: var(--color-paper); color: var(--color-ink); }
   body { background: transparent; color: var(--color-ink); }
   /* 자간 -0.5% 전체 통일: body 한 곳에만 걸면 16px 기준 길이(-0.08px)로 물려받아 글자 크기마다 비율이 달라진다
      → 모든 요소에 각자 글자 크기 기준 -0.005em */
@@ -89,9 +90,10 @@
   body { font-family: var(--font-sans); letter-spacing: -0.005em; min-height: 100dvh; word-break: keep-all; overflow-wrap: break-word;
     -webkit-font-smoothing: antialiased; -webkit-tap-highlight-color: transparent; font-weight: 400; }
   b, strong { font-weight: 500; }
-  h1, h2, h3, h4 { font-weight: 500; text-wrap: balance; }
-  p, li, span { text-wrap: pretty; }
-  :focus-visible { outline: 3px solid color-mix(in srgb, var(--color-brand) 45%, transparent); outline-offset: 2px; }
+  h1, h2, h3, h4 { font-weight: 500; text-wrap-style: balance; }
+  /* text-wrap 묶음 속성은 부모의 nowrap 까지 풀어 버리므로 모양(style)만 지정 */
+  p, li, span { text-wrap-style: pretty; }
+  :focus-visible { outline: 2px solid var(--color-ink); outline-offset: 2px; }
   input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; }
   details > summary { list-style: none; cursor: pointer; }
   details > summary::-webkit-details-marker { display: none; }
@@ -139,7 +141,8 @@
 }
 
 /* 흰 구간 뒤 옅은 색 덩어리 — 유리가 보이게. 라임 버튼 근처에는 라임 덩어리를 두지 않는다 */
-.fields { position: fixed; inset: 0; z-index: -1; overflow: hidden; background: var(--color-sand-soft); pointer-events: none; }
+.fields { position: fixed; inset: 0; z-index: -1; overflow: hidden; background: var(--color-paper); pointer-events: none; }
+.fields i { display: none; }   /* 색 덩어리 없음: 무채색 바탕만 (2026-10-15) */
 .fields i { position: absolute; border-radius: 50%; filter: blur(70px); opacity: .9; animation: drift 18s ease-in-out infinite alternate; }
 .fields i:nth-child(1) { width: 52vmax; height: 52vmax; left: -12vmax; top: -14vmax; background: #cdf5b2; }
 .fields i:nth-child(2) { width: 40vmax; height: 40vmax; right: -10vmax; top: 10vmax; background: #bcffbb; animation-delay: -6s; }

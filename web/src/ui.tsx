@@ -1,6 +1,6 @@
 // 공통 화면 부품 (Jeton 스타일 · Tailwind · shadcn · lucide). 디자인 기준: docs/DESIGN.md
-import { createContext, useContext, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
-import { useDroplet, useLens, useTyping } from '@/lib/motion';
+import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
+import { useTyping } from '@/lib/motion';
 import {
   ChevronLeft, ChevronRight, ChevronDown, Check, ArrowUpRight, Bookmark, Share2, RotateCcw, MessageCircle, LayoutGrid, SlidersHorizontal,
   LineChart, History, Smartphone, FileText, Play, X, ArrowRight,
@@ -8,7 +8,7 @@ import {
 import type { Draft, RecordItem } from './state.ts';
 import { Segmented } from '@/components/ui/segmented';
 import { cn } from '@/lib/utils';
-import { Button, GlassButton } from '@/components/ui/button';
+import { Button } from '@/components/ui/button';
 
 // ── 라우팅: 해시(#/result) 기반. 정적 호스팅에서 새로고침해도 안전 ──
 export function useRoute() {
@@ -56,27 +56,27 @@ export const Page = ({ children, className }: { children: ReactNode; className?:
 
 export function Nav({ back, title, sub, right }: { back?: string; title: string; sub?: string; right?: ReactNode }) {
   return (
-    <div className="flex h-14 items-center justify-between">
-      {back ? <GlassButton asChild size="icon"><a href={'#' + back} aria-label="뒤로">{Icon.back}</a></GlassButton> : <div className="w-11" />}
-      <div className="flex flex-col items-center text-center"><b className="text-[17px] font-medium text-ink">{title}</b>{sub && <span className="text-caption text-ink-soft">{sub}</span>}</div>
+    <div className="flex h-11 items-center justify-between">
+      {back ? <a href={'#' + back} aria-label="뒤로" className="flex size-11 items-center justify-center rounded-full bg-white text-ink no-underline">{Icon.back}</a> : <div className="w-11" />}
+      <div className="flex flex-col items-center text-center"><b className="text-[17px] font-semibold text-ink">{title}</b>{sub && <span className="text-[12px] text-ink-soft">{sub}</span>}</div>
       {right ?? <div className="w-11" />}
     </div>
   );
 }
 export const Progress = ({ step, total }: { step: number; total: number }) => (
   <div className="flex gap-1.5" role="progressbar" aria-valuemin={1} aria-valuemax={total} aria-valuenow={step} aria-label="진행">
-    {Array.from({ length: total }, (_, k) => <i key={k} className={cn('h-1.5 flex-1 rounded-full transition-colors', k < step ? 'bg-brand' : 'bg-sand')} />)}
+    {Array.from({ length: total }, (_, k) => <i key={k} className={cn('h-1 flex-1 rounded-full transition-colors', k < step ? 'bg-ink' : 'bg-sand')} />)}
   </div>
 );
 export const H1 = ({ a, b }: { a: ReactNode; b: ReactNode }) => (
-  <h1 className="mx-1 mt-2 mb-1 text-heading-sm text-ink-soft">{a}<b className="block text-ink">{b}</b></h1>
+  <h1 className="mx-1 mt-1 mb-0 text-[24px] leading-[1.35] font-semibold text-ink">{a} {b}</h1>
 );
 export const Lead = ({ children, className }: { children: ReactNode; className?: string }) => <p className={cn('mx-1 whitespace-pre-line text-body-sm text-ink-soft', className)}>{children}</p>;
 export const Help = ({ children, className }: { children: ReactNode; className?: string }) => <p className={cn('mx-1 whitespace-pre-line text-caption text-ink-soft', className)}>{children}</p>;
 
 /** 선택 버튼 하나 */
 export const optCls = (on: boolean, size?: 'sm' | 'xs') => cn('flex min-h-12 cursor-pointer flex-col items-center justify-center rounded-btn px-1.5 py-1.5 text-center leading-tight font-medium transition-colors',
-  size === 'xs' ? 'text-caption' : size === 'sm' ? 'text-body-sm' : 'text-body', on ? 'bg-brand text-white' : 'bg-sand-soft text-ink hover:bg-sand');
+  size === 'xs' ? 'text-caption' : size === 'sm' ? 'text-body-sm' : 'text-body', on ? 'bg-ink font-semibold text-white' : 'bg-[#f0f0ed] text-ink-soft hover:bg-sand');
 
 /** 한 개 고르기 */
 export function Choice<T>({ q, options, value, onChange, cols, size, help, badge }: {
@@ -84,9 +84,9 @@ export function Choice<T>({ q, options, value, onChange, cols, size, help, badge
   cols?: number; size?: 'sm' | 'xs'; help?: ReactNode; badge?: string;
 }) {
   return (
-    <div className="flex flex-col gap-3 rounded-card bg-white p-4 shadow-card" role="group" aria-label={typeof q === 'string' ? q : undefined}>
-      {badge && <span className="self-start rounded-full bg-blush px-2.5 py-0.5 text-caption font-medium text-brand">{badge}</span>}
-      <div className="text-body font-medium leading-snug text-ink">{q}</div>
+    <div className="flex flex-col gap-3 rounded-card bg-white p-[18px]" role="group" aria-label={typeof q === 'string' ? q : undefined}>
+      {badge && <span className="self-start rounded-full bg-hair px-2 py-0.5 text-[11px] font-semibold text-ink-2">{badge}</span>}
+      <div className="text-[15px] font-semibold leading-snug text-ink">{q}</div>
       {/* 한 줄이면 물방울 선택 표시(성별 · 네/아니요 등), 여러 줄이면 칸 */}
       {(cols ?? options.length) === options.length
         ? <Segmented options={options} value={value} onChange={onChange} optClassName={size === 'xs' ? 'text-caption' : size === 'sm' ? 'text-body-sm' : 'text-body'} />
@@ -107,7 +107,7 @@ export const YN = ({ q, value, onChange, help }: { q: string; value: boolean | n
 /** 분기로 열린 질문 묶음 */
 export function Branch({ title, sub, children }: { title: string; sub: string; children: ReactNode }) {
   return (
-    <div className="overflow-hidden rounded-card bg-white shadow-card animate-rise">
+    <div className="overflow-hidden rounded-card bg-white animate-rise">
       <div className="flex items-center gap-2.5 bg-brand px-4 py-3.5 text-white"><ChevronDown className="size-5 text-lime" /><div><b className="text-body-sm font-medium">{title}</b><span className="block text-caption text-white/75">{sub}</span></div></div>
       <div className="flex flex-col gap-5 p-4">{children}</div>
     </div>
@@ -136,30 +136,18 @@ export function Next({ error, to, label, onGo }: { error: string | null; to: str
     </>
   );
 }
-/** 아래 탭 막대: 화면 아래 가운데 떠 있는 유리 알약. 지금 화면 탭에 물방울 렌즈가 있고,
- *  다른 화면으로 가면 바로 전 탭 자리에서 새 탭으로 물방울처럼 옮겨 간다 */
-let lastTab = -1;
+/** 아래 탭 막대 (2026-10-15 무채색): 흰 알약 + 가는 테두리, 고른 칸만 잉크. 유리·렌즈 없음.
+ *  입력칸에 커서가 있으면 내려 숨긴다 (입력칸 · 휴대폰 자판 위를 가리지 않게) */
 export function TabBar({ at }: { at: 'result' | 'labs' | 'whatif' | 'record' | 'again' }) {
   const T: [typeof at, string, string, ReactNode][] = [['result', '#/result', '결과', Icon.grid], ['labs', '#/labs', '검진 풀이', Icon.doc], ['record', '#/record', '기록', Icon.chart], ['again', '#/start', '다시 체크', Icon.clock]];
-  const bar = useRef<HTMLElement>(null), lens = useRef<HTMLSpanElement>(null), items = useRef<(HTMLAnchorElement | null)[]>([]);
-  const d = useDroplet(lens), k = T.findIndex(([x]) => x === at), typing = useTyping();
-  useLens(bar);
-  useLayoutEffect(() => {
-    if (k < 0) return;
-    if (lastTab >= 0 && lastTab !== k) { d.go(items.current[lastTab], true); d.go(items.current[k]); } else d.go(items.current[k], true);
-    lastTab = k;
-    const ro = new ResizeObserver(() => d.go(items.current[k], true)); if (bar.current) ro.observe(bar.current);
-    return () => ro.disconnect();
-  }, [k]);   // eslint-disable-line react-hooks/exhaustive-deps
+  const typing = useTyping();
   return (
-    // 입력칸에 커서가 있으면 내려 숨긴다 (입력칸 · 휴대폰 자판 위를 가리지 않게)
-    <nav ref={bar} style={{ position: 'fixed' }} aria-label="주요 메뉴" aria-hidden={typing || undefined} {...(typing ? { inert: '' } : {})}
-      className={cn('glass glass-light no-print inset-x-0 bottom-[calc(12px+env(safe-area-inset-bottom))] z-20 mx-auto flex w-[calc(100%-24px)] max-w-[416px] rounded-full p-1.5 transition-[translate,opacity] duration-300',
+    <nav style={{ position: 'fixed' }} aria-label="주요 메뉴" aria-hidden={typing || undefined} {...(typing ? { inert: '' } : {})}
+      className={cn('no-print inset-x-0 bottom-[calc(16px+env(safe-area-inset-bottom))] z-20 mx-auto flex w-[calc(100%-24px)] max-w-[416px] rounded-full border border-track bg-white p-1.5 shadow-float transition-[translate,opacity] duration-300',
         typing && 'pointer-events-none translate-y-[calc(100%+24px)] opacity-0')}>
-      <span ref={lens} aria-hidden style={{ opacity: k < 0 ? 0 : 1 }} className="pointer-events-none absolute inset-y-1.5 rounded-full bg-brand/[.08] shadow-[inset_0_1px_1px_#fff,inset_0_-1px_1px_rgba(22,51,0,.06),0_2px_10px_rgba(22,51,0,.10)]" />
-      {T.map(([key, h, t, ic], i) => (
-        <a key={key} ref={(el) => { items.current[i] = el; }} href={h} aria-current={at === key ? 'page' : undefined}
-          className={cn('relative z-[1] flex h-14 flex-1 flex-col items-center justify-center gap-1 rounded-full text-[11px] font-medium no-underline transition-colors', at === key ? 'text-brand' : 'text-ink-soft')}>{ic}{t}</a>
+      {T.map(([key, h, t, ic]) => (
+        <a key={key} href={h} aria-current={at === key ? 'page' : undefined}
+          className={cn('flex h-[52px] flex-1 flex-col items-center justify-center gap-[3px] rounded-full text-[11px] no-underline transition-colors [&_svg]:size-5', at === key ? 'bg-ink font-semibold text-white' : 'font-medium text-ink-soft hover:text-ink')}>{ic}{t}</a>
       ))}
     </nav>
   );

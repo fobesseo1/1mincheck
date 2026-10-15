@@ -16,8 +16,8 @@ export const ALC_FREQ = [
 export type AlcFreq = (typeof ALC_FREQ)[number]['v'];
 export const DRINKS = [
   { k: 'soju', t: '소주', unit: '병', step: 0.5, glasses: 7, hint: '1병 ≈ 7잔' },
-  { k: 'beer', t: '맥주', unit: '캔·500cc', step: 1, glasses: 2, hint: '500mL ≈ 2잔' },
-  { k: 'wine', t: '와인', unit: '잔', step: 1, glasses: 1, hint: '1잔 = 1잔' },
+  { k: 'beer', t: '맥주', unit: '캔', step: 1, glasses: 2, hint: '500mL 한 캔 ≈ 2잔' },
+  { k: 'wine', t: '와인', unit: '잔', step: 1, glasses: 1, hint: '한 잔(150mL)' },
 ] as const;
 export type DrinkKey = (typeof DRINKS)[number]['k'];
 export const emptyAmt = (): Record<DrinkKey, number> => ({ soju: 0, beer: 0, wine: 0 });

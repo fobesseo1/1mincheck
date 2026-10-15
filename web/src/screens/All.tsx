@@ -1,151 +1,208 @@
-// 모든 항목 보기 (#/all): v2 결과 첫 화면에서 내린 자세한 내용. 디자인: docs/DESIGN.md
-import { ArrowRight, ChevronRight, ChevronDown, ClipboardList, SlidersHorizontal } from 'lucide-react';
+// 모든 항목 보기 (#/all) — 2026-10-15 Claude 디자인 캔버스 'All' 그대로. 디자인: docs/DESIGN.md
+//  지금 상태: 결과 화면의 세 줄(당뇨·고혈압·지방간) + 콜레스테롤·골다공증·체형을 같은 줄 모양으로
+//  앞으로 몇 년 안에 · 생활·검진 체크: 뱃지 → 이름 · 결론 → 자세히(근거 줄·할 일·출처)
+//  숫자 앞 %는 쓰지 않는다(plain). 숫자와 단위는 붙이고, 설명은 '/ ' 뒤에.
+import { useState, type ReactNode } from 'react';
+import { ChevronRight, Circle, CircleDot, CircleHelp, CheckCircle2, Dot } from 'lucide-react';
 import type { Input } from '../../../engine/src/engine.ts';
-import { useStore, Nav, Ring, Gauge, AppShell, Help } from '../ui.tsx';
+import { AppShell, Nav } from '../ui.tsx';
 import { useInput, NeedInput } from './Results.tsx';
-import { shown, anyModOn } from '../lib/features.ts';
 import type { AppInput } from '../state.ts';
-import { probB, reasonOf, scopeOf, B_NAME, type ProbRow } from '../lib/b.ts';
+import { probB, scopeOf, B_NAME, type ProbRow } from '../lib/b.ts';
 import { suggestScenario, drinkOf } from '../state.ts';
-import { runExtras } from '../../../engine/src/extras.ts';
-import { ExtraCards } from './Extras.tsx';
-import { viewResults, labOf, LOOK } from '../lib/view.ts';
-import { DISCLAIMER } from '../lib/content.ts';
-import { Card } from '@/components/ui/card';
+import { runExtras, type Extra } from '../../../engine/src/extras.ts';
+import { polishExtra } from '../lib/extrasCopy.ts';
+import { viewResults, labOf, groupLabel } from '../lib/view.ts';
+import { overviewRows } from '../lib/overview.ts';
+import { RowView, Badge, More, sev, plain, WaistSheet, type Tone } from '@/components/result-v4';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
-const MOD_ROUTE = { sleep: '/sleep', mind: '/mind', gerd: '/digest', diet: '/diet' };
-const MODNAME = { sleep: '수면', mind: '마음', gerd: '소화', diet: '식생활' } as const;
+const TOP = ['dm', 'htn', 'nafld'];
 const FUTURE = ['dm10', 'htn4', 'chd10'];
+const TXT: Record<Tone, string> = { red: 'text-risk', green: 'text-good', gray: 'text-ink' };
+const DOT: Record<Tone, string> = { red: 'bg-risk ring-risk', green: 'bg-good ring-good', gray: 'bg-ink ring-ink' };
 
-/** 확률 항목 한 줄: 이름 → 현재 가능성 추정 % → 100명 중 몇 명 → 또래 평균 비교 → (필요하면) 확인 안내 */
-function ProbRowB({ p, inp }: { p: ProbRow; inp: Input }) {
-  const b = probB(p, inp as AppInput), reason = reasonOf(p.id, inp as AppInput, p), L = labOf(inp);
-  const small = b.kind === 'estimate' && p.cmp!.me < 1;   // 배수는 커도 가능성 자체가 1% 미만이면 위험색 강조를 하지 않는다(판정은 그대로)
-  const warn = (b.kind === 'estimate' && b.high && p.cmp!.me >= 1) || b.kind === 'criteria' || b.kind === 'excluded';
-  const glu = p.id === 'dm' && b.kind === 'estimate' && L.glu != null;
+/** 한 줄 틀: 뱃지 → 이름 · 결론 · 자세히 → (막대) → 펼친 설명 */
+function Line({ first, badge, name, stmt, viz, more }: { first?: boolean; badge: ReactNode; name: string; stmt: ReactNode; viz?: ReactNode; more?: ReactNode }) {
+  const [open, setOpen] = useState(false);
   return (
-    <div className="flex flex-col gap-1 border-t border-sand-soft py-4">
-      <a href={`#/detail/${p.id}`} className="flex flex-col gap-1 text-ink no-underline">
-        <span className="flex items-center justify-between gap-2"><b className="text-body font-medium">{B_NAME[p.id] ?? p.title}</b><span className="text-right text-caption text-ink-soft">{glu ? '지금 가능성 · 공복혈당 반영' : b.label}</span></span>
-        <b className={cn('text-heading-sm font-medium', warn ? 'text-risk' : 'text-ink')}>{b.big}</b>
-        {(b.kind === 'estimate' || b.kind === 'range') && <span className="text-body-sm">{b.freq}</span>}
-        {b.kind === 'estimate' && <span className={cn('text-body-sm', b.high && !small ? 'font-medium text-risk' : 'text-ink-soft')}>{b.peer}</span>}
-        {b.kind === 'range' && <span className="text-body-sm text-ink-soft">{b.note}</span>}
-        {b.kind !== 'estimate' && b.kind !== 'range' && b.note && <span className={cn('text-body-sm', warn ? 'text-risk' : 'text-ink-soft')}>{b.note}</span>}
-        {glu && <span className="rounded-btn bg-sand-soft px-2.5 py-2 text-body-sm">입력한 공복혈당 {L.glu}mg/dL · {L.glu! >= 100 ? '공복혈당장애 범위(100–125)예요' : '정상 범위(100 미만)예요. 당뇨는 당화혈색소로도 진단해서 공복혈당만으로 없다고 할 수는 없어요'}</span>}
-        {b.kind === 'estimate' && b.high && p.cmp?.action && <span className="flex items-start gap-1 text-body-sm font-medium"><ArrowRight className="mt-0.5 size-4 shrink-0 text-brand" />{p.cmp.action}</span>}
-      </a>
-      {reason && (
-        <details className="group">
-          <summary className="flex items-center gap-1 text-caption font-medium text-brand">왜 이렇게 나왔나요 <ChevronDown className="size-4 transition-transform group-open:rotate-180" /></summary>
-          <p className="mt-1.5 text-caption text-ink-soft">{reason}. 계산에 들어간 정보이며, 각 정보가 얼마나 영향을 줬는지는 따로 계산하지 않았어요.</p>
-        </details>
-      )}
+    <div className={cn('flex flex-col gap-2 py-4', !first && 'border-t border-hair')}>
+      <div className="flex items-center gap-1.5">{badge}</div>
+      <div className="flex items-center gap-3">
+        <b className="w-[88px] flex-none whitespace-nowrap text-[17px] font-semibold">{name}</b>
+        <div className="flex min-w-0 flex-1 flex-wrap items-baseline gap-x-1">{stmt}</div>
+        {more && <More open={open} onClick={() => setOpen((x) => !x)} />}
+      </div>
+      {viz}
+      {open && more && <div className="flex flex-col gap-2 rounded-[12px] bg-paper px-3.5 py-3 text-body-sm leading-[1.6] whitespace-pre-line text-[#333]">{more}</div>}
+    </div>
+  );
+}
+/** 숫자 + 단위(붙여서) */
+const Num = ({ n, unit, tone = 'gray' }: { n: ReactNode; unit: string; tone?: Tone }) => (
+  <b className={cn('text-[24px] leading-none font-semibold tabular-nums', TXT[tone])}>{n}<span className="text-[13px] font-normal text-ink-2">{unit}</span></b>
+);
+const Sub = ({ children }: { children: ReactNode }) => <span className="text-[13px] text-ink-2">/ {children}</span>;
+
+/** 0–100명 막대 위 점 하나 */
+function Bar100({ me, tone, label }: { me: number; tone: Tone; label: string }) {
+  return (
+    <div role="img" aria-label={label} className="mt-0.5 flex flex-col gap-1">
+      <div className="relative h-1.5 rounded-full bg-track">
+        <span className={cn('absolute top-1/2 box-border size-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-[3px] border-white ring-1', DOT[tone])} style={{ left: `${Math.min(97, Math.max(3, me))}%` }} />
+      </div>
+      <div className="flex justify-between text-[11px] text-[#9a9a96]"><span>0명</span><span>100명</span></div>
     </div>
   );
 }
 
+/** 콜레스테롤·골다공증 등 순위가 없는 항목: 100명 중 몇 명 + 또래 평균 */
+function ProbLine({ p, inp }: { p: ProbRow; inp: Input }) {
+  const b = probB(p, inp as AppInput), name = (B_NAME[p.id] ?? p.title).replace('고콜레스테롤', '콜레스테롤');
+  if (b.kind === 'estimate' && p.cmp) {
+    const me = p.cmp.me, peer = p.cmp.peer, x = peer > 0 ? me / peer : 1;
+    const [word, tone]: [string, Tone] = x >= 2 && me >= 5 ? ['높은 편', 'red'] : x >= 1.2 ? ['조금 높은 편', 'gray'] : x <= 0.8 ? ['낮은 편', 'green'] : ['또래와 비슷', 'gray'];
+    const n = Math.round(me);
+    return <Line first badge={<Badge t={word} tone={tone} />} name={name}
+      stmt={<><span className="text-[13px] text-ink-soft">100명 중</span><Num n={n < 1 ? '1' : n} unit={n < 1 ? '명 미만' : '명쯤'} tone={tone === 'red' ? 'red' : 'gray'} /><Sub>또래 평균 {Math.max(0, Math.round(peer))}명</Sub></>}
+      viz={<Bar100 me={me} tone={tone} label={`${name} 100명 중 ${n}명, 또래 평균 ${Math.round(peer)}명`} />}
+      more={<p className="m-0">{p.id === 'chol' ? '콜레스테롤은 몸 정보만으로 알기 어려워요.\n그래서 순위 대신 100명 중 몇 명으로 보여요.\n혈액검사가 가장 정확해요.' : p.id === 'osteo' ? '골밀도 검사로 정확히 알 수 있어요.' : '이런 조건이면 100명 중 몇 명쯤인지예요.'}</p>} />;
+  }
+  if (b.kind === 'range') return <Line first badge={<Badge t="범위" tone="gray" />} name={name} stmt={<b className="text-[15px] font-semibold">{plain(b.big.replace('약 ', ''))}</b>} more={<p className="m-0">{b.note}</p>} />;
+  if (b.kind === 'managed') return <Line first badge={<Badge t="관리 중" tone="gray" />} name={name} stmt={<b className="text-[17px] font-semibold">진단·관리 중</b>} more={<p className="m-0">{b.note}</p>} />;
+  if (b.kind === 'na') return <Line first badge={<Badge t="대상 아님" tone="gray" />} name={name} stmt={<span className="text-[13px] text-ink-2">{p.id === 'osteo' ? '50세부터 계산해요' : '계산 대상이 아니에요'}</span>} />;
+  if (b.kind === 'estimate') return null;
+  const red = b.kind === 'criteria' || b.kind === 'excluded';
+  return <Line first badge={<Badge t={red ? '확인 필요' : b.label} tone={red ? 'red' : 'gray'} />} name={name} stmt={<b className={cn('text-[17px] font-semibold', red && 'text-risk')}>{b.big}</b>} more={b.note ? <p className="m-0">{plain(b.note)}</p> : undefined} />;
+}
+
+/** 체형: BMI + 허리 */
+function BodyLine({ inp, v, cat }: { inp: Input; v: string; cat: string }) {
+  const bmi = Number(v), tone: Tone = bmi >= 25 || bmi < 18.5 ? 'red' : bmi >= 23 ? 'gray' : 'green';
+  const waist = inp.waistCm == null ? '허리 모름' : inp.waistCm >= (inp.sex === 'F' ? 85 : 90) ? '복부비만' : '허리 정상';
+  return <Line first badge={<Badge t={cat} tone={tone} />} name="체형" stmt={<><span className="text-[13px] text-ink-soft">BMI</span><Num n={v} unit="" tone={tone === 'red' ? 'red' : 'gray'} /><Sub>{waist}</Sub></>}
+    more={<p className="m-0">{`키·몸무게로 계산한 체질량지수(BMI)예요.\n대한비만학회 기준으로 25부터 비만이에요.\n허리는 ${inp.sex === 'F' ? '85cm(33인치)' : '90cm(35인치)'}부터 복부비만이에요.`}</p>} />;
+}
+
+/** 생활·검진 체크 한 줄: 결론의 첫 토막은 굵게, 나머지는 '/ ' 뒤에 */
+const MARK = { yes: [CheckCircle2, 'text-risk', '해당'], maybe: [CircleDot, 'text-ink-2', '확인'], no: [Circle, 'text-ash', '아님'], unknown: [CircleHelp, 'text-ink-soft', '모름'], info: [Dot, 'text-ink-soft', ''] } as const;
+const CHECK = { yes: [CheckCircle2, 'text-ink', '권장'], maybe: [CircleDot, 'text-ink', '해당되면'], no: [Circle, 'text-ash', ''], unknown: [CircleHelp, 'text-ink-soft', ''], info: [Dot, 'text-ink-soft', ''] } as const;
+const LV = { look: ['확인 필요', 'red'], note: ['참고', 'gray'], ok: ['해당 없음', 'green'] } as const;
+const SHORT: Partial<Record<Extra['id'], string>> = { alcohol: '술', metsyn: '대사증후군', lifestyle: '생활습관', liver: '주량', dementia: '치매 위험', ckd: '콩팥', checkup: '검진·접종', body: '허리÷키', dm10: '10년 안에 당뇨', htn4: '4년 안에 고혈압', chd10: '10년 안에 심장병' };
+function ExtraLine({ x0, first }: { x0: Extra; first: boolean }) {
+  const x = polishExtra(x0), [word, tone] = LV[x.level], M = x.id === 'checkup' ? CHECK : MARK;
+  // 결론은 문장 단위로만 나눈다: 앞 토막이 문장으로 끝나지 않으면 다음 토막과 이어 붙인다
+  const segs = plain(x.head).split(/\s·\s|\n/).reduce<string[]>((a, t) => (a.length && !/[요다)]\.?$/.test(a[a.length - 1]) ? [...a.slice(0, -1), a[a.length - 1] + ' ' + t] : [...a, t]), []);
+  const [head, ...rest] = segs;
+  // 결론은 문장이라 이름 아래 한 줄 전체를 쓴다(좁은 칸에서 문장 중간이 끊기지 않게)
+  const stmt = <><b className={cn('text-[15px] leading-snug font-semibold [text-wrap-style:balance]', x.level === 'look' && 'text-risk')}>{head}</b>{rest.length > 0 && <span className="text-[13px] leading-snug text-ink-2 [text-wrap-style:balance]">/ {rest.join(' · ')}</span>}</>;
+  const more = (<>
+    <ul className="m-0 flex list-none flex-col gap-1.5 p-0">
+      {x.items.map((it) => {
+        const [Ic, c, w] = M[it.s];
+        return (
+          <li key={it.t} className="grid grid-cols-[16px_1fr_auto] items-start gap-2">
+            <Ic className={cn('mt-1 size-4', c)} />
+            <span className={it.s === 'no' ? 'text-ink-soft' : ''}>{plain(it.t)}{it.sub && <span className="block whitespace-pre-line text-caption text-ink-soft">{plain(it.sub)}</span>}</span>
+            {w && <span className={cn('whitespace-nowrap text-[11px] font-semibold', c)}>{w}</span>}
+          </li>
+        );
+      })}
+    </ul>
+    <p className="m-0 border-t border-[#e6e6e3] pt-2.5">{plain(x.action)}</p>
+    <p className="m-0 text-caption text-mute">근거 · {x.source}</p>
+  </>);
+  return <LongLine first={first} badge={<Badge t={x.tag ?? word} tone={tone} />} name={SHORT[x.id] ?? x.name} stmt={stmt} more={more} />;
+}
+/** 결론이 문장인 줄: 뱃지 → 이름 · 자세히 → 결론(한 줄 전체) */
+function LongLine({ first, badge, name, stmt, more }: { first?: boolean; badge: ReactNode; name: string; stmt: ReactNode; more: ReactNode }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className={cn('flex flex-col gap-1.5 py-4', !first && 'border-t border-hair')}>
+      <div className="flex items-center gap-1.5">{badge}</div>
+      <div className="flex items-center justify-between gap-3">
+        <b className="whitespace-nowrap text-[17px] font-semibold">{name}</b>
+        <More open={open} onClick={() => setOpen((x) => !x)} />
+      </div>
+      <div className="-mt-1 flex flex-col gap-0.5">{stmt}</div>
+      {open && <div className="flex flex-col gap-2 rounded-[12px] bg-paper px-3.5 py-3 text-body-sm leading-[1.6] whitespace-pre-line text-[#333]">{more}</div>}
+    </div>
+  );
+}
+/** 아직 계산할 수 없는 앞으로 위험: 무엇을 넣으면 보이는지 */
+function WantLine({ name, why, first, to }: { name: string; why: string; first?: boolean; to?: string }) {
+  return (
+    <div className={cn('flex items-center gap-3 py-4', !first && 'border-t border-hair')}>
+      <span className="flex flex-1 flex-col gap-0.5"><b className="text-[15px] font-semibold">{name}</b><span className="text-[13px] text-ink-soft">{why}</span></span>
+      {to && <a href={to} className="rounded-full bg-ink px-3 py-1 text-[13px] font-semibold text-white no-underline">넣기</a>}
+    </div>
+  );
+}
+type Want = { name: string; why: string; to?: string };
+
 export function All() {
-  const { setDraft } = useStore();
   const inp = useInput();
+  const [sheet, setSheet] = useState(false);
   if (!inp) return <NeedInput />;
   const sc = suggestScenario(inp), r = viewResults(inp, sc), extras = runExtras(inp, drinkOf(inp), labOf(inp));
-  const scope = scopeOf(inp);
+  const scope = scopeOf(inp), L = labOf(inp), g = groupLabel(inp);
   const ob = r.score.find((x) => x.id === 'obesity')!;
-  const doneScores = r.score.filter((x) => x.id !== 'obesity' && shown(x.id) && x.status === 'ok' && x.v !== '–');
+  const rows3 = [...overviewRows(inp)].sort((a, b) => sev(b) - sev(a));
+  const others = r.prob.filter((p) => !TOP.includes(p.id));
   const future = extras.filter((x) => FUTURE.includes(x.id)), checks = extras.filter((x) => !FUTURE.includes(x.id));
-  const probs = r.prob.filter((p) => p.status !== 'na');
-  const osteoNa = r.prob.some((p) => p.id === 'osteo' && p.status === 'na');
+  const has = (id: string) => future.some((x) => x.id === id);
+  const wants: Want[] = inp.age >= 40 && inp.age <= 69 ? ([
+    !has('htn4') && (inp.dx.htn ? { name: '4년 안에 고혈압', why: '이미 진단받아 계산하지 않아요' } : L.sbp == null ? { name: '4년 안에 고혈압', why: '검진 혈압을 넣으면 보여요', to: '#/labs' } : null),
+    !has('chd10') && (L.sbp == null || L.tc == null ? { name: '10년 안에 심장병', why: '혈압·콜레스테롤을 넣으면 보여요', to: '#/labs' } : null),
+    !has('dm10') && inp.dx.dm && { name: '10년 안에 당뇨', why: '이미 진단받아 계산하지 않아요' },
+  ].filter(Boolean) as Want[]) : [];
   return (
     <AppShell tab="result">
       <Nav back="/result" title="모든 항목 보기" sub={r.who} />
-      <Card aria-label="주요 결과" className="px-5 pt-4 pb-4">
-        <div className="flex flex-col gap-0.5 pb-2"><b className="text-[19px] font-medium">주요 결과</b><span className="text-body-sm text-ink-soft">앞으로 생길 확률이 아니라, 지금 이 상태일 가능성이에요.<br />또래 평균은 {r.group} 기준이에요.</span></div>
-        {probs.map((p) => <ProbRowB key={p.id} p={p} inp={inp} />)}
-        <a href="#/detail/obesity" className="flex flex-col gap-0.5 border-t border-sand-soft py-4 text-ink no-underline">
-          <span className="flex items-center justify-between gap-2"><b className="text-body font-medium">체형</b><span className="text-caption text-ink-soft">키·몸무게·허리로 계산</span></span>
-          <span className="text-body"><b>BMI {ob.v}</b> · {ob.cat}{inp.waistCm != null ? (inp.waistCm >= (inp.sex === 'F' ? 85 : 90) ? ' · 복부비만' : ' · 허리둘레 정상') : ' · 허리둘레 모름'}</span>
-        </a>
-        {anyModOn() && <div className="flex flex-col gap-2 border-t border-sand-soft pt-4 pb-1">
-          <span className="flex items-center justify-between gap-2"><b className="text-body font-medium">설문 결과</b><span className="text-caption text-ink-soft">점수와 등급 · 확률이 아니에요</span></span>
-          {doneScores.length > 0 ? (
-            <div className="flex flex-wrap gap-1.5">
-              {doneScores.map((x) => <a key={x.id} href={`#/detail/${x.id}`} className={cn('rounded-full px-2.5 py-1 text-caption font-medium no-underline', x.col === LOOK ? 'bg-risk-bg text-risk' : 'bg-sand-soft text-ink')}>{x.name} · {x.cat}</a>)}
-            </div>
-          ) : <span className="text-body-sm">선택 설문은 아직 하지 않았어요.</span>}
-          {scope.mods.some((m) => !m.done) && (
-            <span className="text-body-sm leading-relaxed">아직 체크하지 않음: {scope.mods.filter((m) => !m.done).map((m, k) => (
-              <span key={m.k}>{k ? ' · ' : ''}<a className="text-brand" href={'#' + MOD_ROUTE[m.k]} onClick={() => setDraft((x) => ({ ...x, modules: { ...x.modules, [m.k]: true } }))}>{MODNAME[m.k]}</a></span>))}
-              <span className="block text-caption text-ink-soft">체크하지 않은 분야는 낮거나 정상이라는 뜻이 아니에요.</span></span>
-          )}
-        </div>}
-        <p className="mt-2 text-caption text-ink-soft">가능성이 낮게 나와도, 질환이 없다는 뜻은 아니에요.{osteoNa ? ' 골다공증은 50세 이상부터 계산해요.' : ''}</p>
-      </Card>
 
-      <Card aria-label="이번 결과에 반영한 정보" className="flex flex-col gap-2 p-5">
-        <b className="text-body font-medium">이번 결과에 반영한 정보</b>
-        <span className="text-body-sm">{scope.body}</span>
-        <span className="text-body-sm">{scope.life}{scope.dx.length ? ` · 진단받은 질환 ${scope.dx.join('·')}` : ''}</span>
-        <span className="text-body-sm"><b>{scope.labLine}</b> · {scope.restLine}</span>
-        <a href="#/labs" className="inline-flex items-center gap-1 text-body-sm font-medium text-brand">{scope.labs.length ? '검진 수치 고치기·더 넣기' : '검진 수치 넣기 (선택)'}<ChevronRight className="size-4" /></a>
-        {!scope.labs.length && <span className="whitespace-pre-line text-caption text-ink-soft">{'검진 수치가 없어도 괜찮아요.\n넣으면 혈압·공복혈당·총콜레스테롤을 실제 수치로 보여 드려요.'}</span>}
-      </Card>
-
-      <a href="#/summary" className="flex items-center gap-3 rounded-card bg-white p-5 text-ink no-underline shadow-card">
-        <span className="flex size-10 items-center justify-center rounded-btn bg-blush text-brand"><ClipboardList className="size-5" /></span>
-        <span className="flex-1"><b className="text-body font-medium">진료용 결과 요약 저장</b><span className="block text-caption text-ink-soft">진료 때 보여 줄 수 있게 인쇄하거나 PDF로 저장해요.</span></span>
-        <ChevronRight className="size-5 text-ink-soft" />
-      </a>
-
-      <Card className="flex flex-col gap-4 p-5">
-        <div className="flex justify-between"><b className="text-body font-medium">또래 평균의 몇 배인가요</b><span className="text-caption text-ink-soft">{r.group}</span></div>
-        <div className="grid grid-cols-3 gap-2">
-          {r.rings.map((g) => (
-            <a key={g.id} href={`#/detail/${g.id}`} className="flex flex-col items-center gap-1.5 no-underline">
-              <span className="text-caption text-ink">{g.name}</span>
-              <Ring f={g.f} label={g.idx} col={g.col} />
-              <span className="text-center text-caption font-medium" style={{ color: g.col }}>{g.label}</span>
-            </a>
-          ))}
+      <section aria-label="지금 상태" className="flex flex-col gap-2">
+        <div className="flex items-baseline justify-between px-1"><h2 className="m-0 text-[19px] font-semibold">지금 상태</h2><span className="text-[12px] text-mute">같은 {g}과 견줘요</span></div>
+        <div className="flex flex-col rounded-card bg-white px-5 py-1.5">
+          {rows3.map((x, k) => <RowView key={x.id} r={x} inp={inp} first={k === 0} onWaist={() => setSheet(true)} nameW={88} />)}
+          {others.map((p) => <div key={p.id} className="border-t border-hair"><ProbLine p={p} inp={inp} /></div>)}
+          <div className="border-t border-hair"><BodyLine inp={inp} v={String(ob.v)} cat={ob.cat} /></div>
         </div>
-        <span className="whitespace-pre-line text-caption text-ink-soft">{'배수는 실제 숫자와 함께 보세요.\n0.3%와 0.1%도 3배예요.'}</span>
-      </Card>
-      <a href="#/whatif" className="flex items-center gap-3 rounded-card bg-white p-5 text-ink no-underline shadow-card">
-        <span className="flex size-10 items-center justify-center rounded-btn bg-blush text-brand"><SlidersHorizontal className="size-5" /></span>
-        <span className="flex-1"><b className="text-body font-medium">습관까지 바꿔 보기</b><span className="block text-caption text-ink-soft">술·운동·담배를 바꾸면 가능성이 어떻게 달라지는지 볼 수 있어요.</span></span>
-        <ChevronRight className="size-5 text-ink-soft" />
+      </section>
+
+      {(future.length > 0 || wants.length > 0) && (
+        <section aria-label="앞으로 몇 년 안에" className="flex flex-col gap-2">
+          <div className="flex items-baseline justify-between px-1"><h2 className="m-0 text-[19px] font-semibold">앞으로 몇 년 안에</h2><span className="text-[12px] text-mute">40~69세 한국인 연구</span></div>
+          <div className="flex flex-col rounded-card bg-white px-5 py-1.5">
+            {future.map((x, k) => <ExtraLine key={x.id} x0={x} first={k === 0} />)}
+            {wants.map((w, k) => <WantLine key={w.name} {...w} first={!future.length && k === 0} />)}
+          </div>
+        </section>
+      )}
+
+      {checks.length > 0 && (
+        <section aria-label="생활·검진 체크" className="flex flex-col gap-2">
+          <div className="flex items-baseline justify-between px-1"><h2 className="m-0 text-[19px] font-semibold">생활·검진 체크</h2><span className="text-[12px] text-mute">공식 기준에 해당하는지</span></div>
+          <div className="flex flex-col rounded-card bg-white px-5 py-1.5">
+            {checks.map((x, k) => <ExtraLine key={x.id} x0={x} first={k === 0} />)}
+          </div>
+        </section>
+      )}
+
+      <section aria-label="이번 결과에 넣은 정보" className="flex flex-col gap-2 rounded-card bg-white p-5">
+        <b className="text-[15px] font-semibold">이번 결과에 넣은 정보</b>
+        {/* 목록은 항목 사이에서만 줄이 바뀌게: 항목마다 nowrap */}
+        <p className="m-0 text-[13px] leading-[1.6] text-ink-2">{[scope.body, scope.life + (scope.dx.length ? ` · 진단 ${scope.dx.join('·')}` : ''), scope.labs.length ? scope.labLine : '검진 숫자는 넣지 않음'].map((ln, k) => (
+          <span key={k} className="block">{ln.split(' · ').map((t, j, a) => <span key={j}><span className="whitespace-nowrap">{t}{j < a.length - 1 ? ' ·' : ''}</span>{j < a.length - 1 ? ' ' : ''}</span>)}</span>
+        ))}</p>
+      </section>
+      <Button asChild size="lg" className="w-full"><a href="#/labs">{scope.labs.length ? '검진 숫자 고치기' : '검진 숫자 넣기'}</a></Button>
+      <a href="#/summary" className="flex items-center gap-3.5 rounded-card bg-white px-5 py-[18px] text-ink no-underline">
+        <span className="flex flex-1 flex-col gap-0.5"><b className="text-[15px] font-semibold">진료용 요약 저장</b><span className="text-[13px] text-ink-soft">인쇄하거나 PDF로 저장</span></span>
+        <ChevronRight className="size-5 text-mute" />
       </a>
-      <ExtraCards xs={future} title="앞으로 몇 년 안에 생길 위험" lead={'위의 ‘지금 가능성’과 다른 값이에요.\n연구에서 지켜본 기간(4년·10년) 그대로 보여 드려요. 40–69세 연구로 만든 계산이에요.'} />
-      <ExtraCards xs={checks} />
-      {anyModOn() && (<>
-        <h2 className="mx-1 mt-3 text-[19px] font-medium">설문 점수</h2>
-        <p className="mx-1 -mt-2 text-body-sm text-ink-soft">검증된 설문 점수와 등급이에요. 확률로 바꾸지 않았어요.</p>
-        <div className="grid grid-cols-2 gap-3">
-          {r.score.filter((s) => shown(s.id)).map((s) => (
-            <a key={s.id} href={`#/detail/${s.id}`} className="flex flex-col items-center gap-1 rounded-card bg-white px-3.5 pt-4 pb-5 text-ink no-underline shadow-card">
-              <div className="flex items-center gap-1.5 self-stretch"><i className="size-2 rounded-full" style={{ background: s.col }} /><span className="text-caption">{s.name}</span></div>
-              <div className="mt-1.5"><Gauge f={s.frac} v={s.v} col={s.col} /></div>
-              <span className="text-[11px] text-ink-soft">{s.unit}</span>
-              <span className="text-center text-body-sm font-medium" style={{ color: s.col }}>{s.status === 'needs_input' ? '아직 체크하지 않음' : s.cat}</span>
-              <span className="text-center text-[11px] text-ink-soft">{s.note}</span>
-            </a>
-          ))}
-        </div>
-      </>)}
-      <Card className="p-5">
-        <b className="text-body font-medium">결과를 읽는 법</b>
-        <ul className="mt-2 flex list-disc flex-col gap-1 pl-5 text-body-sm">
-          <li><b>지금 가능성</b>: 지금 검사하면 기준을 넘을 가능성이에요. ‘15%’는 나와 비슷한 100명 중 15명쯤이 기준을 넘는다는 뜻이에요.</li>
-          <li><b>앞으로 생길 위험</b>: 지금은 아니어도, 정해진 기간 안에 새로 생길 가능성이에요.</li>
-          <li><b>검진 수치</b>: 넣은 수치가 기준의 어디쯤인지예요. 잰 그날의 값이에요.</li>
-          {anyModOn() && <li><b>설문 점수</b>: 검증된 설문의 점수와 등급이에요.</li>}
-          <li><b>또래 평균</b>: 같은 성별, 같은 나이대(10살 단위) 한국인의 값이에요.</li>
-        </ul>
-      </Card>
-      <Button asChild variant="outline" size="lg" className="w-full"><a href="#/result">결과 처음으로 돌아가기</a></Button>
-      <Help>{DISCLAIMER}</Help>
+      <p className="m-0 text-center text-[12px] leading-[1.6] text-mute">낮게 나와도 병이 없다는 뜻은 아니에요.<br />논문과 국가 통계를 바탕으로 한 예측이에요.</p>
+      <WaistSheet open={sheet} onOpenChange={setSheet} inp={inp} />
     </AppShell>
   );
 }
