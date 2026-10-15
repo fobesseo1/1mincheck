@@ -91,7 +91,8 @@ export const CASES: Case[] = [
   { id: 'h1', who: '흡연 + 운동 안 함 (체형 정상)', inp: mk(good, { smoke: 'current', exercise: false, famDM: true, bp: 'unknown' }), tier: 3, must: ['담배', '운동'], not: NO_CMP_ONLY },
   { id: 'h2', who: '흡연만', inp: mk(man, { smoke: 'current' }), tier: 3, must: ['담배'], not: NO_CMP_ONLY },
   { id: 'h3', who: '운동 안 함만', inp: mk(good, { exercise: false }), tier: 3, must: ['운동'], not: NO_CMP_ONLY },
-  { id: 'h4', who: 'BMI 28·허리 95 (남)', inp: mk(man, { weightKg: 84, waistCm: 95 }), tier: 3, must: ['체중'], not: NO_CMP_ONLY },
+  // 2026-10-15: 45세 남성 BMI 28·허리 95는 고혈압 위험이 또래 100명 중 위험한 쪽 5명 안 → 결과 화면 '매우 높음'과 맞춰 병원 확인(혈압) + 체중
+  { id: 'h4', who: 'BMI 28·허리 95 (남)', inp: mk(man, { weightKg: 84, waistCm: 95 }), tier: 2, must: ['혈압', '체중'], not: NO_CMP_ONLY },
   { id: 'h5', who: '복부비만만 (여 허리 88, BMI 23)', inp: mk(good, { weightKg: 59, waistCm: 88 }), tier: 3, must: ['허리'], not: NO_CMP_ONLY },
   { id: 'h6', who: '공복혈당 110 (공복혈당장애)', inp: mk(man, { age: 50 }, { glu: 110 }), tier: 3, must: ['혈당'] },
   { id: 'h7', who: '혈압 132/84 (전단계)', inp: mk(man, { age: 44 }, { sbp: 132, dbp: 84 }), tier: 3, must: ['혈압'] },

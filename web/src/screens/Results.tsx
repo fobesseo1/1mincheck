@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { ChevronDown, ChevronRight, FileText, Bookmark, Share2, ClipboardList, LayoutList, RotateCcw, TriangleAlert, TrendingDown, TrendingUp, Equal } from 'lucide-react';
 import type { Input } from '../../../engine/src/engine.ts';
-import { useStore, Nav, Crisis, AppShell, Help, Fields } from '../ui.tsx';
+import { useStore, Nav, Crisis, AppShell, Help, Fields, TabBar } from '../ui.tsx';
 import { toInput, suggestScenario, saveRecords, today, type AppInput } from '../state.ts';
 import { viewResults } from '../lib/view.ts';
 import { verdict, type Verdict } from '../lib/verdict.ts';
@@ -22,6 +22,7 @@ import { ZoneSlider } from '@/components/ui/zone-slider';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { ZoneGauge, Dots, CountTo, TONE_TEXT, type Tone } from '@/components/viz';
 import { cn } from '@/lib/utils';
+import { ResultTop } from '@/components/result-v4';
 
 export { Dots };
 /** 마지막 글자 받침에 맞는 조사 */
@@ -378,26 +379,33 @@ export function Results() {
     const next = [...records, { id: String(Date.now()), date: today(), input: inp }];
     if (saveRecords(next)) { setRecords(next); toast('이 기기에 기록을 저장했어요'); } else toast('이 브라우저에서는 저장할 수 없어요');
   };
+  // 2026-10-15 새 결과 화면(Claude 디자인 캔버스 그대로): 무채색 바탕 · 맨 위 결론 → 할 일 → 세 가지 한눈에 → 줄이면?
+  // 예전 카드(VerdictCard·PeerCardView·ChangeCard)는 랜딩·다른 화면이 아직 쓰므로 남겨 둔다.
+  const rows: [string, string, ReactNode, string, (() => void)?][] = [
+    ['#/labs', '검진 결과지 풀어 보기', <FileText key="f" />, '숫자를 넣으면 하나씩 쉽게 풀어 드려요'],
+    ['#/all', '모든 항목 보기', <LayoutList key="l" />, '콜레스테롤·골다공증·생활 체크·근거'],
+    ['#/summary', '진료용 요약 저장', <ClipboardList key="c" />, '인쇄하거나 PDF로 저장'],
+    ['', '이 기기에 기록 저장', <Bookmark key="b" />, '몇 달 뒤 다시 체크하면 달라진 만큼 비교해 드려요', save],
+  ];
   return (
-    <AppShell tab="result">
-      <Nav title="내 결과" sub={`${today()} · ${r.who}`} right={<GlassButton size="icon" aria-label="친구에게 알려주기" onClick={() => shareApp(toast)}><Share2 /></GlassButton>} />
-      {r.crisis && <Crisis />}
-      <VerdictCard v={v} gap={gap} />
-      <PeerCardView cs={peerCards(inp)} />
-      <ChangeCard inp={inp} />
-
-      <a href="#/labs" className="flex items-center gap-3 rounded-card bg-brand p-5 text-white no-underline shadow-float">
-        <span className="flex size-11 shrink-0 items-center justify-center rounded-btn bg-white/15"><FileText className="size-6" /></span>
-        <span className="flex-1"><b className="text-[17px] font-medium">검진 결과지가 있나요?</b><span className="block text-body-sm text-white/85">숫자를 넣으면 하나씩 쉽게 풀어 드려요. 결과도 더 정확해져요.</span></span>
-        <ChevronRight className="size-6" />
-      </a>
-      <Card className="divide-y divide-sand-soft px-4">
-        <LinkRow href="#/all" icon={<LayoutList />} title="모든 항목 보기" sub="콜레스테롤·골다공증·생활 체크·근거" />
-        <LinkRow href="#/summary" icon={<ClipboardList />} title="진료용 요약 저장" sub="인쇄하거나 PDF로 저장" />
-        <LinkRow onClick={save} icon={<Bookmark />} title="이 기기에 기록 저장" sub="몇 달 뒤 다시 체크하면, 달라진 만큼 비교해 드려요" />
-      </Card>
-      <Button variant="outline" size="lg" className="w-full" onClick={() => shareApp(toast)}><Share2 /> 친구에게도 알려주기</Button>
-      <Help className="mt-1">{DISCLAIMER}</Help>
-    </AppShell>
+    <div className="min-h-dvh bg-paper">
+      <main className="mx-auto flex max-w-[440px] flex-col gap-6 px-5 pt-[calc(12px+env(safe-area-inset-top))] pb-32">
+        {r.crisis && <Crisis />}
+        <ResultTop inp={inp} v={v} who={`${today().slice(5).replace('.', '월 ')}일 · ${r.who}`} onShare={() => shareApp(toast)} />
+        <nav aria-label="더 보기" className="flex flex-col rounded-[20px] bg-white px-5">
+          {rows.map(([href, t, ic, sub, on]) => {
+            const body = (<>
+              <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-paper text-ink [&_svg]:size-5">{ic}</span>
+              <span className="flex flex-1 flex-col gap-0.5 text-left"><b className="text-[15px] font-semibold text-ink">{t}</b><span className="text-[13px] text-ink-soft">{sub}</span></span>
+              <ChevronRight className="size-5 text-mute" />
+            </>);
+            const cls = 'flex w-full items-center gap-3.5 border-t border-hair py-4 text-ink no-underline first:border-t-0';
+            return on ? <button key={t} type="button" onClick={on} className={cn(cls, 'cursor-pointer')}>{body}</button> : <a key={t} href={href} className={cls}>{body}</a>;
+          })}
+        </nav>
+        <p className="text-center text-caption leading-[1.6] text-mute">{DISCLAIMER}이에요</p>
+      </main>
+      <TabBar at="result" />
+    </div>
   );
 }

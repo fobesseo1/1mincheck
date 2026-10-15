@@ -59,6 +59,7 @@ export function App() {
   else if (route === '/all') screen = <All />;
   else if (route === '/labs' || route === '/checkup') screen = <LabsInput />;   // 예전 '검진 수치 넣기' 주소도 검진 풀이로
   else if (route === '/labs/result') screen = <LabsResult />;
+  else if (route === '/change') screen = <Results />;   // 예전 '줄이면?' 주소는 결과 화면으로 (이제 결과 안에 있음)
   else if (route === '/whatif') screen = <WhatIf key={JSON.stringify(draft)} />;
   else if (route === '/record') screen = <Record />;
   else if (route === '/summary') screen = <Summary />;
@@ -72,7 +73,7 @@ export function App() {
       {screen}
       {msg && <div className="fixed left-1/2 bottom-[calc(96px+env(safe-area-inset-bottom))] z-50 -translate-x-1/2 rounded-full bg-brand/90 backdrop-blur-md backdrop-saturate-150 px-5 py-3 text-body-sm font-medium text-white shadow-float animate-rise" role="status">{msg}</div>}
       {isDev() && <a href="#/dev" className="fixed top-2 left-2 z-50 rounded-lg bg-citrus px-2 py-0.5 text-[11px] font-medium text-ink no-underline">개발자 모드 · 보정 확인</a>}
-      {(import.meta.env.DEV || isDev()) && route.startsWith('/') && route !== '/' && (
+      {(import.meta.env.DEV || isDev()) && route.startsWith('/') && route !== '/' && !route.startsWith('/dev') && (
         <div className="demo no-print fixed left-3 bottom-[calc(84px+env(safe-area-inset-bottom))] z-30 flex gap-1 rounded-full border border-dashed border-ash bg-white p-1" role="group" aria-label="개발용 예시 불러오기">
           {[...samples, ...stressSamples].map((s) => <button key={s.id} type="button" className="h-7 cursor-pointer rounded-full px-2.5 text-caption font-medium hover:bg-sand-soft" onClick={() => { setDraft(() => fromInput(s.input)); toast(`예시 ${s.label} 불러옴`); }}>{s.label}</button>)}
         </div>
