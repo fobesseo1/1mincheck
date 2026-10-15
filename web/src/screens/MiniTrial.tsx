@@ -86,8 +86,9 @@ function People({ m, d, col }: { m: number; d: number; col: string }) {
   );
 }
 
-const TONE_BOX = ['bg-good-bg text-good', 'bg-risk-bg text-risk', 'bg-risk text-white'] as const;
-const TONE_BTN = ['', 'bg-white text-risk border border-risk-dot hover:bg-risk-bg', 'bg-risk text-white hover:bg-risk/90'] as const;
+// 2026-10-15 무채색: 결론 상자는 결과 화면의 '지금 당장 할 일'처럼(위험 = 잉크 상자), 버튼은 모두 잉크 주 버튼
+const TONE_BOX = ['bg-good-bg text-good', 'bg-risk-bg text-risk', 'bg-ink text-white'] as const;
+const TONE_BTN = ['', '', ''] as const;
 
 /** preset: 랜딩의 예시 인물을 누르면 그 사람의 4가지 정보를 채우고 바로 결과를 보여 준다(n 이 바뀔 때마다) */
 export function MiniTrial({ preset }: { preset?: { sex: 'M' | 'F'; age: number; h: number; w: number; n: number } } = {}) {
@@ -116,7 +117,7 @@ export function MiniTrial({ preset }: { preset?: { sex: 'M' | 'F'; age: number; 
   const field = (label: string, v: string, set: (s: string) => void, unit: string, ph: string) => (
     <label className="flex min-w-0 flex-1 flex-col gap-1">
       <span className="text-caption font-medium text-ink-soft">{label}</span>
-      <span className="flex h-14 items-baseline gap-1 rounded-card bg-blush/70 px-3.5">
+      <span className="flex h-14 items-baseline gap-0.5 rounded-[12px] bg-paper px-3.5 focus-within:bg-white focus-within:shadow-[inset_0_0_0_2px_var(--color-ink)]">
         <input inputMode="decimal" value={v} placeholder={ph} aria-label={label} onChange={(e) => edit(set)(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') show(); }}
           className="w-full min-w-0 border-0 bg-transparent text-[22px] leading-[56px] font-medium text-ink outline-none placeholder:text-ink/25" />
         <small className="text-body-sm text-ink-soft">{unit}</small>
@@ -143,18 +144,31 @@ export function MiniTrial({ preset }: { preset?: { sex: 'M' | 'F'; age: number; 
               <span className={cn('mt-1 block whitespace-pre-line text-body-sm', hd.tone === 2 ? 'text-white/90' : 'text-ink-soft')}>{hd.sub}</span>
             </div>
             <span className="text-caption text-ink-soft">기본 정보로 보는 간단한 추정 결과예요. {res.group} · {res.bmiLabel} (내 BMI {res.bmi})인 사람들은</span>
-            {res.rows.map((p) => (
-              <div key={p.id} className="flex flex-col gap-1.5 rounded-btn bg-sand-soft/70 px-3.5 py-3">
-                <div className="flex items-baseline justify-between gap-2.5">
-                  <b className="text-body font-medium">{p.name} <small className="text-[11px] font-normal text-ink-soft">같은 체형 비율 · {p.who}</small></b>
-                  <b className={cn('shrink-0 whitespace-nowrap font-medium', p.sev ? 'text-[19px]' : 'text-body')} style={{ color: SEV_COLOR[p.sev] }}>{p.pct != null ? freqOf(p.pct) : '–'}</b>
-                </div>
-                <div className="flex items-center justify-between gap-2.5">
-                  {p.frac ? <People m={p.frac.m} d={p.frac.d} col={SEV_COLOR[p.sev]} /> : <span />}
-                  {p.pct != null && p.all != null && <span className="text-right text-[11px] text-ink-soft">{f1(p.pct)}% · {peerLine(p.pct, p.all, f1(p.all))}</span>}
-                </div>
-              </div>
-            ))}
+            {/* 2026-10-15: 결과 화면과 같은 줄 모양(뱃지 → 이름 · 100명 중 N명 / 또래 평균 → 0–100명 막대). 같은 체형 통계라 순위 대신 100명 중 몇 명 */}
+            <section className="flex flex-col rounded-[20px] border border-hair bg-white px-4 py-1">
+              {res.rows.map((p, k) => {
+                // 뱃지는 위 결론과 같은 단계(sev: 절대 비율·또래 배수 중 더 경고가 되는 쪽, lib/risk.ts)를 따른다
+                const x = p.pct != null && p.all ? p.pct / p.all : 1;
+                const [word, tone] = p.sev >= 2 ? ['높은 편', 'red'] as const : p.sev === 1 ? ['조금 높은 편', 'gray'] as const : x <= 0.8 ? ['낮은 편', 'green'] as const : ['또래와 비슷', 'gray'] as const;
+                const n = p.pct != null ? Math.round(p.pct) : null;
+                return (
+                  <div key={p.id} className={cn('flex flex-col gap-2 py-3.5', k > 0 && 'border-t border-hair')}>
+                    <span className={cn('self-start rounded-full px-2 py-0.5 text-[11px] font-semibold', tone === 'red' ? 'bg-risk-bg text-risk' : tone === 'green' ? 'bg-good-bg text-good' : 'bg-hair text-ink-2')}>{word}</span>
+                    <div className="flex flex-wrap items-baseline gap-x-1.5">
+                      <b className="w-[52px] flex-none text-[17px] font-semibold">{p.name}</b>
+                      <span className="text-[13px] text-ink-soft">같은 체형 100명 중</span>
+                      <b className={cn('text-[24px] leading-none font-semibold tabular-nums', tone === 'red' && 'text-risk')}>{n == null ? '–' : n < 1 ? '1' : n}<span className="text-[13px] font-normal text-ink-2">{n != null && n < 1 ? '명 미만' : '명'}</span></b>
+                      {p.all != null && <span className="text-[13px] text-ink-2">/ 또래 평균 {Math.round(p.all)}명</span>}
+                    </div>
+                    {n != null && (
+                      <div className="relative h-1.5 rounded-full bg-track" aria-hidden>
+                        <span className={cn('absolute top-1/2 box-border size-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-[3px] border-white ring-1', tone === 'red' ? 'bg-risk ring-risk' : tone === 'green' ? 'bg-good ring-good' : 'bg-ink ring-ink')} style={{ left: `${Math.min(97, Math.max(3, p.pct!))}%` }} />
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </section>
             {/* 버튼도 결론 단계를 따른다: 위험 = 위험색, 조심 = 위험색 테두리, 괜찮음 = 브랜드 */}
             <Button size="lg" className={cn('mini-go mt-1.5 h-auto min-h-14 w-full whitespace-normal py-3 leading-snug', TONE_BTN[hd.tone as 0 | 1 | 2])} onClick={go}>
               {MINI_CTA[hd.tone as 0 | 1 | 2].main} <ArrowRight />

@@ -43,7 +43,7 @@ export function More({ open, onClick, dark }: { open: boolean; onClick: () => vo
 
 /* ── ① 지금 당장 할 일 ── */
 const TAG_BG: Record<Verdict['tier'], string> = { 1: 'bg-risk', 2: 'bg-risk', 5: 'bg-ink-2', 3: 'bg-ink-2', 4: 'bg-good' };
-function Todo({ v }: { v: Verdict }) {
+export function Todo({ v }: { v: Verdict }) {
   const [open, setOpen] = useState<Record<number, boolean>>({});
   const acts = v.actions.slice(0, v.tier === 1 || v.tier === 2 ? 3 : 2).map((a) =>
     // '내과에서 한 번에 검사받으세요' + 검사 목록은 접으면 안 보이므로 제목에 합친다
@@ -251,7 +251,7 @@ function Bottle({ n, max }: { n: number; max: number }) {
     </svg>
   );
 }
-export function Change({ inp }: { inp: Input }) {
+export function Change({ inp, bare }: { inp: Input; bare?: boolean }) {
   const b0 = bodyOf(inp), d = drinkOf(inp), hasWaist = inp.waistCm != null;
   const in0 = Math.round(b0.waistCm / IN), kg0 = Math.round(inp.weightKg), times = d?.timesPerWeek ?? 0;
   const bt0 = d ? Math.round((d.perOccasion / 7) * 2) / 2 : 0;
@@ -281,10 +281,11 @@ export function Change({ inp }: { inp: Input }) {
 
   return (
     <section aria-label="생활을 바꾸면 무엇이 달라질까요" className="flex flex-col gap-4 rounded-[20px] bg-white p-5">
-      <div className="flex flex-col gap-1">
+      {/* bare: 첫 화면처럼 옆에 이미 설명이 있으면 제목·설명 줄을 빼고 바로 탭부터 */}
+      {!bare && <div className="flex flex-col gap-1">
         <h2 className="text-[19px] leading-[1.4] font-semibold">생활을 바꾸면 무엇이 달라질까요?</h2>
-        <p className="text-[13px] leading-[1.55] text-ink-soft">같은 {g} 중 {tabs.map((t) => TL[t]).join('·')}이 다른<br />사람들의 실제 검진 결과예요.</p>
-      </div>
+        <p className="text-[13px] leading-[1.55] text-ink-soft">같은 {g} 중 {tabs.map((t) => TL[t]).join('·')}{tabs[tabs.length - 1] === 'alc' ? '이' : '가'} 다른<br />사람들의 실제 검진 결과예요.</p>
+      </div>}
       {!hasWaist && <p className="rounded-[12px] bg-paper px-3 py-2.5 text-[13px] leading-[1.55] text-ink-2">허리를 넣으면 허리도 바꿔 볼 수 있어요.<br />줄자로 배꼽 높이를 재 보세요.</p>}
       {tabs.length > 1 && (
         <div role="tablist" aria-label="바꿔 볼 것" className="grid gap-1 rounded-[12px] bg-[#f0f0ed] p-1" style={{ gridTemplateColumns: `repeat(${tabs.length}, minmax(0, 1fr))` }}>

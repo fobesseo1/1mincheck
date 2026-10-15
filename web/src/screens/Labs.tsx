@@ -84,7 +84,7 @@ export function LabCardView({ c, k }: { c: LabCard; k: number }) {
 }
 
 /** 숫자 한 줄: 뱃지 → 이름 · 수치(단위 붙여서) · 자세히 → 구간 막대 → 펼친 뜻·할 일 */
-function LabRow({ c, first }: { c: LabCard; first: boolean }) {
+export function LabRow({ c, first }: { c: LabCard; first: boolean }) {
   const [open, setOpen] = useState(false);
   const tone = TONE[c.tone], n = c.zones.length, [name, sub] = nameOf(c.title), unit = UNIT[c.key] ?? 'mg/dL';
   const isWord = c.key === 'upro';

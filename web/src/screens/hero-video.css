@@ -5,8 +5,8 @@
 .hv-bg img { object-fit: cover; object-position: center; }
 .hv-shade { position: absolute; inset: 0; z-index: -1; background: linear-gradient(90deg, rgba(8, 28, 5, .82) 0%, rgba(8, 28, 5, .55) 45%, rgba(8, 28, 5, .25) 100%), linear-gradient(0deg, rgba(8, 28, 5, .6) 0%, rgba(8, 28, 5, 0) 45%); }
 .hv-inner { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr); align-items: center; gap: 56px; width: min(1320px, calc(100% - 96px)); height: 100%; margin: 0 auto; padding-top: 72px; }
-.lm-page .hv h1, .hv h1 { margin: 0; font-size: clamp(44px, 4.9vw, 78px); font-weight: 600; line-height: 1.12; letter-spacing: -0.005em; color: #fff; white-space: nowrap; }
-.hv h1 em { font-style: normal; color: #9fe870; }
+.lm-page .hv h1, .hv h1 { margin: 0; font-size: clamp(44px, 4.9vw, 78px); font-weight: 600; line-height: 1.12; letter-spacing: -0.02em; color: #fff; white-space: nowrap; }
+.hv h1 em { font-style: normal; color: #fff; }
 .lm-page .hv-lead, .hv-lead { margin: 22px 0 0; font-size: clamp(17px, 1.45vw, 21px); line-height: 1.6; color: rgba(255, 255, 255, .86); }
 .hv-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 24px; margin-top: 32px; }
 .hv-actions .lm-text-link { color: #fff !important; }
@@ -19,7 +19,7 @@
 .hv-full { position: absolute; right: 10px; bottom: 10px; display: inline-flex; align-items: center; gap: 5px; padding: 5px 10px; border: 0; border-radius: 999px; cursor: pointer;
   font: inherit; font-size: 12px; font-weight: 500; color: #fff; background: rgba(14, 15, 12, .6); backdrop-filter: blur(6px); transition: background .2s; }
 .hv-full:hover { background: rgba(14, 15, 12, .85); }
-.hv-full:focus-visible { outline: 3px solid #9fe870; outline-offset: 2px; }
+.hv-full:focus-visible { outline: 3px solid #fff; outline-offset: 2px; }
 
 /* 태블릿·휴대폰: 제목 위, 화면 아래 */
 @media (max-width: 1023px) {

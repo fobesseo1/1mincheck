@@ -8,7 +8,7 @@ import { LabsInput, LabsResult } from './screens/Labs.tsx';
 import { Detail } from './screens/Detail.tsx';
 import { Record } from './screens/Record.tsx';
 import { Summary } from './screens/Summary.tsx';
-import { LandingV4 } from './screens/LandingV4.tsx';   // 무채색 새 첫 화면 (2026-10-15). 예전 Landing.tsx 는 남겨 둔다
+import { Landing } from './screens/Landing.tsx';   // 첫 화면 = v2 틀 + 무채색 + 결과 장면만 v3 부품 (2026-10-15). LandingV4.tsx(쓰지 않음)는 남겨 둔다
 import { samples } from '../../src/sampleData.ts';
 import type { ItemId } from './lib/content.ts';
 import { stressSamples } from './lib/stress.ts';
@@ -54,7 +54,7 @@ export function App() {
   useEffect(() => { if (!route.startsWith('/')) document.getElementById(route)?.scrollIntoView({ behavior: 'smooth' }); }, [route]);
 
   let screen: JSX.Element;
-  if (!route.startsWith('/') || route === '/') screen = <LandingV4 />;
+  if (!route.startsWith('/') || route === '/') screen = <Landing />;
   else if (APP[route]) { const S = APP[route]; screen = <S />; }
   else if (route === '/result') screen = <Results />;
   else if (route === '/all') screen = <All />;
@@ -67,7 +67,7 @@ export function App() {
   else if (route.startsWith('/detail/')) screen = <Detail id={route.slice(8) as ItemId} />;
   else if (route === '/dev') screen = <Dev />;
   else if (route === '/dev/chars' && (import.meta.env.DEV || isDev())) screen = <DevChars />;
-  else screen = <LandingV4 />;
+  else screen = <Landing />;
 
   return (
     <StoreCtx.Provider value={{ draft, setDraft, reset, records, setRecords, toast }}>

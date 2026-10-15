@@ -4,16 +4,16 @@
 .sp-head { text-align: center; }
 .sp-eyebrow { display: block; font-size: 16px; font-weight: 500; color: #5d605c; margin-bottom: 16px; }
 /* 가운데 큰 한 문장 (jeton 'Unify your finances'처럼 화면을 채우는 크기) */
-.lm-page .sp h2, .sp h2 { font-size: clamp(56px, 8.2vw, 136px); font-weight: 600; line-height: 1.1; letter-spacing: -0.005em; color: #163300; margin: 0; white-space: nowrap; text-wrap: nowrap; }
-.sp h2 em { font-style: normal; color: #1e6a12; }
+.lm-page .sp h2, .sp h2 { font-size: clamp(56px, 8.2vw, 136px); font-weight: 600; line-height: 1.1; letter-spacing: -0.02em; color: #0e0f0c; margin: 0; white-space: nowrap; text-wrap: nowrap; }
+.sp h2 em { font-style: normal; color: #5d605c; }
 .lm-page .sp .sp-sub, .sp-sub { margin: 20px 0 0; font-size: 17px; line-height: 1.6; color: #5d605c; }
-.sp-cta { display: inline-flex; align-items: center; gap: 10px; margin-top: 36px; min-height: 58px; padding: 0 28px; border-radius: 999px; background: #163300; color: #fff !important; font-size: 18px; font-weight: 600; }
-.sp-cta:focus-visible { outline: 3px solid #9fe870; outline-offset: 3px; }
-.sp-label { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; color: #163300; white-space: nowrap; }
-.sp-label b { display: inline-flex; width: 22px; height: 22px; border-radius: 50%; align-items: center; justify-content: center; background: #163300; color: #9fe870; font-size: 12px; font-weight: 600; }
+.sp-cta { display: inline-flex; align-items: center; gap: 10px; margin-top: 36px; min-height: 58px; padding: 0 28px; border-radius: 999px; background: #0e0f0c; color: #fff !important; font-size: 18px; font-weight: 600; }
+.sp-cta:focus-visible { outline: 3px solid #0e0f0c; outline-offset: 3px; }
+.sp-label { display: inline-flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; color: #0e0f0c; white-space: nowrap; }
+.sp-label b { display: inline-flex; width: 22px; height: 22px; border-radius: 50%; align-items: center; justify-content: center; background: #0e0f0c; color: #ffffff; font-size: 12px; font-weight: 600; }
 /* 조각: 실제 컴포넌트를 350px 폭으로 그리고, 필요한 부분만 보이게 자른다 */
-.sp-card { width: 350px; border-radius: 22px; overflow: hidden; background: #fff; --lift: 0;
-  box-shadow: 0 calc(12px + 18px * var(--lift)) calc(34px + 36px * var(--lift)) -14px rgba(22, 51, 0, calc(.18 + .12 * var(--lift))), 0 1px 3px rgba(22, 51, 0, .06); }
+.sp-card { width: 350px; border-radius: 20px; overflow: hidden; background: transparent; --lift: 0;
+  box-shadow: 0 calc(12px + 18px * var(--lift)) calc(34px + 36px * var(--lift)) -14px rgba(0, 0, 0, calc(.18 + .12 * var(--lift))), 0 1px 3px rgba(0, 0, 0, .06); }
 .sp-real { position: relative; }
 .sp-real > * { margin: 0; box-shadow: none !important; }
 /* 실제 앱 컴포넌트는 앱 스타일 그대로(랜딩 전용 h2·a·button 규칙을 되돌린다) */

@@ -5,10 +5,8 @@
 import { useLayoutEffect, useMemo, useRef, type CSSProperties, type ReactNode } from 'react';
 import { ArrowRight } from 'lucide-react';
 import type { Input } from '../../../engine/src/engine.ts';
-import { peerCards } from '../lib/peer.ts';
-import { labCards } from '../lib/labZones.ts';
-import { VerdictCard, PeerCardView, ChangeCard, verdictOf } from './Results.tsx';
-import { LabCardView } from './Labs.tsx';
+// 2026-10-15: 네 조각은 결과 화면과 같은 v3 부품(지금 당장 할 일 · 세 줄 중 고혈압 · 생활을 바꾸면 · 검진 풀이 줄)
+import { TodoPiece, RowsPiece, ChangePiece, LabPiece } from '@/components/landing-pieces';
 import './landing-spread.css';
 
 const BW = 350; // 실제 앱 화면 폭(휴대폰)으로 그린 뒤 줄인다
@@ -22,14 +20,12 @@ type Slot = { key: string; label: string; n: number; side: 'tl' | 'bl' | 'tr' | 
 
 export function SpreadScene({ ex, exLabel, id }: { ex: Input; exLabel: string; id?: string }) {
   const slots = useMemo<Slot[]>(() => {
-    const { v, gap } = verdictOf(ex);
-    const lab = labCards({ glu: 108 }, ex.sex)[0];
     // 아래에서 위 순서(마지막이 맨 위)
     return [
-      { key: 'change', label: '바꿔보기', n: 3, side: 'br', tilt: 7, crop: ['[aria-live]', '[aria-live]'], node: <ChangeCard inp={ex} anchor={null} start={{ dwa: -3 }} /> },
-      { key: 'peer', label: '또래 비교', n: 2, side: 'tr', tilt: -6, crop: ['[role=tabpanel][data-state=active] p', '[role=tabpanel][data-state=active] .grid-cols-2'], node: <PeerCardView cs={peerCards(ex)} initial="htn" /> },
-      { key: 'lab', label: '검진 수치', n: 4, side: 'bl', tilt: 5, node: <LabCardView c={lab} k={0} /> },
-      { key: 'verdict', label: '지금 내 상태', n: 1, side: 'tl', tilt: -4, node: <VerdictCard v={v} gap={gap} /> },
+      { key: 'change', label: '바꿔보기', n: 3, side: 'br', tilt: 7, node: <ChangePiece inp={ex} dIn={-1} rows={0} /> },
+      { key: 'peer', label: '또래 비교', n: 2, side: 'tr', tilt: -6, node: <RowsPiece inp={ex} only="htn" /> },
+      { key: 'lab', label: '검진 수치', n: 4, side: 'bl', tilt: 5, node: <LabPiece lab={{ glu: 108 }} sex={ex.sex} /> },
+      { key: 'verdict', label: '지금 내 상태', n: 1, side: 'tl', tilt: -4, node: <TodoPiece inp={ex} /> },
     ];
   }, [ex]);
 

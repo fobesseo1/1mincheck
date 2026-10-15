@@ -15,9 +15,10 @@ import { Dots } from '@/components/viz';
 import { CountTo } from '@/components/viz';
 import { ZoneSlider } from '@/components/ui/zone-slider';
 import { waistStops, toUnit, toCm, unitLabel, initialWaistUnit, IN, type WaistUnit } from '../lib/body.ts';
-import { ChangeCard } from './Results.tsx';
+import { Change } from '@/components/result-v4';
+import { RowsPiece, ChangePiece, LabPiece } from '@/components/landing-pieces';
 import { useStore } from '../ui.tsx';
-import { LabCardView } from './Labs.tsx';
+import { LabRow } from './Labs.tsx';
 import { MiniTrial } from './MiniTrial.tsx';
 import { cn } from '@/lib/utils';
 import './landing-scenes.css';
@@ -90,9 +91,9 @@ export function TrioScene({ ex, id }: { ex: Input; id?: string }) {
   const [dwa, setDwa] = useState(0);
   const lab = useMemo(() => labCards({ glu: 108 }, ex.sex)[0], [ex]);
   const items: { word: string; sub: string; node: ReactNode }[] = [
-    { word: '비교하고.', sub: '또래 100명 사이, 내 자리', node: <PeerBit ex={ex} /> },
-    { word: '바꿔보고.', sub: '허리를 줄이면 달라지는 위험', node: <ChangeBit ex={ex} dwa={dwa} /> },
-    { word: '알아보고.', sub: '검진표 숫자의 뜻과 할 일', node: <LabCardView c={lab} k={0} /> },
+    { word: '비교하고.', sub: '또래 100명 사이, 내 자리', node: <RowsPiece inp={ex} /> },
+    { word: '바꿔보고.', sub: '허리를 줄이면 달라지는 위험', node: <ChangePiece inp={ex} dIn={Math.round((ex.waistCm! + dwa) / IN) - Math.round(ex.waistCm! / IN)} rows={2} /> },
+    { word: '알아보고.', sub: '검진표 숫자의 뜻과 할 일', node: <LabPiece lab={{ glu: 108 }} sex={ex.sex} /> },
   ];
   useScroll(root, (p, wide) => {
     const H = innerHeight, W = innerWidth;
@@ -132,7 +133,7 @@ export function TrioScene({ ex, id }: { ex: Input; id?: string }) {
             </div>
           ))}
         </div>
-        <span className="ls-sample">예시 · 52세 남성 · 172cm · 82kg · 허리 92cm</span>
+        <span className="ls-sample">예시 · 52세 남성 · 172cm · 82kg · 허리 36인치</span>
       </div>
     </section>
   );
@@ -149,9 +150,8 @@ export function ChangeLive({ ex, id }: { ex: Input; id?: string }) {
           <span className="ls-eyebrow">바꿔보기</span>
           <h2 className="ls-h2">조금 줄이면,<br /><em>얼마나 달라질까요?</em></h2>
           <p className="ls-lead">몸무게와 허리둘레를 직접 움직여 보세요.<br />같은 조건에서 다시 계산한 위험이 바로 바뀌어요.</p>
-          <p className="ls-note">화면에 보이면 허리부터 차례로 줄여 보여 드려요.<br />막대를 잡으면 시연이 멈추고, 직접 바꿔 볼 수 있어요.</p>
         </div>
-        <div className="ls-change-card"><ChangeCard inp={ex} anchor={null} example="예시 · 52세 남성" demo={demo} /></div>
+        <div className="ls-change-card"><Change inp={ex} bare /></div>
       </div>
     </section>
   );
@@ -299,7 +299,7 @@ export function LabsLive({ id, sex }: { id?: string; sex: 'M' | 'F' }) {
             <span className="ls-lab-field"><input ref={field} inputMode="decimal" value={vals[key]} aria-label={`${row.name} 예시 값`}
               onChange={(e) => setVals((v) => ({ ...v, [key]: e.target.value.replace(key === 'bp' ? /[^0-9/]/g : /[^0-9.]/g, '') }))} /><small>{row.unit}</small></span>
           </label>
-          {card ? <LabCardView key={key + card.zone} c={card} k={0} /> : <p className="ls-note">숫자를 넣어 보세요.</p>}
+          {card ? <section key={key + card.zone} className="flex flex-col rounded-[20px] bg-white px-5 py-1.5"><LabRow c={card} first /></section> : <p className="ls-note">숫자를 넣어 보세요.</p>}
         </div>
       </div>
     </section>
@@ -307,8 +307,9 @@ export function LabsLive({ id, sex }: { id?: string; sex: 'M' | 'F' }) {
 }
 
 /* ───────── ⑤ 1분 동안: 실제 앱 화면이 시계와 함께 넘어간다 ───────── */
-const FLOW = Object.fromEntries(Object.entries(import.meta.glob('../assets/landing/flow-*.webp', { eager: true, import: 'default' }) as Record<string, string>)
-  .map(([k, v]) => [/flow-(\w+)\.webp$/.exec(k)![1], v]));
+// 2026-10-15: v3 화면을 새로 찍은 그림(예시 52세 남성). 예전 flow-*.webp 는 남겨 둔다
+const FLOW = Object.fromEntries(Object.entries(import.meta.glob('../assets/landing/flow-v3-*.png', { eager: true, import: 'default' }) as Record<string, string>)
+  .map(([k, v]) => [/flow-v3-(\w+)\.png$/.exec(k)![1], v]));
 const STEPS = [
   { key: 'info', t: '몸 정보', d: '성별·나이·키·몸무게·허리둘레', from: 0, to: 0.22 },
   { key: 'life', t: '생활 질문', d: '담배·술·운동·가족력·혈압', from: 0.22, to: 0.74 },
