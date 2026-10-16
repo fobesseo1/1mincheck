@@ -3,12 +3,13 @@
 import { useLayoutEffect, useRef, type ReactNode } from 'react';
 import { useDroplet, usePress } from '@/lib/motion';
 import { cn } from '@/lib/utils';
+import { onRadioKeys, radioTab } from '@/lib/radio';
 
-function Opt({ on, onClick, children, className }: { on: boolean; onClick: () => void; children: ReactNode; className?: string }) {
+function Opt({ on, onClick, children, className, tab }: { on: boolean; onClick: () => void; children: ReactNode; className?: string; tab: number }) {
   const b = useRef<HTMLButtonElement>(null);
   usePress(b, 1.04);
   return (
-    <button ref={b} type="button" aria-pressed={on} onClick={onClick} data-on={on || undefined}
+    <button ref={b} type="button" role="radio" aria-checked={on} tabIndex={tab} onClick={onClick} data-on={on || undefined}
       className={cn('relative z-[1] flex min-h-11 flex-1 cursor-pointer flex-col items-center justify-center rounded-[9px] px-1.5 py-1.5 text-center leading-tight font-semibold transition-colors duration-200', on ? 'text-white' : 'text-ink-soft hover:text-ink', className)}>
       {children}
     </button>
@@ -35,11 +36,11 @@ export function Segmented<T>({ options, value, onChange, label, tone = 'brand', 
     return () => ro.disconnect();
   }, [k]);   // eslint-disable-line react-hooks/exhaustive-deps
   return (
-    <div ref={box} role="group" aria-label={label} className={cn('relative isolate flex gap-1 rounded-[12px] bg-[#f0f0ed] p-1', className)}>
+    <div ref={box} role="radiogroup" aria-label={label} onKeyDown={(e) => onRadioKeys(e, options.map((o) => o.v), value, onChange)} className={cn('relative isolate flex gap-1 rounded-[12px] bg-[#f0f0ed] p-1', className)}>
       <span ref={ind} aria-hidden style={{ opacity: 0 }}
         className={cn('pointer-events-none absolute inset-y-1 rounded-[9px]', tone === 'brand' ? 'bg-ink' : 'bg-white')} />
-      {options.map((o) => (
-        <Opt key={String(o.v)} on={o.v === value} onClick={() => onChange(o.v)} className={cn(tone === 'white' && o.v === value && 'text-ink', optClassName)}>
+      {options.map((o, i) => (
+        <Opt key={String(o.v)} on={o.v === value} tab={radioTab(o.v === value, i, k >= 0)} onClick={() => onChange(o.v)} className={cn(tone === 'white' && o.v === value && 'text-ink', optClassName)}>
           {o.t}{o.s && <small className="mt-0.5 text-[11px] font-normal opacity-80">{o.s}</small>}
         </Opt>
       ))}

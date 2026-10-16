@@ -33,7 +33,20 @@ export interface Row {
   num?: { me?: number; peer?: number; rank?: number | null; lo?: number; hi?: number; grams?: number };
   /** 허리 모름일 때 보통 허리로 계산한 단계 (예상 뱃지) */
   guess?: Level;
+  /** range 일 때 실제로 모르는 항목 (A4: 범위면 무조건 '허리 모름'이 아니라 이유대로) */
+  unknown?: Unknown[];
 }
+export type Unknown = 'waist' | 'exercise' | 'meno';
+export const UNK_LABEL: Record<Unknown, string> = { waist: '허리둘레', exercise: '운동 여부', meno: '폐경 여부' };
+export const UNK_SHORT: Record<Unknown, string> = { waist: '허리', exercise: '운동', meno: '폐경' };
+/** ['허리둘레','폐경 여부'] → '허리둘레와 폐경 여부' (모두 모음으로 끝나 '와') */
+export const andJoin = (xs: string[]) => (xs.length <= 1 ? xs[0] ?? '' : `${xs.slice(0, -1).join(', ')}와 ${xs[xs.length - 1]}`);
+/** 이 줄을 범위로 만든 '모름' 항목. 당뇨는 허리만, 지방간은 허리·운동·폐경(여성) */
+export const unknownsOf = (id: ItemId, i: Input): Unknown[] => [
+  ...(i.waistCm == null ? (['waist'] as const) : []),
+  ...(id === 'nafld' && i.exercise == null ? (['exercise'] as const) : []),
+  ...(id === 'nafld' && i.sex === 'F' && i.age >= 40 && i.meno == null ? (['meno'] as const) : []),   // 40세 미만은 폐경 전으로 계산
+];
 
 const ROW_IDS: ItemId[] = ['dm', 'htn', 'nafld'];
 const NAME: Record<string, string> = { dm: '당뇨', htn: '고혈압', nafld: '지방간' };
@@ -121,10 +134,13 @@ export function overviewRows(i: Input): Row[] {
     if (r.status === 'ok' && r.flags?.includes('GLU_PRE')) return { id, name, kind: 'gray', level: 2, word: '당뇨 전 단계', side: `공복혈당 ${L.glu} (100–125)`, big: { n: String(L.glu), unit: 'mg/dL' }, sub: '공복혈당 100–125는 당뇨 전 단계예요', chips: [{ t: '당화혈색소 확인', tone: 'plain', why: '공복혈당 100–125는 당뇨 전 단계예요. 당화혈색소 검사로 한 번 더 확인해요.' }] };
     if (r.status === 'ok' && r.range) {
       const lo = Math.round(r.range[0]), hi = Math.round(r.range[1]), pk = (v: number) => Math.min(4, Math.floor(v / 15));
-      const tw = typicalWaist(i.sex, i.age, bmi(i)), ti = { ...i, waistCm: Math.round(tw) }, tr = byId(runAll(ti))[id], tc = tr.value != null ? cmpOf(id, tr, ti) : null;
-      const guess = tc && tr.value != null ? levelOf(rankOf(id, i.sex, i.age, tr.value) ?? null, tc.x) : undefined;
-      return { id, name, kind: 'range', level: null, word: '범위', side: '허리를 몰라 범위로', span: [pk(lo), pk(hi)], guess, big: { n: `${lo}–${hi}`, unit: '%' }, sub: `또래 평균 ${r.peer != null ? f1(r.peer) + '%' : '–'} · 허리를 넣으면 정확해져요`, num: { lo, hi, peer: r.peer ?? undefined },
-        chips: [{ t: '허리 넣으면 정확해져요', tone: 'plain', why: '허리둘레를 모르면 가능한 범위로만 계산해요. 줄자로 배꼽 높이를 재서 넣어 보세요.', href: '#/info' }] };
+      const unknown = unknownsOf(id, i), noWaist = unknown.includes('waist'), what = andJoin(unknown.map((u) => UNK_LABEL[u]));
+      // '예상' 뱃지는 허리를 모를 때만 (보통 허리로 계산한 추정이라)
+      const tw = typicalWaist(i.sex, i.age, bmi(i)), ti = { ...i, waistCm: Math.round(tw) }, tr = noWaist ? byId(runAll(ti))[id] : null, tc = tr?.value != null ? cmpOf(id, tr, ti) : null;
+      const guess = tc && tr?.value != null ? levelOf(rankOf(id, i.sex, i.age, tr.value) ?? null, tc.x) : undefined;
+      return { id, name, kind: 'range', level: null, word: '범위', side: `${what || '허리둘레'}를 몰라 범위로`, span: [pk(lo), pk(hi)], guess, unknown, big: { n: `${lo}–${hi}`, unit: '%' }, sub: `또래 평균 ${r.peer != null ? f1(r.peer) + '%' : '–'} · ${noWaist ? '허리를 넣으면 정확해져요' : `${what}를 답하면 정확해져요`}`, num: { lo, hi, peer: r.peer ?? undefined },
+        chips: noWaist ? [{ t: '허리 넣으면 정확해져요', tone: 'plain', why: '허리둘레를 모르면 가능한 범위로만 계산해요. 줄자로 배꼽 높이를 재서 넣어 보세요.', href: '#/info' }]
+          : [{ t: `${UNK_SHORT[unknown[0] ?? 'meno']} 답하면 정확해져요`, tone: 'plain', why: `${what}를 모르면 가능한 범위로만 계산해요.`, href: '#/life' }] };
     }
     const c = r.status === 'ok' && r.value != null ? cmpOf(id, r, i) : null;
     if (c && r.value != null) {

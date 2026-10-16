@@ -90,8 +90,11 @@ const MARK = { yes: [CheckCircle2, 'text-risk', '해당'], maybe: [CircleDot, 't
 const CHECK = { yes: [CheckCircle2, 'text-ink', '권장'], maybe: [CircleDot, 'text-ink', '해당되면'], no: [Circle, 'text-ash', ''], unknown: [CircleHelp, 'text-ink-soft', ''], info: [Dot, 'text-ink-soft', ''] } as const;
 const LV = { look: ['확인 필요', 'red'], note: ['참고', 'gray'], ok: ['해당 없음', 'green'] } as const;
 const SHORT: Partial<Record<Extra['id'], string>> = { alcohol: '술', metsyn: '대사증후군', lifestyle: '생활습관', liver: '주량', dementia: '치매 위험', ckd: '콩팥', checkup: '검진·접종', body: '허리÷키', dm10: '10년 안에 당뇨', htn4: '4년 안에 고혈압', chd10: '10년 안에 심장병' };
-function ExtraLine({ x0, first }: { x0: Extra; first: boolean }) {
-  const x = polishExtra(x0), [word, tone] = LV[x.level], M = x.id === 'checkup' ? CHECK : MARK;
+/** 줄 이름. 간 카드는 술을 마시는 사람에게는 일주일 술 양을 보여 줘서 '주량'(10-15 사용자 지시),
+ *  술을 안 마시면 간 섬유화 안내만 나오므로 '간' (출시 전 수정 B3) */
+const shortName = (x: Extra) => (x.id === 'liver' && !x.items.some((it) => it.t === '주당 알코올' || it.t.startsWith('하루 평균')) ? '간' : SHORT[x.id] ?? x.name);
+function ExtraLine({ x0, first, smoke }: { x0: Extra; first: boolean; smoke?: AppInput['smoke'] }) {
+  const x = polishExtra(x0, smoke), [word, tone] = LV[x.level], M = x.id === 'checkup' ? CHECK : MARK;
   // 결론은 문장 단위로만 나눈다: 앞 토막이 문장으로 끝나지 않으면 다음 토막과 이어 붙인다
   const segs = plain(x.head).split(/\s·\s|\n/).reduce<string[]>((a, t) => (a.length && !/[요다)]\.?$/.test(a[a.length - 1]) ? [...a.slice(0, -1), a[a.length - 1] + ' ' + t] : [...a, t]), []);
   const [head, ...rest] = segs;
@@ -113,7 +116,7 @@ function ExtraLine({ x0, first }: { x0: Extra; first: boolean }) {
     <p className="m-0 border-t border-[#e6e6e3] pt-2.5">{plain(x.action)}</p>
     <p className="m-0 text-caption text-mute">근거 · {x.source}</p>
   </>);
-  return <LongLine first={first} badge={<Badge t={x.tag ?? word} tone={tone} />} name={SHORT[x.id] ?? x.name} stmt={stmt} more={more} />;
+  return <LongLine first={first} badge={<Badge t={x.tag ?? word} tone={tone} />} name={shortName(x0)} stmt={stmt} more={more} />;
 }
 /** 결론이 문장인 줄: 뱃지 → 이름 · 자세히 → 결론(한 줄 전체) */
 function LongLine({ first, badge, name, stmt, more }: { first?: boolean; badge: ReactNode; name: string; stmt: ReactNode; more: ReactNode }) {
@@ -174,7 +177,7 @@ export function All() {
         <section aria-label="앞으로 몇 년 안에" className="flex flex-col gap-2">
           <div className="flex items-baseline justify-between px-1"><h2 className="m-0 text-[19px] font-semibold">앞으로 몇 년 안에</h2><span className="text-[12px] text-mute">40~69세 한국인 연구</span></div>
           <div className="flex flex-col rounded-card bg-white px-5 py-1.5">
-            {future.map((x, k) => <ExtraLine key={x.id} x0={x} first={k === 0} />)}
+            {future.map((x, k) => <ExtraLine key={x.id} x0={x} first={k === 0} smoke={inp.smoke} />)}
             {wants.map((w, k) => <WantLine key={w.name} {...w} first={!future.length && k === 0} />)}
           </div>
         </section>
@@ -184,7 +187,7 @@ export function All() {
         <section aria-label="생활·검진 체크" className="flex flex-col gap-2">
           <div className="flex items-baseline justify-between px-1"><h2 className="m-0 text-[19px] font-semibold">생활·검진 체크</h2><span className="text-[12px] text-mute">공식 기준에 해당하는지</span></div>
           <div className="flex flex-col rounded-card bg-white px-5 py-1.5">
-            {checks.map((x, k) => <ExtraLine key={x.id} x0={x} first={k === 0} />)}
+            {checks.map((x, k) => <ExtraLine key={x.id} x0={x} first={k === 0} smoke={inp.smoke} />)}
           </div>
         </section>
       )}

@@ -7,7 +7,8 @@ import type { LabKey } from '../lib/labs.ts';
 import { LabField } from './Checkup.tsx';
 import { loadMini } from './MiniTrial.tsx';
 import { modOn, anyModOn } from '../lib/features.ts';
-import { type Draft, type DrinkKey, basicError, lifeError, sleepError, mindError, gerdError, dietError, menoShown, phq2Sum, emptyDraft, ALC_FREQ, DRINKS, ALC_LABEL, alcCalc } from '../state.ts';
+import { cleanNum } from '../lib/numInput.ts';
+import { type Draft, type DrinkKey, type BasicField, basicError, fieldError, swapWaistUnit, waistCmOf, lifeError, sleepError, mindError, gerdError, dietError, menoShown, phq2Sum, emptyDraft, ALC_FREQ, DRINKS, ALC_LABEL, alcCalc } from '../state.ts';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -57,16 +58,19 @@ export function Intro() {
 const numCls = 'min-w-0 border-0 bg-transparent p-0 text-[30px] leading-none font-semibold text-ink outline-none placeholder:text-[#c4c4c0] tabular-nums';
 /** 숫자 입력 카드 (2026-10-15): 이름 13px · 숫자 30px + 단위 15px 회색(붙여서). 쓰는 중이면 잉크 2px 테두리 */
 export const fieldCard = 'flex flex-col gap-2 rounded-card bg-white px-[18px] py-4 focus-within:shadow-[inset_0_0_0_2px_var(--color-ink)]';
-function NumField({ label, unit, value, onChange, id, right, foot }: { label: string; unit: string; value: string; onChange: (v: string) => void; id: string; right?: ReactNode; foot?: ReactNode }) {
+/** 숫자 칸. error 가 있으면 칸 바로 아래에 허용 범위를 보여 준다(칸을 떠난 뒤부터, B1) */
+function NumField({ label, unit, value, onChange, id, right, foot, error, onBlur }: { label: string; unit: string; value: string; onChange: (v: string) => void; id: string; right?: ReactNode; foot?: ReactNode; error?: string | null; onBlur?: () => void }) {
   return (
-    <div className={fieldCard}>
+    <div className={cn(fieldCard, error && 'shadow-[inset_0_0_0_2px_var(--color-risk)]')}>
       <span className="flex items-center justify-between"><label htmlFor={id} className="text-[13px] text-ink-soft">{label}</label>{right}</span>
       <label htmlFor={id} className="flex items-baseline gap-0.5">
-        <input id={id} className={numCls} inputMode="decimal" value={value} placeholder="0" onChange={(e) => onChange(e.target.value.replace(/[^0-9.]/g, ''))}
+        <input id={id} className={numCls} inputMode="decimal" value={value} placeholder="0" onChange={(e) => onChange(cleanNum(e.target.value))} onBlur={onBlur}
+          aria-invalid={!!error || undefined} aria-describedby={error ? `${id}-err` : undefined}
           style={{ width: `${Math.max(1, value.length) * 0.6 + 0.1}em` }} />
         <span className="text-[15px] text-ink-soft">{unit}</span>
       </label>
       {foot}
+      {error && <span id={`${id}-err`} role="alert" className="text-[12px] leading-snug font-medium text-risk">{error}</span>}
     </div>
   );
 }
@@ -97,6 +101,10 @@ export function Info() {
   }, []);   // eslint-disable-line react-hooks/exhaustive-deps
   const set = (p: Partial<Draft>) => setDraft((x) => ({ ...x, ...p }));
   const err = basicError(d);
+  // 칸 아래 안내는 그 칸을 한 번 떠난 뒤부터 (입력 중에는 띄우지 않는다)
+  const [left, setLeft] = useState<Partial<Record<BasicField, boolean>>>({});
+  const fe = (f: BasicField) => (left[f] ? fieldError(d, f) : null), leave = (f: BasicField) => () => setLeft((x) => ({ ...x, [f]: true }));
+  const wcm = waistCmOf(d);
   const h = Number(d.height), w = Number(d.weight), bmi = h >= 120 && w >= 30 ? w / (h / 100) ** 2 : null;
   const cat = bmi == null ? '' : bmi < 18.5 ? '저체중' : bmi < 23 ? '정상' : bmi < 25 ? '비만 전단계' : bmi < 30 ? '1단계 비만' : bmi < 35 ? '2단계 비만' : '3단계 비만';
   return (
@@ -107,18 +115,18 @@ export function Info() {
       <Help className="-mt-2 text-[13px]">{'이 기기 안에서만 계산해요.\n가족 것을 대신 넣어도 돼요.'}</Help>
       <Choice q="성별" value={d.sex} onChange={(v) => set({ sex: v })} options={[{ v: 'M' as const, t: '남성' }, { v: 'F' as const, t: '여성' }]} />
       <div className="grid grid-cols-2 gap-3">
-        <NumField id="age" label="만 나이" unit="세" value={d.age} onChange={(v) => set({ age: v })} />
-        <NumField id="h" label="키" unit="cm" value={d.height} onChange={(v) => set({ height: v })} />
-        <NumField id="w" label="몸무게" unit="kg" value={d.weight} onChange={(v) => set({ weight: v })} />
+        <NumField id="age" label="만 나이" unit="세" value={d.age} onChange={(v) => set({ age: v })} error={fe('age')} onBlur={leave('age')} />
+        <NumField id="h" label="키" unit="cm" value={d.height} onChange={(v) => set({ height: v })} error={fe('height')} onBlur={leave('height')} />
+        <NumField id="w" label="몸무게" unit="kg" value={d.weight} onChange={(v) => set({ weight: v })} error={fe('weight')} onBlur={leave('weight')} />
         {/* 허리둘레: 이름 줄 오른쪽에 단위 알약(인치 기본), 숫자 아래에 다른 단위 환산값 */}
-        <NumField id="wa" label="허리둘레" unit={d.waistUnit === 'in' ? '인치' : 'cm'} value={d.waist} onChange={(v) => set({ waist: v, waistUnknown: false })}
+        <NumField id="wa" label="허리둘레" unit={d.waistUnit === 'in' ? '인치' : 'cm'} value={d.waist} onChange={(v) => set({ waist: v, waistUnknown: false, waistCm: undefined })} error={fe('waist')} onBlur={leave('waist')}
           right={<span role="radiogroup" aria-label="허리 단위" className="flex gap-0.5 rounded-[7px] bg-[#f0f0ed] p-0.5">
             {([['in', '인치'], ['cm', 'cm']] as const).map(([u, t]) => {
               const on = d.waistUnit === u;
-              return <button key={u} type="button" role="radio" aria-checked={on} onClick={() => set({ waistUnit: u, waistUnitChosen: true })} className={cn('cursor-pointer rounded-[5px] px-1.5 py-0.5 text-[11px] font-semibold', on ? 'bg-ink text-white' : 'text-ink-soft')}>{t}</button>;
+              return <button key={u} type="button" role="radio" aria-checked={on} onClick={() => set(swapWaistUnit(d, u))} className={cn('cursor-pointer rounded-[5px] px-1.5 py-0.5 text-[11px] font-semibold', on ? 'bg-ink text-white' : 'text-ink-soft')}>{t}</button>;
             })}
           </span>}
-          foot={<span className="-mt-1 min-h-4 text-[11px] text-mute">{Number(d.waist) > 0 ? (d.waistUnit === 'in' ? `약 ${(Number(d.waist) * 2.54).toFixed(1)}cm` : `약 ${(Number(d.waist) / 2.54).toFixed(1)}인치`) : ''}</span>} />
+          foot={<span className="-mt-1 min-h-4 text-[11px] text-mute">{wcm != null && wcm > 0 && !fieldError(d, 'waist') ? (d.waistUnit === 'in' ? `약 ${wcm.toFixed(1)}cm` : `약 ${(wcm / 2.54).toFixed(1)}인치`) : ''}</span>} />
       </div>
       <Help className="-mt-1">{'허리둘레는 배꼽 높이에서 한 바퀴 잰 값이에요.\n모르면 비워 두거나 바지 허리 사이즈를 넣어도 돼요.'}</Help>
       {bmi != null && (
@@ -165,7 +173,7 @@ export function Life() {
         <div className="flex items-baseline justify-between gap-2"><b className="text-[15px] font-semibold">진단받은 질환이 있나요?</b><span className="shrink-0 text-[12px] text-mute">여러 개 골라도 돼요</span></div>
         <div className="grid grid-cols-2 gap-1.5">
           {([['htn', '고혈압'], ['dm', '당뇨'], ['chol', '고지혈증'], ['none', '없음']] as const).map(([k, t]) => (
-            <button key={k} type="button" className={optCls(d.dx[k], 'sm')} aria-pressed={d.dx[k]} onClick={() => toggleDx(k)}>{t}</button>
+            <button key={k} type="button" role="checkbox" aria-checked={d.dx[k]} className={optCls(d.dx[k], 'sm')} onClick={() => toggleDx(k)}>{t}</button>
           ))}
         </div>
         <div className="whitespace-pre-line text-caption text-ink-soft">{'고지혈증은 콜레스테롤이나 중성지방이 높다고 진단받은 경우예요.\n진단받은 질환은 가능성 대신 ‘관리 중’으로 보여 드려요.'}</div>
@@ -245,7 +253,7 @@ export function Modules() {
         {M.map(([k, t, w, c, Ic]) => {
           const on = d.modules[k];
           return (
-            <button key={k} type="button" aria-pressed={on} onClick={() => setDraft((x) => ({ ...x, modules: { ...x.modules, [k]: !on } }))}
+            <button key={k} type="button" role="checkbox" aria-checked={on} onClick={() => setDraft((x) => ({ ...x, modules: { ...x.modules, [k]: !on } }))}
               className={cn('relative flex min-h-[168px] cursor-pointer flex-col items-start gap-2 rounded-card border-2 bg-white p-4 text-left shadow-card', on ? 'border-brand' : 'border-transparent opacity-75')}>
               <span className="flex size-11 items-center justify-center rounded-btn bg-blush text-brand"><Ic className="size-5" /></span>
               <span className={cn('absolute top-3.5 right-3.5 flex size-6 items-center justify-center rounded-full text-white', on ? 'bg-brand' : 'bg-sand')}>{on && <Check className="size-4" strokeWidth={3} />}</span>

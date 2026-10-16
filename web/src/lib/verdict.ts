@@ -58,7 +58,8 @@ export function verdict(inp: AppInput, r: R, sc: Scenario): Verdict {
   type H = { key: string; short: string; t: string; d?: string; href?: string };
   const hs: H[] = [];
   const b = bmiOf(inp), best = r.best;
-  const gain = best && sc && (sc.weightKg || sc.waistCm) ? `${[sc.weightKg && `체중 ${Math.abs(sc.weightKg)}kg`, sc.waistCm && `허리 ${Math.abs(sc.waistCm)}cm`].filter(Boolean).join(', ')}만 줄여도\n${best.name} 가능성이 ${best.a}%에서 ${best.b}%로 내려가요.` : undefined;
+  // A5: 허리는 인치(기본 단위), '줄인 값으로 다시 계산한 추정'이라는 성격을 문장 안에
+  const gain = best && sc && (sc.weightKg || sc.waistCm) ? `${[sc.weightKg && `체중 ${Math.abs(sc.weightKg)}kg`, sc.waistCm && `허리 ${Math.max(1, Math.round(Math.abs(sc.waistCm) / 2.54))}인치`].filter(Boolean).join(', ')}를 줄인 값으로 다시 계산하면\n${best.name} 가능성이 ${best.a}%에서 ${best.b}%로 내려가요.\n실제로 이만큼 달라진다는 뜻은 아니에요.` : undefined;
   if (inp.smoke === 'current') hs.push({ key: 'smoke', short: '금연', t: '담배를 끊으세요', d: '보건소 금연클리닉은 무료로 상담과 금연 보조제를 받을 수 있어요.' });
   if (b >= 25) hs.push({ key: 'weight', short: '체중 관리', t: '체중을 줄이세요', d: gain ?? '지금 체중의 5%만 줄여도\n혈압과 혈당이 좋아져요.', href: '#/whatif' });
   else if (waistHigh(inp)) hs.push({ key: 'waist', short: '허리둘레 관리', t: `허리둘레를 줄이세요 (목표 ${inp.sex === 'F' ? '85' : '90'}cm 미만)`, d: gain ?? '뱃살이 줄면 당뇨·지방간 가능성이 함께 내려가요.', href: '#/whatif' });
@@ -97,12 +98,14 @@ export function verdict(inp: AppInput, r: R, sc: Scenario): Verdict {
   // 예전에는 배수 2배·가능성 20%만 봐서, 또래 중 3번째로 위험해도(예: 19.1%, 1.5배) 빠졌다.
   const rankOfP = (p: (typeof r.prob)[number]) => rankOf(p.id as 'dm', inp.sex, inp.age, p.cmp!.me) ?? null;
   // 결과 화면 세 줄(당뇨·고혈압·지방간)만. 골다공증·콜레스테롤은 순위 표가 끝으로 몰려 거의 누구나 위쪽으로 나와 쓰지 않는다
-  const rowHigh = (p: (typeof r.prob)[number]) => ['dm', 'htn', 'nafld'].includes(p.id) && levelOf(rankOfP(p), p.cmp!.x) >= 3;
+  // 화면 줄이 순위로 나올 때만: 공복혈당 100–125(줄은 '당뇨 전 단계'), 검진 혈압을 넣음(줄은 '검진 혈압 반영')이면 그 줄은 순위가 아니다
+  const shownAsRank = (id: string) => !(id === 'dm' && inp.lab?.glu != null && inp.lab.glu >= 100 && inp.lab.glu < 126) && !(id === 'htn' && inp.lab?.sbp != null);
+  const rowHigh = (p: (typeof r.prob)[number]) => ['dm', 'htn', 'nafld'].includes(p.id) && shownAsRank(p.id) && levelOf(rankOfP(p), p.cmp!.x) >= 3;
   r.prob.filter((p) => p.cmp && (p.cmp.x >= 2 || absHigh(p) || rowHigh(p)) && CMP_NAME[p.id as ItemId]).sort((a, b) => b.cmp!.x - a.cmp!.x).forEach((p) => {
     const [name, dis, t, short] = CMP_NAME[p.id as ItemId]!;
     if (cs.some((c) => c.name === name)) return;
     const rk = rankOfP(p);
-    cs.push({ name, why: p.cmp!.x >= 2 ? `${dis} 가능성이 또래 평균의 ${xfmt(p.cmp!.x)}배예요` : rk != null && rk >= 80 ? `${dis} 위험이 같은 또래 100명 중 ${101 - rk}번째로 높아요` : `${dis} 가능성이 ${p.pct}%로 높은 편이에요`, t, d: `지금 ${p.pct}% · 같은 또래 평균 ${p.peerTxt}%`, href: `#/detail/${p.id}`, short, body: true });
+    cs.push({ name, why: p.cmp!.x >= 2 ? `${dis} 가능성이 ${p.id === 'nafld' ? `성인 ${inp.sex === 'F' ? '여성' : '남성'} 평균` : '또래 평균'}의 ${xfmt(p.cmp!.x)}배예요` : rk != null && rk >= 80 ? `${dis} 위험이 같은 또래 100명 중 ${101 - rk}번째로 높아요` : `${dis} 가능성이 ${p.pct}%로 높은 편이에요`, t, d: `지금 ${p.pct}% · ${p.id === 'nafld' ? `성인 ${inp.sex === 'F' ? '여성' : '남성'} 평균` : '같은 또래 평균'} ${p.peerTxt}%`, href: `#/detail/${p.id}`, short, body: true });
   });
   if (strong('dep')) cs.push({ name: '마음', why: '우울 점수가 상담을 권하는 수준이에요', t: '정신건강복지센터나 병원에서 상담을 받으세요', d: '많이 힘들면 109(24시간)로 전화하세요.', href: '#/detail/dep' });
   if (strong('gad')) cs.push({ name: '불안', why: '불안 점수가 확인이 필요한 수준이에요', t: '불안이 2주 넘게 이어지면 상담을 받으세요', href: '#/detail/gad' });

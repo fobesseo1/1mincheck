@@ -57,12 +57,16 @@ export function parseLab(d: LabDraft): Lab {
   return out;
 }
 /** 입력 오류 (해당 화면 칸만). 빈 칸은 괜찮다 */
+/** 칸 하나의 오류 (값이 있을 때만). 칸 옆 안내와 아래 안내가 같은 문장을 쓴다 */
+export function labFieldError(l: LabDef, s: string | undefined): string | null {
+  if (s == null || s === '' || l.options) return null;
+  const v = Number(s);
+  return !Number.isFinite(v) || v < l.min || v > l.max ? `${l.label}은 ${l.min}–${l.max} 사이로 넣어 주세요` : null;
+}
 export function labError(d: LabDraft, where: LabDef['where']): string | null {
   for (const l of LABS.filter((x) => x.where === where && !x.options)) {
-    const s = d[l.key];
-    if (s == null || s === '') continue;
-    const v = Number(s);
-    if (!Number.isFinite(v) || v < l.min || v > l.max) return `${l.label}은 ${l.min}–${l.max} 사이로 넣어 주세요`;
+    const e = labFieldError(l, d[l.key]);
+    if (e) return e;
   }
   if (where === 'life' && def('sbp') && !!d.sbp !== !!d.dbp) return '혈압은 두 숫자를 모두 넣어 주세요';
   return null;

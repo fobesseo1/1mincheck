@@ -8,7 +8,7 @@ import { useState, type ReactNode } from 'react';
 import { ChevronDown, Share2, ChevronLeft, ChevronRight, Minus, Plus } from 'lucide-react';
 import type { Input } from '../../../engine/src/engine.ts';
 import type { Verdict } from '@/lib/verdict';
-import { overviewRows, LEVEL_WORD, type Row, type Level } from '@/lib/overview';
+import { overviewRows, LEVEL_WORD, UNK_LABEL, UNK_SHORT, andJoin, type Row, type Level } from '@/lib/overview';
 import { per100, bodyOf, OUTCOME_NAME, type Outcome } from '@/lib/similar';
 import { groupLabel } from '@/lib/view';
 import { drinkOf, type Draft } from '@/state';
@@ -18,16 +18,26 @@ import { useStore } from '@/ui';
 import { ReasonChip } from '@/components/reason-chip';
 import { Sheet, SheetContent, SheetTitle, SheetDescription } from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
+import { onRadioKeys } from '@/lib/radio';
 
 const IN = 2.54;
 /** 판정 문구의 %를 '100명 중 몇 명'으로 (일반 사용자는 %를 잘 읽지 않는다) */
-const R = (x: string) => String(Math.max(1, Math.round(parseFloat(x))));
+//  출시 전 수정 A3: 1% 미만은 '1명'으로 부풀리지 않고 '1명 미만', 범위(a–b%)는 통째로, 숫자 뒤 조사(이/은/이에요)를 맞춘다.
+//  '치매 위험의 약 45%는'처럼 사람 수가 아닌 비율(…의 약 n%는)은 바꾸지 않는다.
+const R = (x: string) => String(Math.round(parseFloat(x)));
+const M = (x: string) => (parseFloat(x) < 1 ? '1명 미만' : `${R(x)}명`);
 /** 숫자 범위·분수(2023–2025, 140/90, 3~4)가 줄 끝에서 갈라지지 않게 글자 붙임(U+2060)을 넣는다 */
 export const nb = (t: string) => t.replace(/(\d)([–~/-])(?=\d)/g, '$1⁠$2⁠');
+const N = '(?<![\\d.])(\\d+(?:\\.\\d+)?)', SHARE = '(?<!의 약 )';   // 숫자 중간부터 잡지 않게 · '…의 약 n%'(비율)는 건너뜀
 export const plain = (t: string) => nb(t
-  .replace(/(\d+(?:\.\d+)?)%에서 (\d+(?:\.\d+)?)%로/g, (_, a: string, b: string) => `100명 중 ${R(a)}명에서 ${R(b)}명으로`)
-  .replace(/(\d+(?:\.\d+)?)%로/g, (_, a: string) => `100명 중 ${R(a)}명으로`)
-  .replace(/(\d+(?:\.\d+)?)%/g, (_, a: string) => `100명 중 ${R(a)}명`));
+  .replace(new RegExp(`(?:약 )?${N} 미만%`, 'g'), '100명 중 1명 미만')
+  .replace(new RegExp(`${N}%에서 ${N}%로`, 'g'), (_, a: string, b: string) => `100명 중 ${M(a)}에서 ${M(b)}으로`)
+  .replace(new RegExp(`${N}–${N}%`, 'g'), (_, a: string, b: string) => `100명 중 ${parseFloat(b) < 1 ? '1명 미만' : `${R(a)}–${R(b)}명`}`)
+  .replace(new RegExp(`(?<!의 )약 ${N}%`, 'g'), (_, a: string) => (parseFloat(a) < 1 ? '100명 중 1명 미만' : `100명 중 약 ${R(a)}명`))
+  .replace(new RegExp(`${SHARE}${N}%로`, 'g'), (_, a: string) => `100명 중 ${M(a)}으로`)
+  .replace(new RegExp(`${SHARE}${N}%`, 'g'), (_, a: string) => `100명 중 ${M(a)}`)
+  // 조사: '…명가' → '…명이', '…명는' → '…명은', '…명예요' → '…명이에요', '미만으로'는 그대로
+  .replace(/(\d명|미만)가(?=\s|$)/g, '$1이').replace(/(\d명|미만)는(?=\s|$)/g, '$1은').replace(/(\d명|미만)예요/g, '$1이에요'));
 /** 여러 줄 설명을 한 문단으로 */
 const para = (t: string) => t.split('\n').map((x) => x.trim()).filter(Boolean).map((x) => (/[요다죠]$/.test(x) ? x + '.' : x)).join(' ');
 
@@ -80,14 +90,31 @@ export function Badge({ t, tone, guess }: { t: string; tone: Tone; guess?: boole
 const TEST: Record<string, string> = { htn: '지금 혈압을 재면 고혈압으로', dm: '지금 혈당 검사를 하면 당뇨로', nafld: '지금 복부 초음파를 하면 지방간으로' };
 const n100 = (p: number) => (p < 1 ? '1명도 안 돼요.' : `${Math.round(p)}명쯤이에요.`);
 const peerTxt = (p: number) => (Math.round(p) < 1 ? '같은 또래도 1명이 안 돼요.' : `같은 또래는 평균 ${Math.round(p)}명이에요.`);
+// 출시 전 수정 A6: 숫자마다 기준에 맞는 이름 (docs/plan-2026-10-16-prelaunch-fixes.md 'A6 ① 숫자 기준표')
+export const ME_CAP: Record<string, string> = { htn: '지금 혈압을 재면 고혈압 기준에 해당할 가능성', dm: '지금 혈당 검사를 하면 당뇨 기준에 해당할 가능성', nafld: '같은 점수였던 연구 참가자 중 지방간이었던 비율' };
+/** 비교 평균의 이름 · 설명: 당뇨·고혈압은 진단받지 않은 같은 나이대 실측, 지방간은 성인 전체(2016–18, 다른 판정 기준) */
+export const peerName = (id: string, inp: Input, g: string) => id === 'nafld'
+  ? { name: `성인 ${inp.sex === 'F' ? '여성' : '남성'} 전체 평균`, cap: '2016–18년 조사 · 판정 기준이 달라 참고만 해 주세요' }
+  : { name: `${g} 실측 평균`, cap: `진단받지 않은 ${g} · 국민건강영양조사 2022–2024` };
+const p100 = (p: number, about = true) => (p < 1 ? '100명 중 1명 미만' : `100명 중 ${about ? '약 ' : ''}${Math.round(p)}명`);
+/** 혈압을 안 쟀으면(응답 '모름', 검진 혈압 없음) 고혈압 줄에 회색 뱃지 */
+export const bpUnknown = (inp: Input) => inp.bp === 'unknown' && (inp as { lab?: { sbp?: number } }).lab?.sbp == null;
+function KV({ k, v, cap }: { k: string; v: string; cap: string }) {
+  return (
+    <span className="flex flex-col gap-0.5">
+      <span className="flex items-baseline justify-between gap-2.5 text-[14px] text-ink-2">{k}<b className="text-[15px] font-semibold whitespace-nowrap text-ink tabular-nums">{v}</b></span>
+      <span className="text-[12px] leading-[1.5] text-mute">{cap}</span>
+    </span>
+  );
+}
 
 export function RowView({ r, inp, first, onWaist, nameW = 52 }: { r: Row; inp: Input; first: boolean; onWaist: () => void; nameW?: number }) {
   const [open, setOpen] = useState(false);
   const g = groupLabel(inp), N = r.num ?? {};
-  let badge: ReactNode, stmt: ReactNode, viz: ReactNode = null, more = '';
+  let badge: ReactNode, stmt: ReactNode, viz: ReactNode = null, more: ReactNode = '';
   if (r.kind === 'prob' && N.me != null) {
     const lv = (r.level ?? 1) as Level, tone = toneOfLevel(lv), rank = N.rank ?? null;
-    badge = <Badge t={LEVEL_WORD[lv]} tone={tone} />;
+    badge = <>{<Badge t={LEVEL_WORD[lv]} tone={tone} />}{r.id === 'htn' && bpUnknown(inp) && <Badge t="혈압 모름 · 재 보면 더 정확해요" tone="gray" />}</>;
     if (rank != null) {
       const high = rank >= 50, n = high ? 101 - rank : rank;   // 딱 가운데(50)는 위험 쪽으로 센다(뱃지와 엇갈리지 않게)
       // '3번째로 위험'은 한 덩어리: 줄이 바뀌어도 숫자·번째로·위험이 떨어지지 않게. '(100명 중)'은 자리가 없으면 혼자 다음 줄로 (docs/DESIGN.md 8장)
@@ -107,8 +134,16 @@ export function RowView({ r, inp, first, onWaist, nameW = 52 }: { r: Row; inp: I
           <div className="flex justify-between text-[11px] text-[#9a9a96]"><span>안전</span><span>위험</span></div>
         </div>
       );
-    } else stmt = <b className={cn('text-[17px] font-semibold', TXT[tone])}>{g}와 견주면 {LEVEL_WORD[lv]}</b>;
-    more = `${TEST[r.id]} 나올 사람이 이런 조건에서 100명 중 ${n100(N.me)}${N.peer != null ? ' ' + peerTxt(N.peer) : ''}`;
+    } else stmt = <b className={cn('text-[17px] font-semibold', TXT[tone])}>{g}{(g.charCodeAt(g.length - 1) - 0xac00) % 28 ? '과' : '와'} 견주면 {LEVEL_WORD[lv]}</b>;
+    const pn = peerName(r.id, inp, g);
+    more = (
+      <span className="flex flex-col gap-2.5">
+        <KV k="나의 추정 가능성" v={p100(N.me)} cap={ME_CAP[r.id] ?? ''} />
+        {N.peer != null && <KV k={pn.name} v={p100(N.peer, false)} cap={pn.cap} />}
+        {first && rank != null && <span className="whitespace-pre-line text-[12px] leading-[1.5] text-mute">{`‘${rank >= 50 ? 101 - rank : rank}번째’는 진단받지 않은 ${g} 100명을
+추정 가능성 순서로 세웠을 때의 자리예요.`}</span>}
+      </span>
+    );
   } else if (r.kind === 'managed') {
     badge = <Badge t="관리 중" tone="gray" />;
     stmt = <b className="text-[17px] font-semibold">진단·관리 중</b>;
@@ -123,17 +158,22 @@ export function RowView({ r, inp, first, onWaist, nameW = 52 }: { r: Row; inp: I
     stmt = <b className="text-[17px] font-semibold text-risk">{r.side.replace(/ \(.*\)$/, '')}</b>;
     more = `${r.side}. 한 번의 검사로 진단하지 않으니 다시 재거나 추가 검사를 받아요.`;
   } else if (r.kind === 'range' && N.lo != null && N.hi != null) {
-    const lo = N.lo, hi = N.hi, gl = r.guess;
-    badge = <><Badge t="허리 모름" tone="gray" />{gl != null && <Badge guess t={`${LEVEL_WORD[gl]} 예상`} tone={toneOfLevel(gl)} />}</>;
+    // A4: 실제로 모르는 항목을 이유로 (허리 · 운동 · 폐경). 단추는 첫 번째 모르는 항목을 채우는 곳으로
+    const lo = N.lo, hi = N.hi, gl = r.guess, un = r.unknown?.length ? r.unknown : (['waist'] as const);
+    const what = andJoin(un.map((u) => UNK_LABEL[u])), first = un[0], many = un.length > 1;
+    const btn = first === 'waist' ? '허리둘레 입력하기' : `${UNK_LABEL[first]} 답하기`;
+    const btnCls = 'cursor-pointer rounded-full bg-ink px-3 py-1 text-[13px] font-semibold text-white no-underline';
+    badge = <><Badge t={many ? `${un.map((u) => UNK_SHORT[u]).join('·')} 모름` : first === 'waist' ? '허리 모름' : `${UNK_LABEL[first]} 모름`} tone="gray" />{gl != null && <Badge guess t={`${LEVEL_WORD[gl]} 예상`} tone={toneOfLevel(gl)} />}</>;
     stmt = (
-      <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
-        <button type="button" onClick={onWaist} className="cursor-pointer rounded-full bg-ink px-3 py-1 text-[13px] font-semibold text-white">허리 입력</button>
-        <span className="text-body-sm font-medium text-ink-2">하면 바로 확인</span>
+      <span className="flex flex-col items-start gap-1">
+        {first === 'waist' ? <button type="button" onClick={onWaist} className={btnCls}>{btn}</button> : <a href="#/life" className={btnCls}>{btn}</a>}
+        {many && <span className="whitespace-pre-line text-[13px] leading-snug text-ink-2">{`${UNK_LABEL[first]}부터 ${first === 'waist' ? '입력해' : '답해'} 주세요.
+나머지 항목도 확인하면 결과 범위를 좁힐 수 있어요.`}</span>}
       </span>
     );
     // 막대는 '100명 중 몇 명'(0–100) 기준. 숫자 글씨는 막대 끝에서 4px 안쪽(시작 근처 0–8명은 같은 자리)
     viz = (
-      <div role="img" aria-label={`허리에 따라 100명 중 ${lo}명에서 ${hi}명 사이`} className="mt-0.5 flex flex-col gap-1">
+      <div role="img" aria-label={`${what}에 따라 100명 중 ${lo}명에서 ${hi}명 사이`} className="mt-0.5 flex flex-col gap-1">
         <div className="relative h-[18px] text-[13px] font-semibold tabular-nums">
           <span className="absolute bottom-0" style={lo < 8 ? { left: 4 } : { left: `${lo}%`, transform: 'translateX(-100%)', paddingRight: 3 }}>{lo}명</span>
           <span className="absolute bottom-0" style={hi > 92 ? { right: 4 } : lo < 8 && hi < 16 ? { left: 36 } : { left: `${hi}%`, paddingLeft: 3 }}>{hi}명</span>
@@ -141,10 +181,11 @@ export function RowView({ r, inp, first, onWaist, nameW = 52 }: { r: Row; inp: I
         <div className="relative h-1.5 rounded-full bg-track">
           <span className="absolute inset-y-0 rounded-full" style={{ left: `${lo}%`, width: `${Math.max(1.5, hi - lo)}%`, background: 'repeating-linear-gradient(90deg,#8a8a86 0 4px,#b5b5b1 4px 8px)' }} />
         </div>
-        <div className="flex justify-between text-[11px] text-[#9a9a96]"><span>0명</span><span className="text-ink-2">허리에 따라 100명 중 이 사이</span><span>100명</span></div>
+        <div className="flex justify-between text-[11px] text-[#9a9a96]"><span>0명</span><span>100명</span></div>
+        <span className="text-[12px] text-ink-2">{what}에 따라 추정 범위가 달라져요.</span>
       </div>
     );
-    more = `${TEST[r.id]} 나올 사람이, 허리가 가늘면 100명 중 ${lo}명, 굵으면 ${hi}명쯤이에요.${N.peer != null ? ' ' + peerTxt(N.peer) : ''}${gl != null ? ` 같은 키·몸무게 ${g}의 보통 허리로 계산하면 '${LEVEL_WORD[gl]}'이에요.` : ''}`;
+    more = `${TEST[r.id]} 나올 사람이, ${what}에 따라 100명 중 약 ${lo}–${hi}명으로 추정돼요.${N.peer != null ? (r.id === 'nafld' ? ` ${peerName(r.id, inp, g).name}은 ${p100(N.peer, false)}이에요.` : ' ' + peerTxt(N.peer)) : ''}${gl != null ? ` 같은 키·몸무게 ${g}의 보통 허리로 계산하면 '${LEVEL_WORD[gl]}'이에요.` : ''}`;
   } else if (r.kind === 'gray' && r.word === '당뇨 전 단계') {
     badge = <Badge t="전 단계" tone="gray" />;
     stmt = <b className="text-[17px] font-semibold">당뇨 전 단계</b>;
@@ -166,7 +207,7 @@ export function RowView({ r, inp, first, onWaist, nameW = 52 }: { r: Row; inp: I
       {viz}
       {open && (
         <div className="flex flex-col gap-2 rounded-[12px] bg-paper px-3.5 py-3">
-          <p className="text-body-sm leading-[1.6] text-[#333]">{more}</p>
+          {typeof more === 'string' ? <p className="text-body-sm leading-[1.6] text-[#333]">{more}</p> : <div className="text-body-sm leading-[1.6] text-[#333]">{more}</div>}
           {why.length > 0 && <div className="flex flex-wrap items-center gap-2 text-[13px] text-ink-soft">왜? {why.slice(0, 3).map((c) => <ReasonChip key={c.t} c={{ ...c, t: c.t.replace(/ \+\d+$/, '') }} quiet />)}</div>}
         </div>
       )}
@@ -184,7 +225,7 @@ export function WaistSheet({ open, onOpenChange, inp }: { open: boolean; onOpenC
   const set = (x: number) => setV(Math.min(lim[1], Math.max(lim[0], x)));
   const swap = (u: 'in' | 'cm') => { if (u === unit) return; setV(u === 'cm' ? Math.round(v * IN) : Math.round(v / IN)); setUnit(u); };
   const ok = () => {
-    setDraft((d: Draft) => ({ ...d, waist: String(v), waistUnit: unit, waistUnitChosen: true, waistUnknown: false }));
+    setDraft((d: Draft) => ({ ...d, waist: String(v), waistUnit: unit, waistUnitChosen: true, waistUnknown: false, waistCm: undefined }));
     onOpenChange(false);
   };
   return (
@@ -195,9 +236,9 @@ export function WaistSheet({ open, onOpenChange, inp }: { open: boolean; onOpenC
             <SheetTitle className="text-[19px] leading-[1.4] font-semibold">허리둘레를 알려 주세요</SheetTitle>
             <SheetDescription id="waist-desc" className="text-[13px] leading-[1.55] text-ink-soft">줄자로 배꼽 높이를 한 바퀴 재요. 모르면 바지 허리 사이즈를 넣어도 돼요.</SheetDescription>
           </div>
-          <div role="group" aria-label="단위" className="flex flex-none gap-0.5 rounded-[9px] bg-[#f0f0ed] p-[3px]">
+          <div role="radiogroup" aria-label="단위" onKeyDown={(e) => onRadioKeys(e, ["in", "cm"] as ("in" | "cm")[], unit, swap)} className="flex flex-none gap-0.5 rounded-[9px] bg-[#f0f0ed] p-[3px]">
             {(['in', 'cm'] as const).map((u) => (
-              <button key={u} type="button" aria-pressed={unit === u} onClick={() => swap(u)}
+              <button key={u} type="button" role="radio" aria-checked={unit === u} tabIndex={unit === u ? 0 : -1} onClick={() => swap(u)}
                 className={cn('h-8 cursor-pointer rounded-[7px] px-3 text-[13px] font-semibold', unit === u ? 'bg-ink text-white' : 'text-ink-soft')}>{u === 'in' ? '인치' : 'cm'}</button>
             ))}
           </div>
@@ -345,6 +386,8 @@ export function Change({ inp, bare }: { inp: Input; bare?: boolean }) {
             </div>
           );
         })}
+        {/* A6: 이 숫자는 진단받거나 약을 먹는 사람까지 포함한 실측 비율이라 위 '나의 추정 가능성'과 다르다 (첫 화면에서는 위 숫자가 없어 뺀다) */}
+        {!bare && <p className="text-[12px] leading-[1.6] text-ink-soft">이미 진단받거나 약을 먹는 사람도 포함한 실제 비율이에요.<br />그래서 위 ‘나의 추정 가능성’과 숫자가 달라요.</p>}
         <p className="text-[11px] leading-[1.6] text-mute">{nb("국민건강영양조사(2022–2024)")}<br />체형·습관이 비슷한 사람끼리 비교한 결과예요.<br />바꾸면 꼭 이만큼 달라진다는 뜻은 아니에요.{!hasWaist && <><br />허리를 몰라서 보통 허리로 계산했어요.</>}</p>
       </div>
 

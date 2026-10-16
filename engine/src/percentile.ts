@@ -7,9 +7,12 @@ import T from './percentiles.json' with { type: 'json' };
 type Table = Record<string, Record<'M' | 'F', Record<string, number[]>>>;
 const TAB = T as unknown as Table & { meta: { quantiles: number[] } };
 
-/** 내 값이 또래 100명 중 낮은 쪽에서 몇 번째쯤인지 (1–99). 표가 없으면 null */
+/** 순위를 매기는 기준 나이: 화면 이름('50대 남성 중')과 같은 10년 나이대가 되게 그 나이대 가운데 나이의 표(±5세)를 쓴다.
+ *  19–29세 → 24(19–29) · 30대 → 35(30–40) · … · 60대 → 65(60–70) · 70세 이상 → 75(70–80). 2026-10-16 출시 전 수정 A6 */
+export const rankAge = (age: number) => (age < 30 ? 24 : age >= 70 ? 75 : Math.floor(age / 10) * 10 + 5);
+/** 내 값이 같은 성별·10년 나이대 100명 중 낮은 쪽에서 몇 번째쯤인지 (1–99). 표가 없으면 null */
 export function rankOf(id: string, sex: 'M' | 'F', age: number, value: number): number | null {
-  const q = TAB[id]?.[sex]?.[String(Math.min(80, Math.max(19, Math.round(age))))];
+  const q = TAB[id]?.[sex]?.[String(Math.min(80, Math.max(19, rankAge(age))))];
   if (!q) return null;
   const Q = TAB.meta.quantiles;
   if (value <= q[0]) return Math.max(1, Math.round(Q[0] / 2));

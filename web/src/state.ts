@@ -46,6 +46,9 @@ export interface Draft {
   age: string; sex: 'M' | 'F' | null; height: string; weight: string; waist: string; waistUnknown: boolean; waistUnit: 'cm' | 'in';
   /** 사용자가 허리 단위를 직접 골랐는지 (안 골랐으면 어디서든 인치가 기본) */
   waistUnitChosen?: boolean;
+  /** 허리 원본 치수(cm). 단위 단추로 바꿀 때 실제 길이가 변하지 않게 이 값을 유지하고, 화면 숫자는 표시용으로만 반올림한다.
+   *  사용자가 숫자를 새로 넣으면 지운다(그때는 화면 숫자가 원본). docs/plan-2026-10-16-prelaunch-fixes.md A2 */
+  waistCm?: number;
   smoke: 'never' | 'past' | 'current' | null; alcFreq: AlcFreq | null; alcAmt: Record<DrinkKey, number>; exercise: YN; meno: YN | 'unknown';
   famDM: YN; dx: { htn: boolean; dm: boolean; chol: boolean; none: boolean }; bp: Bp | null;
   modules: { sleep: boolean; mind: boolean; gerd: boolean; diet: boolean };
@@ -74,20 +77,38 @@ const done = (xs: Pick4[]) => xs.every((x) => x != null);
 
 // ── 화면별 완료 조건 ──
 export const menoShown = (d: Draft) => d.sex === 'F' && num(d.age) >= 40;
-export function basicError(d: Draft): string | null {
-  const age = num(d.age), h = num(d.height), w = num(d.weight), wa = num(d.waist);
-  if (d.age === '' || !Number.isInteger(age)) return '만 나이를 숫자로 입력해 주세요';
-  if (age < 19) return 'under19';
-  if (age > 100) return '만 나이는 100세까지 입력할 수 있어요';
-  if (!d.sex) return '성별을 골라 주세요';
-  if (!(h >= 120 && h <= 220)) return '키는 120–220cm 사이로 입력해 주세요';
-  if (!(w >= 30 && w <= 200)) return '몸무게는 30–200kg 사이로 입력해 주세요';
-  if (!d.waistUnknown && d.waistUnit === 'cm' && !(wa >= 50 && wa <= 150)) return '허리둘레를 50–150cm 사이로 입력해 주세요';
-  if (!d.waistUnknown && d.waistUnit === 'in' && !(wa >= 20 && wa <= 60)) return '허리둘레를 20–60인치 사이로 입력해 주세요';
-  return null;
+/** 칸 하나의 오류 (값이 있을 때만). 칸 바로 아래 안내와 '다음' 버튼이 같은 문장을 쓴다 (B1).
+ *  허리는 비워 두면 '모름'이라 오류가 아니다 (A1) */
+export type BasicField = 'age' | 'height' | 'weight' | 'waist';
+export function fieldError(d: Draft, f: BasicField): string | null {
+  const v = d[f];
+  if (v === '') return null;
+  const n = num(v);
+  if (f === 'age') return !Number.isInteger(n) ? '만 나이를 숫자로 입력해 주세요' : n > 100 ? '만 나이는 100세까지 입력할 수 있어요' : null;   // 19세 미만은 따로 안내 카드
+  if (f === 'height') return n >= 120 && n <= 220 ? null : '키는 120–220cm 사이로 입력해 주세요';
+  if (f === 'weight') return n >= 30 && n <= 200 ? null : '몸무게는 30–200kg 사이로 입력해 주세요';
+  if (d.waistUnknown) return null;
+  return d.waistUnit === 'cm' ? (n >= 50 && n <= 150 ? null : '허리둘레를 50–150cm 사이로 입력해 주세요') : (n >= 20 && n <= 60 ? null : '허리둘레를 20–60인치 사이로 입력해 주세요');
 }
-/** 화면의 허리 입력 → cm (인치면 ×2.54, 소수 첫째 자리) */
-export const waistCmOf = (d: Draft) => (d.waistUnknown || d.waist === '' ? null : d.waistUnit === 'in' ? Math.round(num(d.waist) * 2.54 * 10) / 10 : num(d.waist));
+export function basicError(d: Draft): string | null {
+  const age = num(d.age);
+  if (d.age === '' || fieldError(d, 'age')) return fieldError(d, 'age') ?? '만 나이를 숫자로 입력해 주세요';
+  if (age < 19) return 'under19';
+  if (!d.sex) return '성별을 골라 주세요';
+  if (d.height === '') return '키는 120–220cm 사이로 입력해 주세요';
+  if (d.weight === '') return '몸무게는 30–200kg 사이로 입력해 주세요';
+  return fieldError(d, 'height') ?? fieldError(d, 'weight') ?? fieldError(d, 'waist');   // 허리 빈 칸 = 모름 → 통과
+}
+/** 화면의 허리 입력 → cm. 원본(waistCm)이 있으면 그대로, 없으면 화면 숫자에서 (인치면 ×2.54, 소수 첫째 자리) */
+export const waistCmOf = (d: Draft) => (d.waistUnknown || d.waist === '' ? null : d.waistCm != null ? d.waistCm : d.waistUnit === 'in' ? Math.round(num(d.waist) * 2.54 * 10) / 10 : num(d.waist));
+/** cm → 화면 숫자 (인치는 정수, cm는 소수 첫째 자리까지) */
+export const waistText = (cm: number, u: 'cm' | 'in') => String(u === 'in' ? Math.round(cm / 2.54) : Math.round(cm * 10) / 10);
+/** 허리 단위 단추: 원본 길이는 그대로 두고 표시 숫자만 바꾼다. 숫자가 아직 올바르지 않으면 단위만 바꾼다 */
+export function swapWaistUnit(d: Draft, u: 'cm' | 'in'): Partial<Draft> {
+  if (u === d.waistUnit) return {};
+  const cm = fieldError(d, 'waist') ? null : waistCmOf(d);
+  return cm == null || !Number.isFinite(cm) ? { waistUnit: u, waistUnitChosen: true } : { waistUnit: u, waistUnitChosen: true, waist: waistText(cm, u), waistCm: cm };
+}
 export function lifeError(d: Draft): string | null {
   if (!d.smoke) return '흡연 여부를 골라 주세요';
   if (!d.alcFreq) return '술을 얼마나 자주 마시는지 골라 주세요';
@@ -155,7 +176,8 @@ export function fromInput(i: AppInput): Draft {
   const d = emptyDraft();
   Object.assign(d, {
     age: String(i.age), sex: i.sex, height: String(i.heightCm), weight: String(i.weightKg),
-    waist: i.waistCm == null ? '' : String(i.waistCm), waistUnknown: i.waistCm == null, waistUnit: 'cm',
+    // 허리: 원본 cm는 그대로 두고 화면은 기본 단위(인치)로
+    waist: i.waistCm == null ? '' : waistText(i.waistCm, 'in'), waistCm: i.waistCm ?? undefined, waistUnknown: i.waistCm == null, waistUnit: 'in',
     smoke: i.smoke, exercise: i.exercise, famDM: i.famDM, bp: i.bp,
     // 엔진 4단계를 같은 단계로 돌아오는 대표 답으로 (예: 하루 1–4.9잔 = 주 1–2회 × 소주 1병)
     alcFreq: ({ none: 'none', lt1: 'm2_4', d1_4: 'w1_2', d5: 'daily' } as const)[i.alcohol],
@@ -194,5 +216,7 @@ export interface RecordItem { id: string; date: string; input: AppInput }
 export function loadRecords(): RecordItem[] {
   try { const s = localStorage.getItem(RKEY); return s ? (JSON.parse(s) as RecordItem[]) : []; } catch { return []; }
 }
+/** 같은 날짜에 계산에 쓰는 입력 전체(기본정보·생활습관·진단·검진값·모름)가 같으면 같은 결과로 본다. 다른 날짜면 입력이 같아도 새 기록 (출시 전 수정 B4) */
+export const sameRecord = (r: RecordItem, date: string, input: AppInput) => r.date === date && JSON.stringify(r.input) === JSON.stringify(input);
 export function saveRecords(r: RecordItem[]) { try { localStorage.setItem(RKEY, JSON.stringify(r)); return true; } catch { return false; } }
 export const today = () => { const d = new Date(); return `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`; };

@@ -8,6 +8,7 @@ import {
 import type { Draft, RecordItem } from './state.ts';
 import { Segmented } from '@/components/ui/segmented';
 import { cn } from '@/lib/utils';
+import { onRadioKeys, radioTab } from '@/lib/radio';
 import { Button } from '@/components/ui/button';
 
 // ── 라우팅: 해시(#/result) 기반. 정적 호스팅에서 새로고침해도 안전 ──
@@ -89,10 +90,10 @@ export function Choice<T>({ q, options, value, onChange, cols, size, help, badge
       <div className="text-[15px] font-semibold leading-snug text-ink">{q}</div>
       {/* 한 줄이면 물방울 선택 표시(성별 · 네/아니요 등), 여러 줄이면 칸 */}
       {(cols ?? options.length) === options.length
-        ? <Segmented options={options} value={value} onChange={onChange} optClassName={size === 'xs' ? 'text-caption' : size === 'sm' ? 'text-body-sm' : 'text-body'} />
-        : <div className="grid gap-1.5" style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}>
-          {options.map((o) => (
-            <button key={String(o.v)} type="button" className={optCls(value === o.v, size)} aria-pressed={value === o.v} onClick={() => onChange(o.v)}>
+        ? <Segmented options={options} value={value} onChange={onChange} label={typeof q === 'string' ? q : undefined} optClassName={size === 'xs' ? 'text-caption' : size === 'sm' ? 'text-body-sm' : 'text-body'} />
+        : <div role="radiogroup" aria-label={typeof q === 'string' ? q : undefined} onKeyDown={(e) => onRadioKeys(e, options.map((o) => o.v), value, onChange)} className="grid gap-1.5" style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}>
+          {options.map((o, i) => (
+            <button key={String(o.v)} type="button" role="radio" aria-checked={value === o.v} tabIndex={radioTab(value === o.v, i, options.some((x) => x.v === value))} className={optCls(value === o.v, size)} onClick={() => onChange(o.v)}>
               {o.t}{o.s && <small className="mt-0.5 text-[11px] font-normal opacity-80">{o.s}</small>}
             </button>
           ))}
@@ -117,8 +118,8 @@ export function ScaleItem({ q, labels, value, onChange, size }: { q: string; lab
   return (
     <div className="flex flex-col gap-2" role="group" aria-label={q}>
       <b className="text-body-sm font-medium leading-snug text-ink">{q}</b>
-      <div className="grid gap-1.5" style={{ gridTemplateColumns: `repeat(${labels.length}, minmax(0, 1fr))` }}>
-        {labels.map((t, j) => <button key={j} type="button" className={optCls(value === j, size)} aria-pressed={value === j} onClick={() => onChange(j)}>{t}</button>)}
+      <div role="radiogroup" aria-label={q} onKeyDown={(e) => onRadioKeys(e, labels.map((_, j) => j), value, onChange)} className="grid gap-1.5" style={{ gridTemplateColumns: `repeat(${labels.length}, minmax(0, 1fr))` }}>
+        {labels.map((t, j) => <button key={j} type="button" role="radio" aria-checked={value === j} tabIndex={radioTab(value === j, j, value != null)} className={optCls(value === j, size)} onClick={() => onChange(j)}>{t}</button>)}
       </div>
     </div>
   );

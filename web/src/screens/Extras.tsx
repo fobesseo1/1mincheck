@@ -14,13 +14,13 @@ const MARK = {
 const CHECK = { yes: [CheckCircle2, 'text-brand', '권장'], maybe: [CircleDot, 'text-brand', '해당되면'], no: [Circle, 'text-ash', ''], unknown: [CircleHelp, 'text-ink-soft', ''], info: [Dot, 'text-ink-soft', ''] } as const;
 
 const LEAD = '지금까지 답한 내용에 공식 기준과 검증된 점수를 적용했어요.\n대부분 확률이 아니라, 기준에 해당하는지예요. ‘모름’은 낮다는 뜻이 아니에요.';
-export function ExtraCards({ xs, title = '생활·검진으로 보는 체크', lead = LEAD }: { xs: Extra[]; title?: string; lead?: string }) {
+export function ExtraCards({ xs, title = '생활·검진으로 보는 체크', lead = LEAD, smoke }: { xs: Extra[]; title?: string; lead?: string; smoke?: 'never' | 'past' | 'current' }) {
   if (!xs.length) return null;
   return (
     <>
       <h2 className="mx-1 mt-3 text-[19px] font-medium">{title}</h2>
       <p className="mx-1 -mt-2 whitespace-pre-line text-body-sm text-ink-soft">{lead}</p>
-      {xs.map(polishExtra).map((x) => {
+      {xs.map((x0) => polishExtra(x0, smoke)).map((x) => {
         const [variant, tag] = LV[x.level], M = x.id === 'checkup' ? CHECK : MARK;
         return (
           <Card key={x.id} aria-label={x.name} className="flex flex-col gap-3 p-5">

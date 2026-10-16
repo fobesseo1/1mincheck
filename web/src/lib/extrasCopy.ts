@@ -5,8 +5,15 @@
  */
 import type { Extra } from '../../../engine/src/extras.ts';
 
-type R = [RegExp | string, string];
-const run = (s: string, rules: R[]) => rules.reduce((v, [a, b]) => (typeof a === 'string' ? (v === a ? b : v) : v.replace(a, b)), s);
+type Fn = (m: string, ...g: string[]) => string;
+type R = [RegExp | string, string | Fn];
+const run = (s: string, rules: R[]) => rules.reduce((v, [a, b]) => (typeof a === 'string' ? (v === a ? (b as string) : v) : v.replace(a, b as string)), s);
+const r0 = (s: string) => String(Math.round(parseFloat(s)));
+/** '계산식으로 본 N년 안 ○○ 가능성은 약 p%예요' → '비슷한 조건의 사람 100명 중 약 n명에게 N년 안에 ○○ 생길 것으로 추정돼요'.
+ *  1% 미만은 부풀리지 않고 '1명 미만' (출시 전 수정 A3) */
+const future = (what: string): Fn => (_m, p) => parseFloat(p) < 1
+  ? `비슷한 조건의 사람 100명 중 1명 미만에게\n${what} 생길 것으로 추정돼요`
+  : `비슷한 조건의 사람 100명 중 약 ${r0(p)}명에게\n${what} 생길 것으로 추정돼요`;
 
 const NAME: R[] = [['체형 · 허리/키 비율', '허리와 키의 비율'], ['생활습관 위험', '생활습관']];
 const TAG: R[] = [['권장 연령 기준', '나이 기준'], ['기준 아래', '해당 없음'], ['확인된 것 없음', '해당 없음'], ['이번 검사 정상 범위', '이번 검사 정상']];
@@ -47,9 +54,9 @@ const HEAD: R[] = [
   [/^허리\/키 비율 ([\d.]+) · 건강 위험이 더 높은 구간$/, '허리가 키의 60%를 넘어요 ($1)\n건강 위험이 더 높은 구간이에요.'],
   [/^허리\/키 비율 ([\d.]+) · 0\.5 미만$/, '허리가 키의 절반보다 가늘어요 ($1)'],
   // 앞으로 생길 위험
-  [/^계산식으로 본 4년 안 고혈압 발생 가능성은 약 (.+)예요$/, '4년 안에 고혈압이 생길 가능성은\n약 $1예요'],
-  [/^계산식으로 본 10년 안 관상동맥질환\(심근경색·급사\) 가능성은 약 (.+)예요$/, '10년 안에 심근경색 등이 생길 가능성은\n약 $1예요'],
-  [/^비슷한 점수였던 사람 중 (.+)가 10년 안에 당뇨가 됐어요$/, '비슷한 점수였던 사람 중 $1가\n10년 안에 당뇨가 됐어요'],
+  [/^계산식으로 본 4년 안 고혈압 발생 가능성은 약 ([\d.]+(?: 미만)?)%예요$/, future('4년 안에 고혈압이')],
+  [/^계산식으로 본 10년 안 관상동맥질환\(심근경색·급사\) 가능성은 약 ([\d.]+(?: 미만)?)%예요$/, future('10년 안에 심근경색 등이')],
+  [/^비슷한 점수였던 사람 중 ([\d.]+)(?:–([\d.]+))?%가 10년 안에 당뇨가 됐어요$/, (_m, a, b) => `비슷한 점수였던 사람 100명 중 ${b ? `${r0(a)}–${r0(b)}` : r0(a)}명이\n10년 안에 당뇨가 됐어요`],
   [/ · /g, '\n'],
 ];
 
@@ -119,14 +126,25 @@ const ACTION: R[] = [
   [/ (?=진료 때 간이 굳었는지)/, '\n'],
 ];
 
+/** 심장병 줄 할 일: '가장 크게 낮춰요'는 비교 대상이 없어 '위험을 낮추는 데 도움이 돼요'로 (검토 의견) */
+const CHD_OLD = '혈압, 콜레스테롤, 혈당 관리와 금연이 가장 크게 낮춰요.';
+const SMOKER: R[] = [[CHD_OLD, '금연과 혈압·콜레스테롤·혈당 관리가 위험을 낮추는 데 도움이 돼요.']].map(([a, b]) => [new RegExp(a.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')), b] as R);
+const NON_SMOKER: R[] = [
+  ['허리를 줄이고 담배를 끊으면 점수가 내려가요.', '허리를 줄이면 점수가 내려가요.'],
+  ['체중을 줄이고 담배를 끊으면 점수가 내려가요.', '체중을 줄이면 점수가 내려가요.'],
+  [CHD_OLD, '혈압·콜레스테롤·혈당을 관리하는 것이 위험을 낮추는 데 도움이 돼요.'],
+].map(([a, b]) => [new RegExp(a.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')), b] as R);
+
 /** 화면용 문장으로 바꾼 사본 (판정·숫자·근거는 그대로) */
-export function polishExtra(x: Extra): Extra {
+export function polishExtra(x: Extra, smoke?: 'never' | 'past' | 'current'): Extra {
+  // 금연 문장은 지금 담배를 피우는 사람에게만 (출시 전 수정 B2). 담배 여부를 모르면 그대로 둔다
+  const quit: R[] = smoke == null ? [] : smoke === 'current' ? SMOKER : NON_SMOKER;
   return {
     ...x,
     name: run(x.name, NAME),
     tag: x.tag && run(x.tag, TAG),
     head: run(x.head, HEAD),
     items: x.items.map((it) => ({ ...it, t: run(it.t, ITEM), sub: it.sub && run(it.sub, SUB) })),
-    action: run(x.action, ACTION),
+    action: run(run(x.action, ACTION), quit),
   };
 }

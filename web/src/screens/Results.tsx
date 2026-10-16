@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { ChevronDown, ChevronRight, FileText, Bookmark, Share2, ClipboardList, LayoutList, RotateCcw, TriangleAlert, TrendingDown, TrendingUp, Equal } from 'lucide-react';
 import type { Input } from '../../../engine/src/engine.ts';
 import { useStore, Nav, Crisis, AppShell, Help, Fields, TabBar } from '../ui.tsx';
-import { toInput, suggestScenario, saveRecords, today, type AppInput } from '../state.ts';
+import { toInput, suggestScenario, saveRecords, sameRecord, today, type AppInput } from '../state.ts';
 import { viewResults } from '../lib/view.ts';
 import { verdict, type Verdict } from '../lib/verdict.ts';
 import { DISCLAIMER } from '../lib/content.ts';
@@ -375,7 +375,9 @@ export function Results() {
   const inp = useInput();
   if (!inp) return <NeedInput />;
   const { r, v, gap } = verdictOf(inp);
+  const saved = records.some((x) => sameRecord(x, today(), inp));   // 오늘 같은 결과를 이미 저장했으면 다시 만들지 않는다 (B4)
   const save = () => {
+    if (saved) { toast('오늘 같은 결과는 이미 저장했어요'); return; }
     const next = [...records, { id: String(Date.now()), date: today(), input: inp }];
     if (saveRecords(next)) { setRecords(next); toast('이 기기에 기록을 저장했어요'); } else toast('이 브라우저에서는 저장할 수 없어요');
   };
@@ -385,7 +387,7 @@ export function Results() {
     ['#/labs', '검진 결과지 풀어 보기', <FileText key="f" />, '숫자를 넣으면 하나씩 쉽게 풀어 드려요'],
     ['#/all', '모든 항목 보기', <LayoutList key="l" />, '콜레스테롤·골다공증·생활 체크·근거'],
     ['#/summary', '진료용 요약 저장', <ClipboardList key="c" />, '인쇄하거나 PDF로 저장'],
-    ['', '이 기기에 기록 저장', <Bookmark key="b" />, '몇 달 뒤 달라진 만큼 비교해 드려요', save],
+    ['', saved ? '이 기기에 기록을 저장했어요' : '이 기기에 기록 저장', <Bookmark key="b" />, '몇 달 뒤 달라진 만큼 비교해 드려요', save],
   ];
   return (
     <div className="min-h-dvh bg-paper">

@@ -236,7 +236,8 @@ export function nafld(i: Input): Result {
   if (i.alcohol === 'd5') return { ...base, status: 'excluded', value: null, notes: ['과음: 알코올성 간질환 가능성 → 이 도구 대상 아님, 진료 권장'] };
   const waists = i.waistCm != null ? [i.waistCm] : (i.sex === 'M' ? [70, 85, 95, 105] : [70, 80, 90, 100]);
   const exs = i.exercise == null ? [true, false] : [i.exercise];
-  const menos = i.sex === 'F' ? (i.meno == null ? [false, true] : [i.meno]) : [false];
+  // 40세 미만 여성은 폐경 질문을 하지 않으므로 폐경 전으로 본다 (2026-10-16 결정 — 예전엔 '모름'으로 범위가 됐음)
+  const menos = i.sex === 'F' ? (i.meno == null ? (i.age < 40 ? [false] : [false, true]) : [i.meno]) : [false];
   const scores: number[] = [];
   for (const w of waists) for (const e of exs) for (const m of menos) scores.push(nafldScoreWith(i, w, e, m));
   if (scores.length === 1) {

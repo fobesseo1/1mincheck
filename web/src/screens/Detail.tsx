@@ -11,7 +11,7 @@ import { viewDetail, f1, statusText, severeBp, labOf } from '../lib/view.ts';
 import { NAMES, TITLE, WHAT, WHY, HOW, NEXT, NEXT_SPECIAL, SRC, KNHANES, MODULE_OF, type ItemId } from '../lib/content.ts';
 import { useInput, NeedInput } from './Results.tsx';
 import { overviewRows, leversOf, LEVEL_WORD, type Level } from '../lib/overview.ts';
-import { RowView, Badge, plain, nb, toneOfLevel, WaistSheet, type Tone } from '@/components/result-v4';
+import { RowView, Badge, plain, nb, toneOfLevel, WaistSheet, peerName, ME_CAP, bpUnknown, type Tone } from '@/components/result-v4';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
@@ -27,17 +27,21 @@ const H2 = ({ children, side }: { children: ReactNode; side?: ReactNode }) => (
 const pc = (v: number) => (v < 1 ? '1% 미만' : `${Math.round(v)}%`);
 /** 받침에 맞는 조사 */
 const josa = (w: string, a: string, b: string) => { const c = w.charCodeAt(w.length - 1) - 0xac00; return c >= 0 && c <= 11171 && c % 28 ? a : b; };
-/** 나의 예상 가능성 21% / 40대 남성 평균 14% */
-function MePeer({ me, peer, group, tone }: { me: number; peer: number | null | undefined; group: string; tone: Tone }) {
+/** 실측 보정 항목: 비교 평균 = 진단받지 않은 같은 나이대 실측 (engine calibrate.ts) */
+const CAL = ['dm', 'htn', 'chol', 'osteo'];
+/** 나의 추정 가능성 21% / 50대 남성 실측 평균 15% — 숫자마다 기준을 한 줄로 (출시 전 수정 A6) */
+function MePeer({ me, peer, group, tone, id, inp }: { me: number; peer: number | null | undefined; group: string; tone: Tone; id: ItemId; inp: Parameters<typeof peerName>[1] }) {
+  const pn = id === 'nafld' || CAL.includes(id) ? peerName(id, inp, group) : { name: `${group} 평균`, cap: '' };
   return (
-    <div className="flex flex-col gap-1.5 rounded-[12px] bg-paper px-4 py-3">
-      <span className="flex items-baseline justify-between gap-3"><span className="text-[15px] text-ink-2">나의 예상 가능성</span><b className={cn('text-[24px] leading-none font-semibold tabular-nums', TXT[tone])}>{pc(me)}</b></span>
-      {peer != null && <span className="flex items-baseline justify-between gap-3"><span className="text-[15px] text-ink-soft">{group} 평균</span><span className="text-[17px] text-ink-soft tabular-nums">{pc(peer)}</span></span>}
+    <div className="flex flex-col gap-2.5 rounded-[12px] bg-paper px-4 py-3">
+      <span className="flex flex-col gap-0.5"><span className="flex items-baseline justify-between gap-3"><span className="text-[15px] text-ink-2">나의 추정 가능성</span><b className={cn('text-[24px] leading-none font-semibold tabular-nums', TXT[tone])}>{pc(me)}</b></span>{ME_CAP[id] && <span className="text-[12px] leading-[1.5] text-mute">{ME_CAP[id]}</span>}</span>
+      {peer != null && <span className="flex flex-col gap-0.5"><span className="flex items-baseline justify-between gap-3"><span className="text-[15px] text-ink-soft">{pn.name}</span><span className="text-[17px] text-ink-soft tabular-nums">{pc(peer)}</span></span>{pn.cap && <span className="text-[12px] leading-[1.5] text-mute">{pn.cap}</span>}</span>}
     </div>
   );
 }
-/** 또래와 견준 한 줄: 높음 '또래보다 고혈압 가능성이 높아요.' · 낮음 '…낮아요.' · 비슷 '고혈압 가능성이 또래와 비슷해요.' */
-const cmpLine = (name: string, d: 1 | 0 | -1) => (d === 0 ? `${name} 가능성이 또래와 비슷해요.` : `또래보다 ${name} 가능성이 ${d > 0 ? '높아요' : '낮아요'}.`);
+/** 견준 한 줄: 높음 '또래보다 고혈압 가능성이 높아요.' · 비슷 '고혈압 가능성이 또래와 비슷해요.'
+ *  지방간은 비교 평균이 성인 전체라 '또래' 대신 '성인 남성 평균' */
+const cmpLine = (name: string, d: 1 | 0 | -1, who = '또래') => (d === 0 ? `${name} 가능성이 ${who}${josa(who, '과', '와')} 비슷해요.` : `${who}보다 ${name} 가능성이 ${d > 0 ? '높아요' : '낮아요'}.`);
 
 /** 위치 막대: 점 하나 + 양 끝 말 */
 function Bar({ at, tone, ends, label }: { at: number; tone: Tone; ends: [string, string]; label: string }) {
@@ -72,7 +76,7 @@ export function Detail({ id }: { id: ItemId }) {
   if (row?.kind === 'prob' && rank != null && row.num?.me != null) {
     const lv = (row.level ?? 1) as Level, tone = toneOfLevel(lv), high = rank >= 50, n = high ? 101 - rank : rank;
     hero = (<>
-      <Badge t={LEVEL_WORD[lv]} tone={tone} />
+      <span className="flex flex-wrap gap-1.5"><Badge t={LEVEL_WORD[lv]} tone={tone} />{id === 'htn' && bpUnknown(inp) && <Badge t="혈압 모름 · 재 보면 더 정확해요" tone="gray" />}</span>
       <p className="m-0 flex flex-wrap items-baseline gap-x-[5px]">
         <span className="whitespace-nowrap text-[15px] text-ink-soft">{d.group} 중</span>
         <span className="inline-flex items-baseline gap-[5px] whitespace-nowrap">
@@ -82,8 +86,8 @@ export function Detail({ id }: { id: ItemId }) {
         <span className="whitespace-nowrap text-[13px] text-mute">(100명 중)</span>
       </p>
       <Bar at={rank} tone={tone} ends={['안전', '위험']} label={`${d.group} 100명 중 ${n}번째로 ${high ? '위험' : '안전'}`} />
-      <p className="m-0 border-t border-hair pt-3.5 text-[15px] font-semibold">{cmpLine(NAMES[id], lv >= 2 ? 1 : lv === 0 ? -1 : 0)}</p>
-      <MePeer me={row.num.me} peer={row.num.peer} group={d.group} tone={lv >= 3 ? 'red' : 'gray'} />
+      <p className="m-0 border-t border-hair pt-3.5 text-[15px] font-semibold">{cmpLine(NAMES[id], lv >= 2 ? 1 : lv === 0 ? -1 : 0, id === 'nafld' ? `성인 ${inp.sex === 'F' ? '여성' : '남성'} 평균` : '또래')}</p>
+      <MePeer me={row.num.me} peer={row.num.peer} group={d.group} tone={lv >= 3 ? 'red' : 'gray'} id={id} inp={inp} />
     </>);
   } else if (row && row.kind !== 'prob') {
     hero = <div className="-my-4"><RowView r={row} inp={inp} first onWaist={() => setSheet(true)} /></div>;
@@ -94,7 +98,7 @@ export function Detail({ id }: { id: ItemId }) {
     hero = (<>
       <Badge t={word} tone={tone} />
       <p className="m-0 text-[15px] font-semibold">{cmpLine(NAMES[id], x >= 1.2 ? 1 : x <= 0.8 ? -1 : 0)}</p>
-      <MePeer me={me} peer={peer} group={d.group} tone={tone === 'red' ? 'red' : 'gray'} />
+      <MePeer me={me} peer={peer} group={d.group} tone={tone === 'red' ? 'red' : 'gray'} id={id} inp={inp} />
     </>);
   } else if (r.status === 'ok' && !d.isProb && r.value != null) {
     hero = (<>
@@ -144,21 +148,22 @@ export function Detail({ id }: { id: ItemId }) {
         );
       })()}
 
-      {d.bands.length > 0 && (() => {
+      {d.bands.length > 0 && id !== 'nafld' && (() => {
         // 막대 = 나이대별 평균 가능성(%), 점선 = 나의 예상 가능성. 막대 높이는 92px 안에서 (위 16px는 숫자 자리)
         // 막대 숫자는 막대 아래(나이 위)에 두어 점선과 겹치지 않게. 점선 이름표는 그래프 위 범례로
         const me = d.isProb && r.value != null ? r.value : null, H = 104;
         const scale = Math.max(top, me ?? 0, 1) * 1.08, y = (v: number) => Math.max(4, (v / scale) * H);
         const lineCls = row?.level != null && row.level >= 3 ? 'border-risk' : row?.level === 0 ? 'border-good' : 'border-ink-2';
-        const sex = inp.sex === 'F' ? '여성' : '남성';
+        const sex = inp.sex === 'F' ? '여성' : '남성', cal = CAL.includes(id);
+        const title = cal ? '나이대별 실측 평균' : `나이대별 ${NAMES[id]} 가능성`, legend = cal ? `진단받지 않은 ${sex}` : `${sex} 평균`;
         return (
-          <Box label={`나이대별 ${NAMES[id]} 가능성`} className="gap-3">
-            <H2 side="단위 %">나이대별 {NAMES[id]} 가능성</H2>
+          <Box label={title} className="gap-3">
+            <H2 side="단위 %">{title}</H2>
             <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[12px] text-ink-2">
-              <span className="inline-flex items-center gap-1.5"><i className="size-2.5 rounded-[3px] bg-[#e6e6e3]" />{sex} 평균</span>
-              {me != null && <span className="inline-flex items-center gap-1.5"><i className={cn('w-4 border-t-2 border-dashed', lineCls)} />나의 예상 가능성 <b className="font-semibold text-ink">{pc(me)}</b></span>}
+              <span className="inline-flex items-center gap-1.5"><i className="size-2.5 rounded-[3px] bg-[#e6e6e3]" />{legend}</span>
+              {me != null && <span className="inline-flex items-center gap-1.5"><i className={cn('w-4 border-t-2 border-dashed', lineCls)} />나의 추정 가능성 <b className="font-semibold text-ink">{pc(me)}</b></span>}
             </div>
-            <div role="img" aria-label={`나이대별 ${sex} 평균 ${NAMES[id]} 가능성${me != null ? `, 나의 예상 가능성 ${pc(me)}` : ''}`} className="relative">
+            <div role="img" aria-label={`${title} (${legend})${me != null ? `, 나의 추정 가능성 ${pc(me)}` : ''}`} className="relative">
               <div className="grid h-[104px] grid-cols-6 items-end gap-2 border-b border-track">
                 {d.bands.map((b) => <i key={b.l} className={cn('w-full rounded-t-md', b.mine ? 'bg-ink' : 'bg-[#e6e6e3]')} style={{ height: y(b.v) }} />)}
               </div>
@@ -172,7 +177,7 @@ export function Detail({ id }: { id: ItemId }) {
                 </span>
               ))}
             </div>
-            {d.isProb && <p className="m-0 text-[12px] leading-[1.55] text-mute">이미 진단받은 사람은 빼고 계산했어요.</p>}
+            {d.isProb && <p className="m-0 text-[12px] leading-[1.55] text-mute">이미 진단받은 사람은 빼고 계산했어요.{cal && <><br />국민건강영양조사 2022–2024</>}</p>}
           </Box>
         );
       })()}
