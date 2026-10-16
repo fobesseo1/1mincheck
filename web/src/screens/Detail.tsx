@@ -135,9 +135,10 @@ export function Detail({ id }: { id: ItemId }) {
             {/* 캔버스 'Detail' 그대로: 오른쪽 위 '○○ 가능성' 머리말, 줄마다 왼쪽 이름 / 지금 → 바꾼 값, 오른쪽 지금 %(줄 그음) → 바꾼 뒤 %(크게 초록) */}
             <p className="m-0 mb-1.5 self-end text-right text-[13px] text-mute">{NAMES[id]} 가능성</p>
             {levers.map((l) => (
-              <div key={l.key} className="flex items-center gap-3 border-t border-hair py-3.5">
+              // 이름 · 바꾼 값과 % 가 한 줄에 안 들어가면(좁은 화면 · 글자 크게) % 가 아랫줄 오른쪽으로
+              <div key={l.key} className="flex flex-wrap items-center gap-x-3 gap-y-1.5 border-t border-hair py-3.5">
                 <b className="flex flex-1 flex-col text-[15px] font-semibold">{l.name}<span className="whitespace-nowrap">{l.from} → {l.to}</span></b>
-                <span className="flex items-baseline gap-1 whitespace-nowrap">
+                <span className="ml-auto flex items-baseline gap-1 whitespace-nowrap">
                   <s className="text-[13px] text-[#9a9a96] tabular-nums">{pc(l.now)}</s><ArrowRight className="size-3.5 self-center text-[#9a9a96]" />
                   <b className="text-[22px] leading-none font-semibold text-good tabular-nums">{pc(l.after)}</b>
                 </span>

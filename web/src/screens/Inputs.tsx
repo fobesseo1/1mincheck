@@ -62,7 +62,7 @@ export const fieldCard = 'flex flex-col gap-2 rounded-card bg-white px-[18px] py
 function NumField({ label, unit, value, onChange, id, right, foot, error, onBlur }: { label: string; unit: string; value: string; onChange: (v: string) => void; id: string; right?: ReactNode; foot?: ReactNode; error?: string | null; onBlur?: () => void }) {
   return (
     <div className={cn(fieldCard, error && 'shadow-[inset_0_0_0_2px_var(--color-risk)]')}>
-      <span className="flex items-center justify-between"><label htmlFor={id} className="text-[13px] text-ink-soft">{label}</label>{right}</span>
+      <span className="flex flex-wrap items-center justify-between gap-x-2 gap-y-1"><label htmlFor={id} className="text-[13px] text-ink-soft">{label}</label>{right}</span>
       <label htmlFor={id} className="flex items-baseline gap-0.5">
         <input id={id} className={numCls} inputMode="decimal" value={value} placeholder="0" onChange={(e) => onChange(cleanNum(e.target.value))} onBlur={onBlur}
           aria-invalid={!!error || undefined} aria-describedby={error ? `${id}-err` : undefined}
@@ -114,7 +114,8 @@ export function Info() {
       <H1 a="먼저 몸 정보를" b="알려 주세요" />
       <Help className="-mt-2 text-[13px]">{'이 기기 안에서만 계산해요.\n가족 것을 대신 넣어도 돼요.'}</Help>
       <Choice q="성별" value={d.sex} onChange={(v) => set({ sex: v })} options={[{ v: 'M' as const, t: '남성' }, { v: 'F' as const, t: '여성' }]} />
-      <div className="grid grid-cols-2 gap-3">
+      {/* 칸 하나가 126px보다 좁아지면(글자를 크게 쓰는 사람) 한 줄에 하나씩 */}
+      <div className="grid grid-cols-[repeat(auto-fit,minmax(126px,1fr))] gap-3">
         <NumField id="age" label="만 나이" unit="세" value={d.age} onChange={(v) => set({ age: v })} error={fe('age')} onBlur={leave('age')} />
         <NumField id="h" label="키" unit="cm" value={d.height} onChange={(v) => set({ height: v })} error={fe('height')} onBlur={leave('height')} />
         <NumField id="w" label="몸무게" unit="kg" value={d.weight} onChange={(v) => set({ weight: v })} error={fe('weight')} onBlur={leave('weight')} />
@@ -182,7 +183,7 @@ export function Life() {
         options={[{ v: 'unknown' as const, t: '모름' }, { v: 'normal' as const, t: '정상', s: '120/80 미만' }, { v: 'elevated' as const, t: '주의', s: '120–139 / 80–89' }, { v: 'high' as const, t: '높음', s: '140 / 90 이상' }]} />
       <Optional label="혈압 숫자를 알면 (선택)" keys={['sbp', 'dbp']} note={bpNum ? `${({ normal: '정상', elevated: '주의', high: '높음', unknown: '모름' } as const)[bpNum]}으로 계산해요` : '두 숫자를 넣으면 위 답이 저절로 골라져요'} />
       <Optional label="최근 공복혈당을 알면 (선택)" keys={['glu']} />
-      <Button asChild variant="link" size="sm" className="self-center"><a href="#/labs">건강검진 결과지가 있으면 숫자를 넣어 보세요</a></Button>
+      <Button asChild variant="link" size="sm" className="h-auto min-h-8 self-center whitespace-normal text-center"><a href="#/labs">건강검진 결과지가 있으면 숫자를 넣어 보세요</a></Button>
       <Grow />
       <Next error={lifeError(d)} to={nextOf(d, 'life')} label={nextOf(d, 'life') === '/result' ? '결과 보기' : '다음: 관심 분야 고르기'} />
     </Screen>

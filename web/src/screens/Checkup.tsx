@@ -31,9 +31,9 @@ export function LabField({ l }: { l: LabDef }) {
     </div>
   );
   return (
-    <label htmlFor={`lab-${l.key}`} className="flex items-center justify-between gap-3 border-t border-hair py-3 first-of-type:border-t-0">
-      <span className="flex flex-col gap-0.5"><b className="text-[15px] font-medium">{name}</b>{sub && <span className="text-[12px] text-mute">{sub}</span>}{err && <span id={`lab-${l.key}-err`} role="alert" className="text-[12px] leading-snug font-medium text-risk">{err}</span>}</span>
-      <span className="flex h-12 w-32 flex-none items-baseline justify-end gap-0.5 rounded-[12px] bg-paper px-3 pt-3 focus-within:bg-white focus-within:shadow-[inset_0_0_0_2px_var(--color-ink)]">
+    <label htmlFor={`lab-${l.key}`} className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 border-t border-hair py-3 first-of-type:border-t-0">
+      <span className="flex min-w-0 flex-1 basis-24 flex-col gap-0.5"><b className="text-[15px] font-medium">{name}</b>{sub && <span className="text-[12px] text-mute">{sub}</span>}{err && <span id={`lab-${l.key}-err`} role="alert" className="text-[12px] leading-snug font-medium text-risk">{err}</span>}</span>
+      <span className="ml-auto flex h-12 w-32 flex-none items-baseline justify-end gap-0.5 rounded-[12px] bg-paper px-3 pt-3 focus-within:bg-white focus-within:shadow-[inset_0_0_0_2px_var(--color-ink)]">
         <input id={`lab-${l.key}`} inputMode="decimal" placeholder="–" value={v} onChange={(e) => set(cleanNum(e.target.value))} onBlur={() => setLeft(true)} aria-invalid={!!err || undefined} aria-describedby={err ? `lab-${l.key}-err` : undefined}
           className="w-full min-w-0 border-0 bg-transparent p-0 text-right text-[22px] leading-none font-semibold text-ink tabular-nums outline-none placeholder:text-[#c4c4c0]" />
         {l.unit && <span className="flex-none text-[12px] text-ink-soft">{l.unit.replace('mL/min', 'mL/분')}</span>}

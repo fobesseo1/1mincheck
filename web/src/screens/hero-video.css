@@ -26,6 +26,7 @@
   .hv { height: auto; min-height: 100svh; }
   .hv-inner { grid-template-columns: 1fr; gap: 40px; width: calc(100% - 48px); padding: 132px 0 64px; text-align: center; }
   .hv-actions { justify-content: center; }
+  .lm-page .hv h1, .hv h1 { white-space: normal; }   /* 한 칸 배치에선 줄바꿈 허용: 글자를 크게 쓰는 사람에게 '궁금할 때'가 화면 밖으로 나가지 않게 (보통 폭에선 그대로 한 줄) */
   .hv-screen { justify-self: center; max-width: 620px; }
   .hv-shade { background: linear-gradient(0deg, rgba(8, 28, 5, .85) 0%, rgba(8, 28, 5, .55) 55%, rgba(8, 28, 5, .35) 100%); }
 }

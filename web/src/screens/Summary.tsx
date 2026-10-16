@@ -5,6 +5,7 @@ import type { ReactNode } from 'react';
 import { Printer } from 'lucide-react';
 import { Nav } from '../ui.tsx';
 import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 import { suggestScenario, today, ALC_LABEL, type AppInput } from '../state.ts';
 import { viewResults, labOf } from '../lib/view.ts';
 import { verdictB, scopeOf, B_NAME, probB } from '../lib/b.ts';
@@ -16,6 +17,8 @@ import { bpUnknown } from '@/components/result-v4';
 const H = ({ children }: { children: ReactNode }) => <h2 className="mt-[22px] mb-2 text-[15px] font-semibold">{children}</h2>;
 const K = 'w-[38%] border-b border-hair px-2 py-2 align-top text-[13px] text-ink-soft';
 const V = 'border-b border-hair px-2 py-2 align-top text-[13px]';
+/** 4칸 표: 화면이 아주 좁을 때(글자를 크게 쓰는 사람, 240px 미만)만 칸 여백을 줄여 카드 안에 들게 */
+const TIGHT = '@max-[240px]:px-[3px]';
 const TH = 'border-b border-sand px-2 py-[7px] text-left text-[12px] font-medium text-ink-soft';
 /** '·'로 이은 목록은 항목 사이에서만 줄이 바뀌게 */
 const List = ({ t }: { t: string }) => <>{t.split(' · ').map((x, j, a) => <span key={j}><span className="whitespace-nowrap">{x}{j < a.length - 1 ? ' ·' : ''}</span>{' '}</span>)}</>;
@@ -31,14 +34,14 @@ export function Summary() {
   const ob = r.score.find((s) => s.id === 'obesity')!;
   const cutCm = inp.sex === 'F' ? 85 : 90;
   return (
-    <div className="mx-auto flex min-h-dvh max-w-[440px] flex-col gap-4 bg-paper px-5 pt-3 pb-8 print:max-w-none print:bg-white print:p-0">
+    <div className="@container mx-auto flex min-h-dvh max-w-[440px] flex-col gap-4 bg-paper px-5 pt-3 pb-8 print:max-w-none print:bg-white print:p-0">
       <div className="no-print flex flex-col gap-2.5">
         <Nav back="/result" title="진료용 요약" sub="인쇄하거나 PDF로 저장" />
         <Button size="lg" className="w-full" onClick={() => window.print()}><Printer /> 인쇄·PDF로 저장</Button>
         <p className="m-0 text-center text-[12px] leading-[1.6] text-mute">인쇄 창에서 ‘PDF로 저장’을 고르면 파일로 남아요.<br />서버로 보내지 않아요.</p>
       </div>
 
-      <article className="rounded-card bg-white px-[18px] pt-[22px] pb-5 leading-normal text-ink">
+      <article className="rounded-card bg-white px-[18px] pt-[22px] @max-[240px]:px-3 pb-5 leading-normal text-ink">
         <h1 className="m-0 text-[19px] font-semibold">1분체크 결과 요약 <span className="text-[12px] font-normal text-mute">(참고용 추정)</span></h1>
         <p className="m-0 mt-1 text-[12px] text-ink-soft">작성일 {today()} · 이 기기에서 계산<br />{NOT_DIAGNOSIS}</p>
 
@@ -66,12 +69,12 @@ export function Summary() {
 
         <H>질환 가능성 추정 (지금 상태)</H>
         <table className="w-full border-collapse">
-          <thead><tr><th className={TH}>항목</th><th className={TH}>추정 가능성</th><th className={TH}>비교 평균</th><th className={TH}>비고</th></tr></thead>
+          <thead><tr><th className={cn(TH, TIGHT)}>항목</th><th className={cn(TH, TIGHT)}>추정 가능성</th><th className={cn(TH, TIGHT)}>비교 평균</th><th className={cn(TH, TIGHT)}>비고</th></tr></thead>
           <tbody>{est.map((p) => { const b = probB(p);
-            return <tr key={p.id}><td className={V}>{(B_NAME[p.id] ?? p.title).replace('고콜레스테롤', '이상지질혈증')}</td>
-              <td className={V}><b className="font-semibold">{b.kind === 'estimate' || b.kind === 'range' ? `${p.pct}%` : b.big}</b></td>
-              <td className={V}>{p.cmp ? <>{p.peerTxt}%{p.id === 'nafld' && <sup>*</sup>}</> : '–'}</td>
-              <td className={`${V} text-[12px] text-ink-soft`}>{b.kind === 'estimate' ? b.freq.replace('나와 비슷한 사람 ', '').replace(' 정도예요', '') : b.kind === 'range' ? '모르는 답이 있어 범위' : b.label}{p.id === 'htn' && bpUnknown(inp) && <span className="block">혈압 모름</span>}</td></tr>; })}</tbody>
+            return <tr key={p.id}><td className={cn(V, TIGHT)}>{(B_NAME[p.id] ?? p.title).replace('고콜레스테롤', '이상지질혈증')}</td>
+              <td className={cn(V, TIGHT)}><b className="font-semibold">{b.kind === 'estimate' || b.kind === 'range' ? `${p.pct}%` : b.big}</b></td>
+              <td className={cn(V, TIGHT)}>{p.cmp ? <>{p.peerTxt}%{p.id === 'nafld' && <sup>*</sup>}</> : '–'}</td>
+              <td className={cn(V, TIGHT, 'text-[12px] text-ink-soft')}>{b.kind === 'estimate' ? b.freq.replace('나와 비슷한 사람 ', '').replace(' 정도예요', '') : b.kind === 'range' ? '모르는 답이 있어 범위' : b.label}{p.id === 'htn' && bpUnknown(inp) && <span className="block">혈압 모름</span>}</td></tr>; })}</tbody>
         </table>
         <p className="m-0 mt-1.5 text-[11px] leading-[1.6] text-mute">비교 평균 = 진단받지 않은 {r.group}의 실측 비율<br />(국민건강영양조사 2022–2024).{est.some((p) => p.id === 'nafld') && <><br />* 지방간은 성인 {inp.sex === 'F' ? '여성' : '남성'} 전체 평균(2016–18년, 다른 판정 기준).</>}</p>
 

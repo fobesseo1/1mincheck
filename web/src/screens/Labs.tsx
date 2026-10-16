@@ -46,7 +46,7 @@ export function LabsInput() {
       )}
       {LAB_GROUPS.map(([w, t, h]) => (
         <Card key={w} className="px-[18px] py-1.5">
-          <div className="flex items-baseline justify-between gap-2 pt-3 pb-1"><b className="text-[15px] font-semibold">{t}</b><span className="text-right text-[12px] text-mute">{h}</span></div>
+          <div className="flex flex-wrap items-baseline justify-between gap-x-2 pt-3 pb-1"><b className="text-[15px] font-semibold">{t}</b><span className="ml-auto text-right text-[12px] text-mute">{h}</span></div>
           {LABS.filter((l) => l.group === w).map((l) => <LabField key={l.key} l={l} />)}
         </Card>
       ))}
@@ -92,9 +92,12 @@ export function LabRow({ c, first }: { c: LabCard; first: boolean }) {
     <div className={cn('flex flex-col gap-2 py-4', !first && 'border-t border-hair')}>
       <span className="self-start"><Badge t={c.zone} tone={tone} /></span>
       <div className="flex items-center gap-2">
-        <b className="flex w-[104px] flex-none flex-col text-[17px] leading-tight font-semibold whitespace-nowrap">{name}{sub && <span className="text-[12px] font-normal text-mute">{sub}</span>}</b>
-        <span className="flex min-w-0 flex-1 items-baseline">
-          <b className={cn('leading-none font-semibold tabular-nums', isWord ? 'text-[17px]' : 'text-[24px]', tone !== 'gray' && TXT[tone])}>{c.value}{unit && !isWord && <span className="text-[12px] font-normal text-ink-soft">{unit}</span>}</b>
+        {/* 이름 · 수치는 한 덩어리: 자리가 모자라면(글자를 크게 쓰는 사람) 수치가 이름 아래로. '132/84mmHg'는 붙인 채로 */}
+        <span className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-1">
+          <b className="flex w-[104px] flex-none flex-col text-[17px] leading-tight font-semibold whitespace-nowrap">{name}{sub && <span className="text-[12px] font-normal text-mute">{sub}</span>}</b>
+          <span className="flex flex-1 items-baseline">
+            <b className={cn('leading-none font-semibold whitespace-nowrap tabular-nums', isWord ? 'text-[17px]' : 'text-[24px]', tone !== 'gray' && TXT[tone])}>{c.value}{unit && !isWord && <span className="text-[12px] font-normal text-ink-soft">{unit}</span>}</b>
+          </span>
         </span>
         <More open={open} onClick={() => setOpen((x) => !x)} />
       </div>
@@ -105,7 +108,7 @@ export function LabRow({ c, first }: { c: LabCard; first: boolean }) {
             <span className={cn('absolute top-1/2 box-border size-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-[3px] border-white ring-1', DOT[tone])} style={{ left: `${Math.min(97, Math.max(3, c.pos * 100))}%` }} />
           </div>
           <div className="grid gap-[3px] text-center text-[11px] text-[#9a9a96]" style={{ gridTemplateColumns: `repeat(${n}, minmax(0, 1fr))` }}>
-            {c.zones.map((z, k) => k === c.at ? <b key={z.name} className={cn('whitespace-nowrap font-semibold', TXT[tone])}>{zs(z.name)}</b> : <span key={z.name} className="whitespace-nowrap">{zs(z.name)}</span>)}
+            {c.zones.map((z, k) => k === c.at ? <b key={z.name} className={cn('font-semibold', TXT[tone])}>{zs(z.name)}</b> : <span key={z.name}>{zs(z.name)}</span>)}
           </div>
         </div>
       )}
