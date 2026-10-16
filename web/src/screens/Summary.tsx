@@ -16,7 +16,7 @@ import { bpUnknown } from '@/components/result-v4';
 const H = ({ children }: { children: ReactNode }) => <h2 className="mt-[22px] mb-2 text-[15px] font-semibold">{children}</h2>;
 const K = 'w-[38%] border-b border-hair px-2 py-2 align-top text-[13px] text-ink-soft';
 const V = 'border-b border-hair px-2 py-2 align-top text-[13px]';
-const TH = 'whitespace-nowrap border-b border-sand px-2 py-[7px] text-left text-[12px] font-medium text-ink-soft';
+const TH = 'border-b border-sand px-2 py-[7px] text-left text-[12px] font-medium text-ink-soft';
 /** '·'로 이은 목록은 항목 사이에서만 줄이 바뀌게 */
 const List = ({ t }: { t: string }) => <>{t.split(' · ').map((x, j, a) => <span key={j}><span className="whitespace-nowrap">{x}{j < a.length - 1 ? ' ·' : ''}</span>{' '}</span>)}</>;
 /** 문장 끝마다 줄바꿈 */
@@ -71,7 +71,7 @@ export function Summary() {
             return <tr key={p.id}><td className={V}>{(B_NAME[p.id] ?? p.title).replace('고콜레스테롤', '이상지질혈증')}</td>
               <td className={V}><b className="font-semibold">{b.kind === 'estimate' || b.kind === 'range' ? `${p.pct}%` : b.big}</b></td>
               <td className={V}>{p.cmp ? <>{p.peerTxt}%{p.id === 'nafld' && <sup>*</sup>}</> : '–'}</td>
-              <td className={`${V} whitespace-nowrap text-[12px] text-ink-soft`}>{b.kind === 'estimate' ? b.freq.replace('나와 비슷한 사람 ', '').replace(' 정도예요', '') : b.kind === 'range' ? '모르는 답이 있어 범위' : b.label}{p.id === 'htn' && bpUnknown(inp) && <span className="block">혈압 모름</span>}</td></tr>; })}</tbody>
+              <td className={`${V} text-[12px] text-ink-soft`}>{b.kind === 'estimate' ? b.freq.replace('나와 비슷한 사람 ', '').replace(' 정도예요', '') : b.kind === 'range' ? '모르는 답이 있어 범위' : b.label}{p.id === 'htn' && bpUnknown(inp) && <span className="block">혈압 모름</span>}</td></tr>; })}</tbody>
         </table>
         <p className="m-0 mt-1.5 text-[11px] leading-[1.6] text-mute">비교 평균 = 진단받지 않은 {r.group}의 실측 비율<br />(국민건강영양조사 2022–2024).{est.some((p) => p.id === 'nafld') && <><br />* 지방간은 성인 {inp.sex === 'F' ? '여성' : '남성'} 전체 평균(2016–18년, 다른 판정 기준).</>}</p>
 
